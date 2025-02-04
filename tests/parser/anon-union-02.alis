@@ -1,0 +1,2 @@
+// Expected Result: 1 Anonymous Union made
+alias _ = union {int i, j = 10; float f;};

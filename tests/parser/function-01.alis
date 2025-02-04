@@ -1,0 +1,5 @@
+// Expected Result: Function Declarations Made
+fn fun1() -> int;
+fn fun2(int a = 0, int b = 1)-> int; 
+fn fun3(int a, int b = 1)-> int;
+

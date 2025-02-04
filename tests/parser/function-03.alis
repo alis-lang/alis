@@ -1,0 +1,15 @@
+// Expected Result: Functions with Templates Made
+
+fn sum $($type T) if (someCondition) (T a, T b)-> T {
+	return a + b;
+}
+
+fn sum $($type T) (T a, T b)-> T {
+	return a + b;
+}
+
+template sum $($type T) {
+	fn this(T a, T b)-> T {
+		return a + b;
+	}
+}

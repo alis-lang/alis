@@ -1,0 +1,4 @@
+// Expected Result: (Error) Attributes must not be placed in beginning while declaring Local Variable
+utest "Attributes"{
+	#attr5 var TYPE var1;
+}

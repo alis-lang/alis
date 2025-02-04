@@ -1,0 +1,5 @@
+// Expected Result: 6 modules imported
+import MODULE_NAME_1;
+import MODULE_NAME_2, MODULE_NAME_3;
+import MODULE_NAME_4 as x;
+import MODULE_NAME_5 as y, MODULE_NAME_6 as z;

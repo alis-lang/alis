@@ -1,0 +1,25 @@
+// Expected Result: 4 Static For-Loops made in a union
+union u  {
+	int k=0;
+
+	$for (valType value; range){
+		writeln(value);
+	}
+
+	// non-empty body
+	$for (counterIdent; valType valIdent; range){
+		k+=1;
+	}
+
+	// with Square Brackets LiteralArrayExpr range 
+	$for (counterIdent; valType valIdent; [0,1,2,3,4]){
+		writeln(counterIdent, valIdent);
+	}
+
+	// with Round Brackets LiteralArrayExpr range
+	$for (counterIdent; valType valIdent; [5,6,7,8,9]){
+		writeln(counterIdent, valIdent);
+	}
+
+
+}

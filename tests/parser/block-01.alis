@@ -1,0 +1,15 @@
+//Expected Result: 1 Empty Block and 1 Non-Empty Block made
+
+utest "Block" {
+	{
+		//Empty Block
+	}
+
+	var int i;
+
+	{
+		//Non-Empty Block
+		i = 10;
+	}
+
+}

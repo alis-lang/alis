@@ -1,0 +1,7 @@
+// Expected Result: 1 Enum made with 3 members
+
+enum TYPE EnumName{
+	Red = 1,
+	Blue = 2,
+	Green = 3
+}

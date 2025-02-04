@@ -1,0 +1,11 @@
+//Expected Result: 1 Empty Block-Expression and 1 Non-Empty Block-Expression made
+
+utest "Block Expression" {
+	fn sum()-> int{
+		return sum;
+	};
+
+	fn sum()->int {
+		//Empty Block Expression
+	};
+}

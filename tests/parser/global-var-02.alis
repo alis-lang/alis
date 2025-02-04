@@ -1,0 +1,2 @@
+// Expected Result: (Error) Global var cannot be static
+#attr1 #attr2 var static int i = 1, j = 2;

@@ -1,0 +1,11 @@
+// Expected Result: Template Mixin'd
+template mixin mixinTemplate $(alias F : @fn ()->void, uint times){
+	$for (auto i; range(0, times)){
+		F();
+	}
+}
+
+utest "MixinStatement"{
+	mixin xTimes (foo, 5);
+}
+

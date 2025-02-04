@@ -1,0 +1,2 @@
+// Expected Result: 2 Global Variables made with 2 attributes.
+#attr1 #attr2 var int i = 1, j = 2; 

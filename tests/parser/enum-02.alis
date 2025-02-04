@@ -1,0 +1,7 @@
+// Expected Result: 1 Enum made with 3 members
+
+enum TYPE EnumName{
+	FileNotFound = 1, // Default value
+	InvalidPath = 1 << 1, // Constant Expression
+	PermissionDenied // No default value
+}

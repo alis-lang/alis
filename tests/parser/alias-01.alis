@@ -1,0 +1,8 @@
+// Expected Result: 2 Alias made
+
+struct Position{ 
+	pub int x, y;
+}
+
+pub alias Coordinate = Position;
+ipub alias X = f() + 5;

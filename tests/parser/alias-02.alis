@@ -1,0 +1,2 @@
+//Expected Result: Alias made with templates
+alias X $($type T) = T;

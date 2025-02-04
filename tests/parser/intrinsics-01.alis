@@ -1,0 +1,37 @@
+// Expected Result: Function Declarations Made
+utest "Intrinsics"{
+	var $type(int) myIntType;
+	var $noinit a = $noInitVal;
+	var $int(32) b;
+	var $uint(32) c;
+	var $float(32) d;
+	var $char(32) e;
+	
+	var $slice(int) f;
+	var $array(float) g;
+	var $arrayLenSetter(T) h;
+
+	writeln($seqLen(f));
+	writeln($seqInd(f,3));
+
+
+	if ($debug) {
+		$err($stackTrace);
+	}
+
+	if ($isType(int)) {
+		writeln("int is a valid type");
+	}
+
+	writeln($typeOf(a));
+
+	var Foo f;
+ 	writeln($unionIs(f) == $unionIs(f.bar));
+
+	writeln($attrsOf(Base));
+	writeln($byAttrs(Base, vt));
+}
+
+struct Base{
+	$vt _ = {name = "Base"};
+}

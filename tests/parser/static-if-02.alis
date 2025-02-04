@@ -1,0 +1,19 @@
+// Expected Result: 2 blocks of static if conditions in a union
+union u  {
+
+	// condition with else body
+	$if condition {
+		int x = 1;
+	} else {
+		int x = 2;
+	}
+
+	// condition with else and else-if bodies
+	$if (x > 0) {
+		int z = 3;
+	} else $if (x < 0) {
+		int z = 4;
+	} else {
+		int z = 5;
+	}
+}

@@ -1,0 +1,41 @@
+name "alis"
+description "a scripting language"
+authors "Nafees Hassan" "Sheikh Muhammad Talha" "Usman Amjad"
+copyright "Copyright © 2024, Nafees Hassan, Sheikh Muhammad Talha, Usman Amjad"
+license "proprietary"
+dependency "utils" version="~>0.9.0"
+configuration "default" {
+	targetType "executable"
+	targetName "alis"
+	versions "standalone"
+}
+configuration "library" {
+	targetType "library"
+	targetName "alis"
+	versions "library"
+}
+configuration "lexer" {
+	targetType "executable"
+	targetName "alis-lexer"
+	versions "lexer"
+}
+configuration "parser" {
+	targetType "executable"
+	targetName "alis-parser"
+	versions "parser"
+}
+configuration "semantic" {
+	targetType "executable"
+	targetName "alis-semantic"
+	versions "semantic"
+}
+configuration "codegen" {
+	targetType "executable"
+	targetName "alis-codegen"
+	versions "codegen"
+}
+configuration "vm" {
+	targetType "executable"
+	targetName "alis-vm"
+	versions "vm"
+}

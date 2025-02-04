@@ -1,0 +1,4 @@
+// Expected Result: 2 local static variables
+utest "Local-Variable" {
+	var #attr1 #attr2 static int i = 1, j = 2;
+}

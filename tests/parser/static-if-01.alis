@@ -1,0 +1,15 @@
+// Expected Result: 3 blocks of static if conditions in a union
+union u  {
+	int x;
+
+	// condition with round brackets and empty body
+	$if condition1 {}
+
+	// condition without round brackets and empty body
+	$if (condition2) {} 
+
+	// condition with non-empty body
+	$if condition3 {
+		x = 1;
+	}
+}

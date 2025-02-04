@@ -1,0 +1,23 @@
+// Expected Result: Function Declarations and Definitions Made
+
+//With no return stement
+fn NAME PARAM_LIST -> RETURN_TYPE{
+}
+
+//With no value returned
+fn NAME PARAM_LIST -> RETURN_TYPE{
+	return;
+}
+
+//With 1 value returned
+fn NAME PARAM_LIST -> RETURN_TYPE{
+	return RETURN_VALUE;
+}
+
+
+//With multiple return statements
+fn NAME PARAM_LIST -> RETURN_TYPE{
+	return RETURN_VALUE;
+	return RETURN_VALUE_2;
+}
+

@@ -1,0 +1,19 @@
+// Expected Result: Templates made
+template globalVar $($type T){
+	var T this;
+}
+
+template square $(int x){
+	enum int this = getSquare(x); // function call will be made at compile time
+	fn getSquare(int x)-> x * x;
+}
+
+template sum $(T x, T y, $type T){
+	enum T this = x + y;
+}
+
+//Condtions
+template conditionalTemplate $($type T) if (someCondition(T)){
+	enum string this = "bar";
+}
+

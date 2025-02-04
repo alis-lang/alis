@@ -1,0 +1,12 @@
+//Expected Result: Struct and StructLiteralExpression made with cComp
+struct User{
+	pub int marks;
+	pub string username;
+}
+
+var User u0 = {
+	username = "abcd", 
+	$if(condition){
+		marks = 5
+	}
+};

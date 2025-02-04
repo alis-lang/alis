@@ -1,0 +1,14 @@
+// Expected Result: 2 Enums made with templates
+
+template TypeName $($type T){
+	$if (T is int)
+		enum string this = "int";
+	else $if (T is double)
+		enum string this = "double";
+	else $if (T is string)
+		enum string this = "string";
+	else
+		enum string this = "weird type";
+}
+
+enum string TypeName $($type T) = doSomethingAtCompileTime();

@@ -1,0 +1,6 @@
+// Expected Result: 2 Variables made with attributes
+#attr1 var TYPE var0;
+#attr2 #attr3 #attr4 var TYPE var0;
+utest "Attributes"{
+	var #attr5 TYPE var1;
+}

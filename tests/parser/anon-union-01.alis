@@ -1,0 +1,7 @@
+// Expected Result: 1 Anonymous Union mdade
+utest "AnonymousUnion" {
+	union {
+		int i, j = 10;
+		float f;
+	};
+}

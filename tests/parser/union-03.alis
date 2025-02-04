@@ -1,0 +1,15 @@
+// Expected Result: (Error) Union cannot have mixed named and unnamed members
+union unionUnnamed {
+	int i;
+	float;
+
+	$if(someCondition){
+		alias this;
+	}
+
+	$for (counterIdent; valType valIdent; range)
+	{
+		int k;
+	}
+
+}

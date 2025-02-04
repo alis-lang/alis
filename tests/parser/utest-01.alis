@@ -1,0 +1,16 @@
+// Expected Result: 1 empty utest, 2 non-empty utest made
+
+utest {
+	
+}
+
+
+utest {
+	var int i = 0;
+}
+
+
+utest "Named-UTest" {
+	var int i = 0;
+}
+

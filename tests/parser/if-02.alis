@@ -1,0 +1,19 @@
+// Expected Result: 2 blocks of if conditions
+utest "If-Else-Condition" {
+
+	// condition with else body
+	if condition {
+		var int x = 1;
+	} else {
+		var int x = 2;
+	}
+
+	// condition with else and else-if bodies
+	if (x > 0) {
+		var int z = 3;
+	} else if (x < 0) {
+		var int z = 4;
+	} else {
+		var int z = 5;
+	}
+}

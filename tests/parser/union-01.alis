@@ -1,0 +1,15 @@
+// Expected Result: Named Union Made
+union unionNamed {
+	int i, j = 10;
+	float f;
+
+	$if(someCondition){
+		alias this = i;
+	}
+
+	$for (counterIdent; valType valIdent; range)
+	{
+		int k = 20;
+	}
+	
+}

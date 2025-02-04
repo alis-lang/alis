@@ -1,0 +1,23 @@
+// Expected Result: 4 blocks of while loops with different conditon data-types
+utest "WhileLoop"{
+
+	var int conditionI = 1;
+	var float conditionF = 2.34343;
+	var char conditionC = '%';
+	var bool conditionB = false;
+
+	//Condition as int
+	while conditionB
+		writeln();
+
+	//Condition as float
+	while (conditionF && conditionI){
+		writeln();
+	}
+
+	//Condition as char
+	while (conditionC < 5.0){
+
+	}
+	
+}

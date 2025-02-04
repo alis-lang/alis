@@ -1,0 +1,6 @@
+// Expected Result: List of 4 AggMembers made
+union u {
+	int i, j = 10;
+	#attr1 #attr2 ipub alias y = x;
+	float x;
+}

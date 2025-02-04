@@ -1,0 +1,10 @@
+//Expected Result: 2 Structs made with templates
+struct Position $($type T) if someCondition(T) {
+	T x, y;
+}
+
+template Coordinates $($type T){
+	struct this{
+		T x, y;
+	}
+}

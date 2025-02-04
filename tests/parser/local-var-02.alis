@@ -1,0 +1,4 @@
+// Expected Result: (Error) Variable should be declared with 'var'
+utest "Local-Variale-Error" {
+	#attr1 #attr2 static int i = 1, j = 2;
+}

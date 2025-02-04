@@ -1,0 +1,19 @@
+// Expected Result: 3 Switches
+union u {
+
+	//Control-Expression without round-brackets
+	$switch option
+	case "read" {  var string line = readln; }
+	case "write" {line.writeln; }
+	case _ {}
+
+	//Control-Expression with round-brackets
+	$switch (option)
+	case "read" {  var string line = readln; }
+	case "write" {line.writeln; }
+	case _ {}
+
+	//Without default case
+	$switch option
+	case _ {}
+}

@@ -1,0 +1,27 @@
+// Expected Result: 2 local static variables
+utest "Literals" {
+	var int i = 1;
+	var float j = 2.34343;
+	var char k = '%';
+	var bool l = false;
+	var bool m = true;
+	var string n = "Hello";
+	var string o = """
+					THIS IS A LONG String
+					A really long one.
+					I don't like this format.
+					Why Nafees, why?
+					""";
+	var $array(int) p = [1, 2, 3];
+	var $slice(int) q = p;
+
+	var int r = 0x1F;
+	var int s = 0b1010;
+	var float t = 1.23e4;
+	var char u = 'Z';
+	var bool v = true;
+	var $array(float) w = [1.1, 2.2, 3.3];
+	var $slice(float) x = w;
+	var $array(string) y = ["One", "Two", "Three"];
+	var $slice(string) z = y;
+}

@@ -1,0 +1,3 @@
+// Expected Result: (Error) Attributes must be placed in beginning while declaring Global Variable
+var #attr1 TYPE var0;
+

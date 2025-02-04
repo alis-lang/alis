@@ -1,0 +1,13 @@
+start:
+	pshI4 0
+loop:
+	get 4 0
+	printI4
+	printS "\n"
+
+	incAI4 0
+	pshI4 100000
+	get 4 0
+	cmpI4
+	jmpC @loop
+end:

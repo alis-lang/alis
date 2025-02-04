@@ -1,0 +1,18 @@
+// Expected Result: 3 blocks of while loops with 1 of them empty
+utest "WhileLoop"{
+
+	//Condition without brackets
+	while someCondition
+		writeln();
+
+	//Condition with brackets
+	while (someCondition){
+		writeln();
+	}
+
+	//Empty Body
+	while (someCondition){
+
+	}
+	
+}

@@ -1,0 +1,14 @@
+// Expected Result: (Error) Function with Return-Type but no return statement
+
+fn NAME PARAM_LIST -> int{
+
+	if false {
+		return 5;
+	}
+}
+
+fn NAME PARAM_LIST -> RETURN_TYPE{
+
+}
+
+

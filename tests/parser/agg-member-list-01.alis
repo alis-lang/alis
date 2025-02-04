@@ -1,0 +1,4 @@
+// Expected Result: List of 1 AggMember made
+union u {
+	 #attr1 #attr2 pub int i = 0;
+}

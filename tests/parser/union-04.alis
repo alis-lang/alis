@@ -1,0 +1,5 @@
+// Expected Result: Union made with Templates
+union Optional $($type T) if ($isType(T)){
+	pub T val;
+	pub void none;
+}

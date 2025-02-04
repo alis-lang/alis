@@ -1,0 +1,14 @@
+// Expected Result: Aggregations Mixin'd
+template mixin Types $($type T...){
+$for ($type t; T){
+	t;
+}
+}
+
+union Foo{
+	mixin Types(int, float, string);
+}
+
+struct Foo {
+	mixin Types(int, float, string);
+}

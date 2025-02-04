@@ -1,0 +1,12 @@
+// Expected Result: Struct Made
+struct MyStruct {
+	int i, j = 10;
+	float f;
+
+	$if(someCondition){
+		alias this = i;
+	}
+	
+}
+
+var MyStruct s = {i = 5, f= 0.5};

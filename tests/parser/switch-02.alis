@@ -1,0 +1,8 @@
+// Expected Result: (Error) No default case present/
+utest  "Switch-Case" {
+
+	switch option
+	case "read" {  var string line = readln; }
+	case "write" {line.writeln; }
+
+}

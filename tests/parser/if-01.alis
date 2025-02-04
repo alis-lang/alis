@@ -1,0 +1,13 @@
+// Expected Result: 3 blocks of if conditions with 2 of them empty
+utest "If-Condition" {
+
+	if condition1 {}
+
+	if (condition2) {} 
+
+	if condition3 {
+		var int x = 1;
+	}
+
+	
+}

@@ -1,0 +1,24 @@
+// Expected Result: 4 For-Loops made
+utest "For-Loop"  {
+
+	// without counterIdent
+	for (valType value; range){
+ 		writeln(value);
+	}
+
+	// with counterIdent
+	for (counterIdent; valType valIdent; range){
+		writeln(counterIdent, valIdent);
+	}
+
+	// with Square Brackets LiteralArrayExpr range 
+	for (counterIdent; valType valIdent; [0,1,2,3,4]){
+		writeln(counterIdent, valIdent);
+	}
+
+	// with Round Brackets LiteralArrayExpr range
+	for (counterIdent; valType valIdent; [5,6,7,8,9]){
+		writeln(counterIdent, valIdent);
+	}
+
+}

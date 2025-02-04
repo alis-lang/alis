@@ -1,0 +1,6 @@
+// Expected Result: 1 local variable made without 'var'
+utest "Local-Variable-Without-Var"{
+	$if condition {
+		int i = 1, j = 2;
+	}
+}

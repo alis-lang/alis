@@ -1,0 +1,5 @@
+// Expected Result: 1 Local variable made and initialized
+utest "Local-Variable-Initialized-Late" {
+	var int i;
+	i = 1;
+}
