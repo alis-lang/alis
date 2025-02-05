@@ -2466,12 +2466,58 @@ void postOpAssignCompound(OpAssignCompound expr){
 void postOpAndBin(OpAndBin expr){
 	// translate to:
 	// bool{if lhs { if rhs return true; } return false;}
-	// TODO
+	BlockExpr next = new BlockExpr;
+	BoolExpr boolType = new BoolExpr;
+	Block block = new Block;
+	If ifA = new If,
+		 ifB = new If;
+	Return retTrue = new Return,
+				 retFalse = new Return;
+	BoolLiteralExpr boolTrue = new BoolLiteralExpr,
+									boolFalse = new BoolLiteralExpr;
+	next.pos = block.pos = boolType.pos = ifA.pos = ifB.pos = retTrue.pos =
+		retFalse.pos = boolTrue.pos = boolFalse.pos = expr.pos ;
+	next.parent = expr;
+	expr.next = next;
+	next.type = boolType;
+	next.block = block;
+	block.statements = [ifA, retFalse];
+	ifA.condition = expr.lhs;
+	ifA.onTrue = ifB;
+	ifB.condition = expr.rhs;
+	ifB.onTrue = retTrue;
+	retTrue.val = boolTrue;
+	retFalse.val = boolFalse;
+	boolTrue.val = true;
+	boolFalse.val = false;
 }
 
 @PFn
 void postOpOrBin(OpOrBin expr){
 	// translate to:
 	// bool{if lhs return true; if rhs return true; return false;}
-	// TODO
+	BlockExpr next = new BlockExpr;
+	BoolExpr boolType = new BoolExpr;
+	Block block = new Block;
+	If ifA = new If,
+		 ifB = new If;
+	Return retTrue = new Return,
+				 retFalse = new Return;
+	BoolLiteralExpr boolTrue = new BoolLiteralExpr,
+									boolFalse = new BoolLiteralExpr;
+	next.pos = block.pos = boolType.pos = ifA.pos = ifB.pos = retTrue.pos =
+		retFalse.pos = boolTrue.pos = boolFalse.pos = expr.pos ;
+	next.parent = expr;
+	expr.next = next;
+	next.type = boolType;
+	next.block = block;
+	block.statements = [ifA, ifB, retFalse];
+	ifA.condition = expr.lhs;
+	ifA.onTrue = retTrue;
+	ifB.condition = expr.rhs;
+	ifB.onTrue = retTrue;
+	retTrue.val = boolTrue;
+	retFalse.val = boolFalse;
+	boolTrue.val = true;
+	boolFalse.val = false;
 }
