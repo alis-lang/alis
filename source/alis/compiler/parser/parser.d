@@ -19,6 +19,12 @@ import std.meta,
 
 debug import std.stdio;
 
+/// ASTNode location
+struct Location{
+	size_t line;
+	size_t col;
+}
+
 /// parent to all nodes
 public abstract class ASTNode{
 protected:
@@ -26,13 +32,14 @@ protected:
 	/// returns: JSON representation
 	JSONValue jsonOf() const pure {
 		JSONValue ret;
-		ret["location"] = JSONValue([line, col]);
+		ret["location.line"] = JSONValue(pos.line);
+		ret["location.col"] = JSONValue(pos.col);
 		ret["_name"] = "ASTNode";
 		return ret;
 	}
 public:
 	/// location in source code
-	size_t line, col;
+	Location pos;
 	/// returns: JSON representation
 	JSONValue toJson() const pure {
 		return this.jsonOf;
@@ -634,8 +641,8 @@ Switch:
 
 	private pragma(inline, true) static void postFn(N)(N node,
 			size_t line, size_t col){
-		node.line = line;
-		node.col = col;
+		node.pos.line = line;
+		node.pos.col = col;
 		static foreach (F; PostFnsFor!(N, P))
 			F(node);
 	}

@@ -67,8 +67,7 @@ CmpErrVal!Module parseModule(ref TokRange toks){
 			if (auto vars = cast(VarDefList)subC){
 				foreach (VarDef v; vars.defs){
 					v.attrs = attrs.val;
-					v.col = vars.col;
-					v.line = vars.line;
+					v.pos = vars.pos;
 				}
 			}
 			def.def = subC;
@@ -131,8 +130,7 @@ CmpErrVal!AggMemberList parseAggMemberList(ref TokRange toks) {
 
 	if (P.expectPop!(TT.Alias)(toks)){
 		AggMemberAlias aliasMember = new AggMemberAlias;
-		aliasMember.line = front.line;
-		aliasMember.col = front.col;
+		aliasMember.pos = Location(front.line, front.col);
 
 		if (!P.expect!(TT.Identifier)(toks))
 			return CmpErrVal!AggMemberList(errUnxpTok(toks.front,
@@ -449,8 +447,7 @@ CmpErrVal!FnDef parseFnDef(ref TokRange toks){
 		BlockExpr expr = new BlockExpr;
 		expr.type = exprA.val;
 		expr.block = block.val;
-		expr.line = expr.type.line;
-		expr.col = expr.type.col;
+		expr.pos = expr.type.pos;
 		ret.body = expr;
 	} else {
 		ret.body = exprA.val;
@@ -927,8 +924,7 @@ CmpErrVal!DefStatement parseDefStatement(ref TokRange toks){
 	if (auto vars = cast(VarDefList)(def.val)){
 		foreach (VarDef v; vars.defs){
 			v.attrs = attrs.val;
-			v.col = vars.col;
-			v.line = vars.line;
+			v.pos = vars.pos;
 		}
 	}
 	ret.def = def.val;
@@ -2390,8 +2386,7 @@ CmpErrVal!IdentExpr parseIdentExpr(ref TokRange toks){
 	else
 		expr = new IdentExpr;
 	expr.ident = front.token;
-	expr.line = front.line;
-	expr.col = front.col;
+	expr.pos = Location(front.line, front.col);
 
 	return CmpErrVal!IdentExpr(expr);
 }
@@ -2402,8 +2397,7 @@ void postOpPost(OpPostExprOverridable expr){
 	next.parent = expr;
 	LiteralStringExpr opExpr = new LiteralStringExpr;
 	IdentExpr callee = new IdentExpr;
-	opExpr.line = next.line = callee.line = expr.line;
-	opExpr.col = next.col = callee.col = expr.col;
+	opExpr.pos = next.pos = callee.pos = expr.pos;
 	next.callee = callee;
 	callee.ident = "opPost";
 	next.params = [opExpr, expr.operand];
@@ -2417,8 +2411,7 @@ void postOpPre(OpPreExprOverridable expr){
 	next.parent = expr;
 	LiteralStringExpr opExpr = new LiteralStringExpr;
 	IdentExpr callee = new IdentExpr;
-	opExpr.line = next.line = callee.line = expr.line;
-	opExpr.col = next.col = callee.col = expr.col;
+	opExpr.pos = next.pos = callee.pos = expr.pos;
 	next.callee = callee;
 	callee.ident = "opPre";
 	next.params = [opExpr, expr.operand];
@@ -2432,8 +2425,7 @@ void postOpBin(OpBinExprOverridable expr){
 	next.parent = expr;
 	LiteralStringExpr opExpr = new LiteralStringExpr;
 	IdentExpr callee = new IdentExpr;
-	opExpr.line = next.line = callee.line = expr.line;
-	opExpr.col = next.col = callee.col = expr.col;
+	opExpr.pos = next.pos = callee.pos = expr.pos;
 	next.callee = callee;
 	callee.ident = "opBin";
 	next.params = [opExpr, expr.lhs, expr.rhs];
@@ -2446,8 +2438,7 @@ void postOpIndex(OpIndexExpr expr){
 	OpCallExpr next = new OpCallExpr;
 	next.parent = expr;
 	IdentExpr callee = new IdentExpr;
-	next.line = callee.line = expr.line;
-	next.col = callee.col = expr.col;
+	next.pos = callee.pos = expr.pos;
 	next.callee = callee;
 	callee.ident = "opIndex";
 	next.params = expr.lhs ~ expr.indexes;
@@ -2464,10 +2455,23 @@ void postOpAssignCompound(OpAssignCompound expr){
 	next.lhs = expr.lhs;
 	IdentExpr callee = new IdentExpr;
 	LiteralStringExpr opIdent = new LiteralStringExpr;
-	opIdent.line = callee.line = next.line = op.line = expr.line;
-	opIdent.col = callee.col = next.col = op.col = expr.col;
+	opIdent.pos = callee.pos = next.pos = op.pos = expr.pos;
 	callee.ident = "opBin";
 	opIdent.val = expr.op[0 .. $ - 1];
 	op.callee = callee;
 	op.params = [opIdent, expr.lhs, expr.rhs];
+}
+
+@PFn
+void postOpAndBin(OpAndBin expr){
+	// translate to:
+	// bool{if lhs { if rhs return true; } return false;}
+	// TODO
+}
+
+@PFn
+void postOpOrBin(OpOrBin expr){
+	// translate to:
+	// bool{if lhs return true; if rhs return true; return false;}
+	// TODO
 }
