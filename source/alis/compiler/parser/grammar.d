@@ -1385,7 +1385,7 @@ CmpErrVal!CommaExpr parseCommaExpr(ref TokRange toks, Expression prev){
 		ret = new CommaExpr;
 		ret.exprs = [prev];
 	}
-	CmpErrVal!Expression rhs = P.parseExpr!(DEF_P, Expression)(toks);
+	CmpErrVal!Expression rhs = P.parseExpr!(MAX_P, Expression)(toks);
 	if (rhs.isErr)
 		return CmpErrVal!CommaExpr(rhs.err);
 	ret.exprs ~= rhs.val;
@@ -2107,7 +2107,7 @@ CmpErrVal!OpIndexExpr parseOpIndexExpr(ref TokRange toks, Expression prev){
 @Bin!"{" // }
 CmpErrVal!BlockExpr parseBlockExpr(ref TokRange toks, Expression prev){
 	assert(toks.front.type.get!(TT.OpCurly));
-	toks.popFront;
+	//toks.popFront;
 	BlockExpr ret = new BlockExpr;
 	ret.type = prev;
 	CmpErrVal!Block block = P.parse!Block(toks);
