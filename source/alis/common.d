@@ -35,7 +35,8 @@ public struct ADataType{
 		ubyte x; /// X-bits for `IntX`, `UIntX`, `FloatX`, or `CharX`
 		ADataType* refT; /// type being referenced, for `Ref`
 		ADataType* elemT; /// element type for `Slice` or `Array`
-		string nameS; /// name of symbol, for `Sym` TODO: fix it? maybe?
+		string nameS; /// name of symbol, for `Sym`
+									/// TODO: maybe should store expression instead?
 		struct{
 			bool isUnique; /// whether it is a unique type, for `Struct` or `Union`
 			string nameT; /// name, if any, for `Struct` or `Union`
