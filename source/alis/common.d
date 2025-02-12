@@ -93,6 +93,7 @@ public struct ADataType{
 	bool isConst;
 	/// possible Data Types
 	enum Type{
+		Seq, /// a sequence of types
 		Int, /// an integer, `ptrdiff_t`
 		IntX, /// an integer of X bits
 		UInt, /// an unsigned integer, `size_t`
@@ -118,6 +119,7 @@ public struct ADataType{
 		ADataType* elemT; /// element type for `Slice` or `Array`
 		string nameS; /// name of symbol, for `Sym`
 									/// TODO: maybe should store expression instead?
+		ADataType[] seqT; /// type sequence, for `Seq`
 		struct{
 			bool isUnique; /// whether it is a unique type, for `Struct` or `Union`
 			string nameT; /// name, if any, for `Struct` or `Union`
