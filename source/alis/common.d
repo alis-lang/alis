@@ -1,5 +1,99 @@
 module alis.common;
 
+import std.string,
+			 std.format,
+			 std.typecons,
+			 std.algorithm;
+
+/// an Alis CompileTime Value
+public struct AValCT{
+	/// possible types
+	enum Type{
+		Literal, /// some Literal value
+		Symbol, /// an Alias to a symbol
+		Type, /// a Data Type
+	}
+	/// currently stored type
+	Type type;
+	union{
+		struct{
+			ubyte[] dataL; /// data for `Literal`
+			ADataType typeL; /// data type for `Literal`
+		}
+		ASymbol symS; /// symbol for `Symbol`
+		ADataType typeT; /// data type for `Type`
+	}
+
+	string toString() const pure {
+		final switch (type){
+			case Type.Literal:
+				// TODO decode `dataL` through `typeL`
+				break;
+			case Type.Symbol:
+				return symS.toString;
+			case Type.Type:
+				return typeT.toString;
+		}
+		return null; // TODO
+	}
+}
+
+/// an identiier node
+public struct IdentNode{
+	/// the identifier
+	string ident;
+	/// parameters, if any
+	AValCT[] params;
+	/// next IdentNode, if any, otherwise `null`
+	IdentNode* next;
+	/// Returns: string representation
+	@property string toString() const pure {
+		string ret = ident;
+		if (params)
+			ret = format!"%s(%s)"(ret, params.map!(p => p.toString).join(","));
+		if (next)
+			return format!"%s.%s"(ret, next.toString);
+		return ret;
+	}
+}
+
+/// a symbol
+public struct ASymbol{
+public:
+	/// symbol name (in its own local scope)
+	string name;
+	/// identifier
+	IdentNode ident;
+	/// possible Symbol types
+	enum Type{
+		Struct,
+		Union,
+		Enum,
+		EnumMember,
+		EnumConst,
+		FParam,
+		Fn,
+		Var,
+		Alias,
+		Import,
+		TParam,
+		Template,
+	}
+	// TODO: complete ASymbol
+	/// Returns: string representation
+	@property string toString() const pure {
+		return ident.toString;
+	}
+}
+
+/// an Alis Module
+public class AModule{
+	/// struct definitions
+	AStruct[] structs;
+	/// union definitions
+	AUnion[] unions;
+}
+
 /// A resolution chain node.
 public struct Resolution{
 private:
@@ -111,14 +205,11 @@ public struct ADataType{
 		Union, /// a union
 		Enum, /// an enum
 		Auto, /// yet to be inferred
-		Sym, /// a symbol
 	}
 	union{
 		ubyte x; /// X-bits for `IntX`, `UIntX`, `FloatX`, or `CharX`
 		ADataType* refT; /// type being referenced, for `Ref`
 		ADataType* elemT; /// element type for `Slice` or `Array`
-		string nameS; /// name of symbol, for `Sym`
-									/// TODO: maybe should store expression instead?
 		ADataType[] seqT; /// type sequence, for `Seq`
 		struct{
 			bool isUnique; /// whether it is a unique type, for `Struct` or `Union`
@@ -129,42 +220,48 @@ public struct ADataType{
 			}
 		}
 	}
+
+	string toString() const pure {
+		// TODO implement ADataType.toString
+		return "NOT YET IMPLEMENTED";
+	}
+}
+
+/// Alis virtual table
+public struct AVT{
+
 }
 
 /// Alis struct
 public struct AStruct{
-	/// maps member names to member data types. Aliases are not part of this
-	ADataType[string] members;
-	/// aliases
-	string[string] aliases;
+	/// types of members
+	ADataType[] types;
+	/// byte offsets for members
+	size_t[] offsets;
+	/// maps member names/aliases to index in `types` and `offsets`
+	size_t[string] nameInds;
+	/// Virtual Table, if any
+	AVT* vt;
+	/// whether this has an `alias this = X`. the member being aliased to `this`
+	/// will be at index 0 in `types` and `offsets`
+	bool hasBase;
 }
 
 /// Alis union
 public struct AUnion{
 	/// types of members
 	ADataType[] types;
-	/// member names, mapped to their indexes in `types`
-	size_t[string] nameInds;
-	/// whether this is an unnamed union
+	/// byte offsets for members
+	size_t[] offsets;
+	/// maps member names/aliases to index in `types` and `offsets`
+	size_t[string] names;
+	/// whether this has an `alias this = X`. the member being aliased to `this`
+	/// will be at index 0 in `types` and `offsets`
+	bool hasBase;
+	/// Returns: true if this is an unnamed union
 	@property bool isUnnamed() const pure {
-		return nameInds.length != types.length;
+		return names.length == 0;
 	}
-}
-
-/// a symbol
-public struct ASymbol{
-public:
-	/// symbol name (in its own local scope)
-	string name;
-	// TODO implement ASymbol
-}
-
-/// an Alis Module
-public class AModule{
-	/// struct definitions
-	AStruct[string] defStructs;
-	/// union definitions
-	AUnion[string] defUnions;
 }
 
 // TODO implement rest of alis/common.d
