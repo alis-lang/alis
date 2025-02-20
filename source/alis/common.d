@@ -206,10 +206,11 @@ public struct ADataType{
 		Enum, /// an enum
 		Auto, /// yet to be inferred
 	}
+	/// type
+	Type type;
 	union{
 		ubyte x; /// X-bits for `IntX`, `UIntX`, `FloatX`, or `CharX`
-		ADataType* refT; /// type being referenced, for `Ref`
-		ADataType* elemT; /// element type for `Slice` or `Array`
+		ADataType* refT; /// type being referenced, for `Ref`, `Slice`, or `Array`
 		ADataType[] seqT; /// type sequence, for `Seq`
 		struct{
 			bool isUnique; /// whether it is a unique type, for `Struct` or `Union`
@@ -222,8 +223,45 @@ public struct ADataType{
 	}
 
 	string toString() const pure {
-		// TODO implement ADataType.toString
-		return "NOT YET IMPLEMENTED";
+		final switch (type){
+			case Type.Seq:
+				return "(" ~ seqT.map!(t => t.toString).join(",") ~ ")";
+			case Type.Int:
+				return "int";
+			case Type.IntX:
+				return x.format!"$int(%d)";
+			case Type.UInt:
+				return "uint";
+			case Type.UIntX:
+				return x.format!"$uint(%d)";
+			case Type.Float:
+				return "float";
+			case Type.FloatX:
+				return x.format!"$float(%d)";
+			case Type.Char:
+				return "char";
+			case Type.CharX:
+				return x.format!"$char(%d)";
+			case Type.Bool:
+				return "bool";
+			case Type.Slice:
+				return (*refT).toString.format!"$slice(%s)";
+			case Type.Array:
+				return (*refT).toString.format!"$array(%s)";
+			case Type.Fn:
+				// TODO: implement ADataType.Type.Fn .toString
+			case Type.Ref:
+				return (*refT).toString.format!"@%s";
+			case Type.Struct:
+				// TODO: implement ADataType.Type.Struct .toString
+			case Type.Union:
+				// TODO: implement ADataType.Type.Union .toString
+			case Type.Enum:
+				// TODO: implement ADataType.Type.Enum .toString
+			case Type.Auto:
+				return "auto";
+		}
+		assert(false);
 	}
 }
 
