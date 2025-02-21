@@ -34,7 +34,7 @@ public struct AValCT{
 			case Type.Type:
 				return typeT.toString;
 		}
-		return null; // TODO
+		return null;
 	}
 }
 
@@ -80,7 +80,11 @@ public:
 		Template,
 	}
 	// TODO: complete ASymbol
-	/// Returns: string representation
+	union{
+		AStruct* structS; /// struct for `Type.Struct`
+		AUnion* unionS; /// union for `Type.Union`
+	}
+	/// Returns: string representation, equivalent to `ASymbol.ident.toString`
 	@property string toString() const pure {
 		return ident.toString;
 	}
