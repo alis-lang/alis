@@ -6,6 +6,12 @@ module alis.compiler.common;
 import std.conv,
 			 std.format;
 
+/// ASTNode location
+struct Location{
+	size_t line;
+	size_t col;
+}
+
 /// A possibly erroneous value.
 public struct ErrVal(T, E){
 	private bool _isErr;

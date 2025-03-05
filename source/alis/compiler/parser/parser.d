@@ -3,7 +3,8 @@ Parser Base
 +/
 module alis.compiler.parser.parser;
 
-import alis.compiler.lexer,
+import alis.compiler.common,
+			 alis.compiler.lexer,
 			 alis.compiler.error;
 
 import utils.ds;
@@ -18,12 +19,6 @@ import std.meta,
 			 std.string;
 
 debug import std.stdio;
-
-/// ASTNode location
-struct Location{
-	size_t line;
-	size_t col;
-}
 
 /// parent to all nodes
 public abstract class ASTNode{
