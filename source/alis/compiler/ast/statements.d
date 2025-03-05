@@ -95,7 +95,7 @@ public:
 	Statement onFalse;
 }
 
-/// for statement node, with T as body
+/// for statement node
 public class For : Statement{
 protected:
 	override JSONValue jsonOf() const pure {
