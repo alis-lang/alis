@@ -37,3 +37,31 @@ public:
 		this.op = "?";
 	}
 }
+
+/// OpNotNot binary operator
+public class OpNotNotBin : OpBinExpr{
+protected:
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["_name"] = "OpNotNotBin";
+		return ret;
+	}
+public:
+	this(){
+		this.op = "!!";
+	}
+}
+
+/// OpQQ binary operator
+public class OpQQBin : OpBinExpr{
+protected:
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["_name"] = "OpQQBin";
+		return ret;
+	}
+public:
+	this(){
+		this.op = "??";
+	}
+}
