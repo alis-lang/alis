@@ -18,10 +18,10 @@ public struct AValCT{
 	union{
 		struct{
 			ubyte[] dataL; /// data for `Literal`
-			ADataType typeL; /// data type for `Literal`
+			ADataType* typeL; /// data type for `Literal`
 		}
-		ASymbol symS; /// symbol for `Symbol`
-		ADataType typeT; /// data type for `Type`
+		ASymbol* symS; /// symbol for `Symbol`
+		ADataType* typeT; /// data type for `Type`
 	}
 
 	string toString() const pure {
@@ -83,6 +83,15 @@ public:
 	union{
 		AStruct* structS; /// struct for `Type.Struct`
 		AUnion* unionS; /// union for `Type.Union`
+		struct{
+			AEnum* enumS; /// enum for `Type.Enum`, `Type.EnumMember`, or
+										/// `Type.EnumConst`
+			string enumMember; /// enum member name for `Type.EnumMember`
+		}
+		struct{
+			AFn* fnS; /// function for `Type.Fn`, or `Type.FParam`
+			string fnParam; /// fparam name for `Type.FParam`
+		}
 	}
 	/// Returns: string representation, equivalent to `ASymbol.ident.toString`
 	@property string toString() const pure {
@@ -91,11 +100,25 @@ public:
 }
 
 /// an Alis Module
-public class AModule{
-	/// struct definitions
+public struct AModule{
+	/// structs
 	AStruct[] structs;
-	/// union definitions
+	/// unions
 	AUnion[] unions;
+	/// enums
+	AEnum[] enums;
+	/// enum consts
+	AEnumConst[] enumConsts;
+	/// functions
+	AFn[] fns;
+	/// variables
+	AVar[] vars;
+	/// aliases
+	AAlias[] aliases;
+	/// imports
+	AImport[] imports;
+	/// templates
+	ATemplate[] templates;
 }
 
 /// A resolution chain node.
@@ -192,13 +215,9 @@ public struct ADataType{
 	/// possible Data Types
 	enum Type{
 		Seq, /// a sequence of types
-		Int, /// an integer, `ptrdiff_t`
 		IntX, /// an integer of X bits
-		UInt, /// an unsigned integer, `size_t`
 		UIntX, /// an unsigned integer of X bits
-		Float, /// a floating point number, `double`
 		FloatX, /// a floating point number of X bits
-		Char, /// a character of 8 bits
 		CharX, /// a character of X bits
 		Bool, /// a boolean
 		Slice, /// a slice
@@ -208,7 +227,7 @@ public struct ADataType{
 		Struct, /// a struct
 		Union, /// a union
 		Enum, /// an enum
-		Auto, /// yet to be inferred
+		Auto, /// yet to be inferred. TODO: remove this maybe
 	}
 	/// type
 	Type type;
@@ -222,6 +241,7 @@ public struct ADataType{
 			union{
 				AStruct* structT; /// struct type, for `Struct`
 				AUnion* unionT; /// union type, for `Union`
+				AEnum* enumT; /// enum type, for `Enum`
 			}
 		}
 	}
@@ -230,20 +250,12 @@ public struct ADataType{
 		final switch (type){
 			case Type.Seq:
 				return "(" ~ seqT.map!(t => t.toString).join(",") ~ ")";
-			case Type.Int:
-				return "int";
 			case Type.IntX:
 				return x.format!"$int(%d)";
-			case Type.UInt:
-				return "uint";
 			case Type.UIntX:
 				return x.format!"$uint(%d)";
-			case Type.Float:
-				return "float";
 			case Type.FloatX:
 				return x.format!"$float(%d)";
-			case Type.Char:
-				return "char";
 			case Type.CharX:
 				return x.format!"$char(%d)";
 			case Type.Bool:
@@ -271,7 +283,7 @@ public struct ADataType{
 
 /// Alis virtual table
 public struct AVT{
-
+	// TODO: what to store in AVT?
 }
 
 /// Alis struct
@@ -304,6 +316,64 @@ public struct AUnion{
 	@property bool isUnnamed() const pure {
 		return names.length == 0;
 	}
+}
+
+/// Alis Enum
+public struct AEnum{
+	/// Data Type. This will be `struct{}` in case of empty emum
+	ADataType type;
+	/// member names, mapped to their values
+	ubyte[][string] members;
+}
+
+/// Alis Enum Constant
+public struct AEnumConst{
+	/// type
+	ADataType type;
+	/// value bytes
+	ubyte[] data;
+}
+
+/// Alis Function
+public struct AFn{
+	/// return type
+	ADataType retT;
+	/// parameter types
+	ADataType[] paramT;
+	/// parameter offsets
+	size_t[] paramOffsets;
+	/// parameter names
+	string[] paramNames;
+	/// parameter default values bytes
+	ubyte[] paramValues;
+	/// how many parameters must be provided
+	size_t paramRequired;
+}
+
+/// Alis Variable
+public struct AVar{
+	/// data type
+	ADataType type;
+	/// offset
+	size_t offset;
+}
+
+/// Alis Alias
+public struct AAlias{
+	// TODO: what to store in AAlias
+}
+
+/// Alis Import
+public struct AImport{
+	/// module being imported
+	string[] modIdent;
+	/// aliased name, if any
+	string name;
+}
+
+/// Alis Template
+public struct ATemplate{
+	// TODO: what to store in ATemplate
 }
 
 // TODO implement rest of alis/common.d
