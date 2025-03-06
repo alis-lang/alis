@@ -8,8 +8,25 @@ import alis.common,
 			 alis.compiler.ast;
 
 import std.json,
+			 std.conv,
 			 std.array,
 			 std.algorithm;
+
+/// Resolved Function
+public class RFn : DefNode{
+protected:
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["body"] = body.toJson;
+		ret["fn"] = fn.to!string;
+		return ret;
+	}
+public:
+	/// body
+	RExpr body;
+	/// function details
+	AFn* fn;
+}
 
 /// Resovled Statement
 public abstract class RStatement : Statement{
@@ -190,7 +207,7 @@ protected:
 	}
 public:
 	/// identifier
-	IdentNode* ident;
+	Ident* ident;
 }
 
 /// Resolved Block Expression
