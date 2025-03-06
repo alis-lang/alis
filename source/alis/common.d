@@ -5,6 +5,23 @@ import std.string,
 			 std.typecons,
 			 std.algorithm;
 
+/// Alis Context
+public struct ACtx{
+	/// true if global scope, false if local scope
+	bool isGlobal;
+	/// symbol table, if `type` is `Type.Global` or `Type.Local`
+	/// maps ident.toString to symbols
+	ASymbol[string] stab;
+}
+
+/// Alis Context VT based
+public struct ACtxVT{
+	/// offset of CVT, if `type ==  Type.CVT`
+	size_t cvtOffset;
+	/// cvt structure, if `type == Type.CVT`
+	AVT* cvt;
+}
+
 /// an Alis CompileTime Value
 public struct AValCT{
 	/// possible types
@@ -39,18 +56,18 @@ public struct AValCT{
 }
 
 /// an identiier node
-public struct IdentNode{
+public struct Ident{
 	/// the identifier
 	string ident;
 	/// parameters, if any
 	AValCT[] params;
-	/// next IdentNode, if any, otherwise `null`
-	IdentNode* next;
+	/// next Ident, if any, otherwise `null`
+	Ident* next;
 	/// Returns: string representation
 	@property string toString() const pure {
 		string ret = ident;
 		if (params)
-			ret = format!"%s(%s)"(ret, params.map!(p => p.toString).join(","));
+			ret = format!"%s(%s)"(ident, params.map!(p => p.toString).join(","));
 		if (next)
 			return format!"%s.%s"(ret, next.toString);
 		return ret;
@@ -63,7 +80,7 @@ public:
 	/// symbol name (in its own local scope)
 	string name;
 	/// identifier
-	IdentNode ident;
+	Ident ident;
 	/// possible Symbol types
 	enum Type{
 		Struct,
@@ -283,7 +300,18 @@ public struct ADataType{
 
 /// Alis virtual table
 public struct AVT{
-	// TODO: what to store in AVT?
+	/// types of fields
+	ADataType[] types;
+	/// byte offsets for fields
+	size_t[] offsets;
+	/// maps member names to index in `types` and `offsets`
+	size_t[string] nameInds;
+	/// virtual table itself
+	ubyte[] vt;
+	/// Returns: size of virtual table
+	pragma(inline, true) @property size_t size() const pure {
+		return vt.length;
+	}
 }
 
 /// Alis struct
@@ -348,6 +376,16 @@ public struct AFn{
 	ubyte[] paramValues;
 	/// how many parameters must be provided
 	size_t paramRequired;
+	/// stack frame size
+	size_t stackFrameSize;
+
+	/// local context
+	ACtx local;
+	/// global context
+	ACtx global;
+
+	/// virtal table contexts
+	ACtxVT[] cvt;
 }
 
 /// Alis Variable
