@@ -1,6 +1,7 @@
 module alis.common;
 
 import std.string,
+			 std.range,
 			 std.format,
 			 std.typecons,
 			 std.algorithm;
@@ -27,8 +28,7 @@ public struct AValCT{
 	string toString() const pure {
 		final switch (type){
 			case Type.Literal:
-				// TODO decode `dataL` through `typeL`
-				break;
+				return typeL.decodeStr(dataL);
 			case Type.Symbol:
 				return symS.toString;
 			case Type.Type:
@@ -229,6 +229,7 @@ public struct ADataType{
 		Union, /// a union
 		Enum, /// an enum
 		Auto, /// yet to be inferred. TODO: remove this maybe
+		NoInit, /// `$noinit`
 	}
 	/// type
 	Type type;
@@ -277,8 +278,45 @@ public struct ADataType{
 				// TODO: implement ADataType.Type.Enum .toString
 			case Type.Auto:
 				return "auto";
+			case Type.NoInit:
+				return "$noinit";
 		}
 		assert(false);
+	}
+
+	/// Returns: byte size of type
+	@property size_t sizeOf() const pure {
+		final switch (type){
+			case Type.Seq:
+				return seqT.fold!((size_t a, const ADataType e) => a + e.sizeOf)(size_t.init);
+			case Type.IntX, Type.UIntX, Type.FloatX, Type.CharX:
+				return x;
+			case Type.Bool:
+				return 1;
+			case Type.Slice:
+				return 2 * null.sizeof; // ptr + length
+			case Type.Array:
+				return 3 * null.sizeof; // ptr + length + capacity
+			case Type.Fn:
+				return 2 * null.sizeof; // ptr + closurePtr
+			case Type.Ref:
+				return null.sizeof;
+			case Type.Struct:
+				return structT.sizeOf;
+			case Type.Union:
+				return unionT.sizeOf;
+			case Type.Enum:
+				return enumT.type.sizeOf;
+			case Type.Auto:
+			case Type.NoInit:
+				return 0;
+		}
+	}
+
+	/// Decodes a byte array as per this data type into string representation
+	/// Returns: string representation
+	string decodeStr(const ubyte[]) const pure {
+		return "STUB"; // TODO: implement ADataType.decodeStr
 	}
 }
 
@@ -293,7 +331,7 @@ public struct ADT{
 	/// table itself
 	ubyte[] tb;
 	/// Returns: size of virtual table
-	pragma(inline, true) @property size_t size() const pure {
+	pragma(inline, true) @property size_t sizeOf() const pure {
 		return tb.length;
 	}
 }
@@ -307,6 +345,10 @@ public struct AStruct{
 	/// whether this has an `alias this = X`. the member being aliased to `this`
 	/// will be at index 0 in `types` and `offsets`
 	bool hasBase = false;
+	/// Returns: size of this struct
+	@property size_t sizeOf() const pure {
+		return dt.sizeOf + vt ? vt.sizeOf : 0;
+	}
 }
 
 /// Alis union
@@ -325,6 +367,10 @@ public struct AUnion{
 	/// Returns: true if this is an unnamed union
 	@property bool isUnnamed() const pure {
 		return names.length == 0;
+	}
+	/// Returns: size of this union
+	@property size_t sizeOf() const pure {
+		return dt.length + size_t.sizeof;
 	}
 }
 
