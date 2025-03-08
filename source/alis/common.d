@@ -5,23 +5,6 @@ import std.string,
 			 std.typecons,
 			 std.algorithm;
 
-/// Alis Context
-public struct ACtx{
-	/// true if global scope, false if local scope
-	bool isGlobal;
-	/// symbol table, if `type` is `Type.Global` or `Type.Local`
-	/// maps ident.toString to symbols
-	ASymbol[string] stab;
-}
-
-/// Alis Context VT based
-public struct ACtxVT{
-	/// offset of CVT, if `type ==  Type.CVT`
-	size_t cvtOffset;
-	/// cvt structure, if `type == Type.CVT`
-	AVT* cvt;
-}
-
 /// an Alis CompileTime Value
 public struct AValCT{
 	/// possible types
@@ -93,7 +76,6 @@ public:
 		Var,
 		Alias,
 		Import,
-		TParam,
 		Template,
 	}
 	// TODO: complete ASymbol
@@ -118,6 +100,8 @@ public:
 
 /// an Alis Module
 public struct AModule{
+	/// globals
+	ADT globals;
 	/// structs
 	AStruct[] structs;
 	/// unions
@@ -298,48 +282,46 @@ public struct ADataType{
 	}
 }
 
-/// Alis virtual table
-public struct AVT{
+/// Alis data table (structure behind virtual tables & closures etc)
+public struct ADT{
 	/// types of fields
 	ADataType[] types;
 	/// byte offsets for fields
 	size_t[] offsets;
 	/// maps member names to index in `types` and `offsets`
 	size_t[string] nameInds;
-	/// virtual table itself
-	ubyte[] vt;
+	/// table itself
+	ubyte[] tb;
 	/// Returns: size of virtual table
 	pragma(inline, true) @property size_t size() const pure {
-		return vt.length;
+		return tb.length;
 	}
 }
 
 /// Alis struct
 public struct AStruct{
-	/// types of members
-	ADataType[] types;
-	/// byte offsets for members
-	size_t[] offsets;
-	/// maps member names/aliases to index in `types` and `offsets`
-	size_t[string] nameInds;
+	/// structure
+	ADT dt;
 	/// Virtual Table, if any
-	AVT* vt;
+	ADT* vt;
 	/// whether this has an `alias this = X`. the member being aliased to `this`
 	/// will be at index 0 in `types` and `offsets`
-	bool hasBase;
+	bool hasBase = false;
 }
 
 /// Alis union
 public struct AUnion{
 	/// types of members
 	ADataType[] types;
-	/// byte offsets for members
-	size_t[] offsets;
 	/// maps member names/aliases to index in `types` and `offsets`
 	size_t[string] names;
+	/// default type index
+	size_t defInd;
+	/// initialized value
+	ubyte[] dt;
 	/// whether this has an `alias this = X`. the member being aliased to `this`
 	/// will be at index 0 in `types` and `offsets`
-	bool hasBase;
+	bool hasBase = false;
 	/// Returns: true if this is an unnamed union
 	@property bool isUnnamed() const pure {
 		return names.length == 0;
@@ -349,7 +331,7 @@ public struct AUnion{
 /// Alis Enum
 public struct AEnum{
 	/// Data Type. This will be `struct{}` in case of empty emum
-	ADataType type;
+	ADataType* type;
 	/// member names, mapped to their values
 	ubyte[][string] members;
 }
@@ -357,41 +339,29 @@ public struct AEnum{
 /// Alis Enum Constant
 public struct AEnumConst{
 	/// type
-	ADataType type;
+	ADataType* type;
 	/// value bytes
 	ubyte[] data;
 }
 
-/// Alis Function
+/// Alis Function Information
 public struct AFn{
 	/// return type
-	ADataType retT;
-	/// parameter types
-	ADataType[] paramT;
-	/// parameter offsets
-	size_t[] paramOffsets;
-	/// parameter names
-	string[] paramNames;
-	/// parameter default values bytes
-	ubyte[] paramValues;
+	ADataType* retT;
+	/// locals, including parameters
+	ADT locals;
+	/// label name in ABC
+	string labN;
 	/// how many parameters must be provided
 	size_t paramRequired;
 	/// stack frame size
 	size_t stackFrameSize;
-
-	/// local context
-	ACtx local;
-	/// global context
-	ACtx global;
-
-	/// virtal table contexts
-	ACtxVT[] cvt;
 }
 
 /// Alis Variable
 public struct AVar{
 	/// data type
-	ADataType type;
+	ADataType* type;
 	/// offset
 	size_t offset;
 }
