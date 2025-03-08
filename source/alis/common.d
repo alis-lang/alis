@@ -1,6 +1,7 @@
 module alis.common;
 
 import std.string,
+			 std.range,
 			 std.format,
 			 std.typecons,
 			 std.algorithm;
@@ -27,8 +28,7 @@ public struct AValCT{
 	string toString() const pure {
 		final switch (type){
 			case Type.Literal:
-				// TODO decode `dataL` through `typeL`
-				break;
+				return typeL.decodeStr(dataL);
 			case Type.Symbol:
 				return symS.toString;
 			case Type.Type:
@@ -39,18 +39,18 @@ public struct AValCT{
 }
 
 /// an identiier node
-public struct IdentNode{
+public struct Ident{
 	/// the identifier
 	string ident;
 	/// parameters, if any
 	AValCT[] params;
-	/// next IdentNode, if any, otherwise `null`
-	IdentNode* next;
+	/// next Ident, if any, otherwise `null`
+	Ident* next;
 	/// Returns: string representation
 	@property string toString() const pure {
 		string ret = ident;
 		if (params)
-			ret = format!"%s(%s)"(ret, params.map!(p => p.toString).join(","));
+			ret = format!"%s(%s)"(ident, params.map!(p => p.toString).join(","));
 		if (next)
 			return format!"%s.%s"(ret, next.toString);
 		return ret;
@@ -63,7 +63,7 @@ public:
 	/// symbol name (in its own local scope)
 	string name;
 	/// identifier
-	IdentNode ident;
+	Ident ident;
 	/// possible Symbol types
 	enum Type{
 		Struct,
@@ -76,7 +76,6 @@ public:
 		Var,
 		Alias,
 		Import,
-		TParam,
 		Template,
 	}
 	// TODO: complete ASymbol
@@ -101,6 +100,8 @@ public:
 
 /// an Alis Module
 public struct AModule{
+	/// globals
+	ADT globals;
 	/// structs
 	AStruct[] structs;
 	/// unions
@@ -228,6 +229,7 @@ public struct ADataType{
 		Union, /// a union
 		Enum, /// an enum
 		Auto, /// yet to be inferred. TODO: remove this maybe
+		NoInit, /// `$noinit`
 	}
 	/// type
 	Type type;
@@ -276,52 +278,106 @@ public struct ADataType{
 				// TODO: implement ADataType.Type.Enum .toString
 			case Type.Auto:
 				return "auto";
+			case Type.NoInit:
+				return "$noinit";
 		}
 		assert(false);
 	}
+
+	/// Returns: byte size of type
+	@property size_t sizeOf() const pure {
+		final switch (type){
+			case Type.Seq:
+				return seqT.fold!((size_t a, const ADataType e) => a + e.sizeOf)(size_t.init);
+			case Type.IntX, Type.UIntX, Type.FloatX, Type.CharX:
+				return x;
+			case Type.Bool:
+				return 1;
+			case Type.Slice:
+				return 2 * null.sizeof; // ptr + length
+			case Type.Array:
+				return 3 * null.sizeof; // ptr + length + capacity
+			case Type.Fn:
+				return 2 * null.sizeof; // ptr + closurePtr
+			case Type.Ref:
+				return null.sizeof;
+			case Type.Struct:
+				return structT.sizeOf;
+			case Type.Union:
+				return unionT.sizeOf;
+			case Type.Enum:
+				return enumT.type.sizeOf;
+			case Type.Auto:
+			case Type.NoInit:
+				return 0;
+		}
+	}
+
+	/// Decodes a byte array as per this data type into string representation
+	/// Returns: string representation
+	string decodeStr(const ubyte[]) const pure {
+		return "STUB"; // TODO: implement ADataType.decodeStr
+	}
 }
 
-/// Alis virtual table
-public struct AVT{
-	// TODO: what to store in AVT?
+/// Alis data table (structure behind virtual tables & closures etc)
+public struct ADT{
+	/// types of fields
+	ADataType[] types;
+	/// byte offsets for fields
+	size_t[] offsets;
+	/// maps member names to index in `types` and `offsets`
+	size_t[string] nameInds;
+	/// table itself
+	ubyte[] tb;
+	/// Returns: size of virtual table
+	pragma(inline, true) @property size_t sizeOf() const pure {
+		return tb.length;
+	}
 }
 
 /// Alis struct
 public struct AStruct{
-	/// types of members
-	ADataType[] types;
-	/// byte offsets for members
-	size_t[] offsets;
-	/// maps member names/aliases to index in `types` and `offsets`
-	size_t[string] nameInds;
+	/// structure
+	ADT dt;
 	/// Virtual Table, if any
-	AVT* vt;
+	ADT* vt;
 	/// whether this has an `alias this = X`. the member being aliased to `this`
 	/// will be at index 0 in `types` and `offsets`
-	bool hasBase;
+	bool hasBase = false;
+	/// Returns: size of this struct
+	@property size_t sizeOf() const pure {
+		return dt.sizeOf + vt ? vt.sizeOf : 0;
+	}
 }
 
 /// Alis union
 public struct AUnion{
 	/// types of members
 	ADataType[] types;
-	/// byte offsets for members
-	size_t[] offsets;
 	/// maps member names/aliases to index in `types` and `offsets`
 	size_t[string] names;
+	/// default type index
+	size_t defInd;
+	/// initialized value
+	ubyte[] dt;
 	/// whether this has an `alias this = X`. the member being aliased to `this`
 	/// will be at index 0 in `types` and `offsets`
-	bool hasBase;
+	bool hasBase = false;
 	/// Returns: true if this is an unnamed union
 	@property bool isUnnamed() const pure {
 		return names.length == 0;
+	}
+	/// Returns: size of this union
+	@property size_t sizeOf() const pure {
+		return dt.length + size_t.sizeof;
 	}
 }
 
 /// Alis Enum
 public struct AEnum{
 	/// Data Type. This will be `struct{}` in case of empty emum
-	ADataType type;
+	ADataType* type;
 	/// member names, mapped to their values
 	ubyte[][string] members;
 }
@@ -329,31 +385,29 @@ public struct AEnum{
 /// Alis Enum Constant
 public struct AEnumConst{
 	/// type
-	ADataType type;
+	ADataType* type;
 	/// value bytes
 	ubyte[] data;
 }
 
-/// Alis Function
+/// Alis Function Information
 public struct AFn{
 	/// return type
-	ADataType retT;
-	/// parameter types
-	ADataType[] paramT;
-	/// parameter offsets
-	size_t[] paramOffsets;
-	/// parameter names
-	string[] paramNames;
-	/// parameter default values bytes
-	ubyte[] paramValues;
+	ADataType* retT;
+	/// locals, including parameters
+	ADT locals;
+	/// label name in ABC
+	string labN;
 	/// how many parameters must be provided
 	size_t paramRequired;
+	/// stack frame size
+	size_t stackFrameSize;
 }
 
 /// Alis Variable
 public struct AVar{
 	/// data type
-	ADataType type;
+	ADataType* type;
 	/// offset
 	size_t offset;
 }
