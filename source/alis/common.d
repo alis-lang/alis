@@ -63,7 +63,7 @@ public:
 	/// symbol name (in its own local scope)
 	string name;
 	/// identifier
-	Ident ident;
+	Ident* ident;
 	/// possible Symbol types
 	enum Type{
 		Struct,
@@ -71,26 +71,26 @@ public:
 		Enum,
 		EnumMember,
 		EnumConst,
-		FParam,
 		Fn,
 		Var,
 		Alias,
 		Import,
-		Template,
+		Template, // TODO add Template sub-types (fn/struct/etc)
 	}
-	// TODO: complete ASymbol
 	union{
 		AStruct* structS; /// struct for `Type.Struct`
 		AUnion* unionS; /// union for `Type.Union`
 		struct{
-			AEnum* enumS; /// enum for `Type.Enum`, `Type.EnumMember`, or
-										/// `Type.EnumConst`
-			string enumMember; /// enum member name for `Type.EnumMember`
+			/// enum for `Type.Enum`, or `Type.EnumMember`
+			AEnum* enumS;
+			/// enum member name for `Type.EnumMember`
+			string enumMember;
 		}
-		struct{
-			AFn* fnS; /// function for `Type.Fn`, or `Type.FParam`
-			string fnParam; /// fparam name for `Type.FParam`
-		}
+		AEnumConst* enumCS; /// enum for `Type.EnumConst`
+		AFn* fnS; /// function for `Type.Fn`
+		AVar* varS; /// variable for `Type.Var`
+		AAlias* aliasS; /// alias for `Type.Alias`
+		AImport* importS; /// import for `Type.Import`
 	}
 	/// Returns: string representation, equivalent to `ASymbol.ident.toString`
 	@property string toString() const pure {
@@ -98,7 +98,7 @@ public:
 	}
 }
 
-/// an Alis Module
+/// an Alis Module. Aggregates all public symbols for a module
 public struct AModule{
 	/// globals
 	ADT globals;
@@ -122,7 +122,7 @@ public struct AModule{
 	ATemplate[] templates;
 }
 
-/// A resolution chain node.
+/// A resolution chain node. TODO: what is this?
 public struct Resolution{
 private:
 	Resolution* _leaf;
@@ -228,7 +228,6 @@ public struct ADataType{
 		Struct, /// a struct
 		Union, /// a union
 		Enum, /// an enum
-		Auto, /// yet to be inferred. TODO: remove this maybe
 		NoInit, /// `$noinit`
 	}
 	/// type
@@ -239,11 +238,12 @@ public struct ADataType{
 		ADataType[] seqT; /// type sequence, for `Seq`
 		struct{
 			bool isUnique; /// whether it is a unique type, for `Struct` or `Union`
-			string nameT; /// name, if any, for `Struct` or `Union`
+			string nameT; /// name, if any, for `Struct`, `Union`, `Enum`, or `EnumConst`
 			union{
 				AStruct* structT; /// struct type, for `Struct`
 				AUnion* unionT; /// union type, for `Union`
 				AEnum* enumT; /// enum type, for `Enum`
+				AEnumConst* enumConstT; /// EnumConst type, for `EnumConst`
 			}
 		}
 	}
@@ -276,8 +276,6 @@ public struct ADataType{
 				// TODO: implement ADataType.Type.Union .toString
 			case Type.Enum:
 				// TODO: implement ADataType.Type.Enum .toString
-			case Type.Auto:
-				return "auto";
 			case Type.NoInit:
 				return "$noinit";
 		}
@@ -307,7 +305,6 @@ public struct ADataType{
 				return unionT.sizeOf;
 			case Type.Enum:
 				return enumT.type.sizeOf;
-			case Type.Auto:
 			case Type.NoInit:
 				return 0;
 		}
@@ -315,8 +312,9 @@ public struct ADataType{
 
 	/// Decodes a byte array as per this data type into string representation
 	/// Returns: string representation
-	string decodeStr(const ubyte[]) const pure {
-		return "STUB"; // TODO: implement ADataType.decodeStr
+	string decodeStr(const ubyte[] data) const pure {
+		// TODO: implement ADataType.decodeStr
+		return format!"{type: %s, data: %s}"(this.toString, data);
 	}
 }
 

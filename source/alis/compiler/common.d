@@ -49,7 +49,7 @@ public struct ErrVal(T, E){
 /// stripped
 ///
 /// Returns: unescaped string
-public char[] strUnescape(string str){
+package char[] strUnescape(string str){
 	uint i, shift;
 	char[] r;
 	r.length = str.length;
@@ -73,7 +73,7 @@ unittest{
 }
 
 /// Returns: unescaped character, for a character `c` when used as `\c`
-public char charUnescape(char c){
+package char charUnescape(char c){
 	switch (c){
 		case 't':	return '\t';
 		case 'n':	return '\n';
