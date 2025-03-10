@@ -284,21 +284,48 @@ public struct ADataType{
 	/// type
 	Type type = Type.NoInit;
 	union{
-		ubyte x; /// X-bits for `IntX`, `UIntX`, `FloatX`, or `CharX`
-		ADataType* refT; /// type being referenced, for `Ref`, `Slice`, or `Array`
-		ADataType[] seqT; /// type sequence, for `Seq`
+		/// X-bits for `IntX`, `UIntX`, `FloatX`, or `CharX`
+		ubyte x;
 		struct{
-			bool isUnique; /// whether it is a unique type, for `Struct` or `Union`
+			/// type being referenced, for `Ref`, `Slice`, or `Array`
+			ADataType* refT;
+			/// size in bytes, if the array is on stack, for `Slice`, or `Array`
+			/// if not on stack, will be 0
+			size_t sizeOnStack;
+		}
+		/// type sequence, for `Seq`
+		ADataType[] seqT;
+		struct{
+			/// whether it is a unique type, for `Struct` or `Union`
+			bool isUnique;
 			union{
-				AStruct structT; /// struct type, for `Struct`
-				AUnion unionT; /// union type, for `Union`
+				/// struct type, for `Struct`
+				AStruct structT;
+				/// union type, for `Union`
+				AUnion unionT;
 			}
 		}
-		AEnum* enumT; /// enum type, for `Enum`
-		AEnumConst* enumConstT; /// EnumConst type, for `EnumConst`
+		/// enum type, for `Enum`
+		AEnum* enumT;
+		/// EnumConst type, for `EnumConst`
+		AEnumConst* enumConstT;
 		struct{
-			ADataType* retT; /// return type, for `Fn`
-			ADataType[] paramT; /// parameter types, for `Fn`
+			/// return type, for `Fn`
+			ADataType* retT;
+			/// parameter types, for `Fn`
+			ADataType[] paramT;
+		}
+	}
+
+	/// Returns: whether this is a primitive type
+	@property isPrimitive() const pure {
+		switch (type){
+			case Type.IntX, Type.UIntX, Type.FloatX, Type.CharX, Type.Bool:
+				return true;
+			case Type.Slice:
+				return this == ofString;
+			default:
+				return false;
 		}
 	}
 
@@ -350,8 +377,12 @@ public struct ADataType{
 			case Type.Bool:
 				return 1;
 			case Type.Slice:
+				if (sizeOnStack)
+					return sizeOnStack;
 				return 2 * null.sizeof; // ptr + length
 			case Type.Array:
+				if (sizeOnStack)
+					return sizeOnStack;
 				return 3 * null.sizeof; // ptr + length + capacity
 			case Type.Fn:
 				return 2 * null.sizeof; // ptr + closurePtr
@@ -428,6 +459,7 @@ public struct ADataType{
 		ADataType ret;
 		ret.type = Type.Slice;
 		ret.refT = [elemT].ptr;
+		ret.sizeOnStack = 0;
 		return ret;
 	}
 
@@ -436,14 +468,16 @@ public struct ADataType{
 		ADataType ret;
 		ret.type = Type.Array;
 		ret.refT = [elemT].ptr;
+		ret.sizeOnStack = 0;
 		return ret;
 	}
 
-	static ADataType ofString() pure {
+	static ADataType ofString(size_t sizeOnStack = 0) pure {
 		ADataType str;
 		str.type = Type.Slice;
 		str.refT = [ADataType.ofChar(1)].ptr;
 		str.refT.isConst = true;
+		str.sizeOnStack = sizeOnStack;
 		return str; // $slice(const char)
 	}
 
@@ -534,7 +568,7 @@ public struct ADataType{
 		return ADataType;
 	}
 
-	bool opEquals(ref const ADataType rhs){
+	bool opEquals(const ADataType rhs) const pure {
 		if (type != rhs.type)
 			return false;
 		final switch (type){
