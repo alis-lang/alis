@@ -174,7 +174,7 @@ public struct AModule{
 	ATemplate[] templates;
 }
 
-/// A resolution chain node. TODO: what is this?
+/// A resolution chain node. TODO: what THE HELL is this?
 public struct Resolution{
 private:
 	Resolution* _leaf;
