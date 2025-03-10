@@ -8,8 +8,39 @@ import alis.common,
 			 alis.compiler.ast;
 
 import std.json,
+			 std.conv,
+			 std.range,
 			 std.array,
 			 std.algorithm;
+
+/// Resolved Function
+public class RFn : DefNode{
+protected:
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["body"] = body.toJson;
+		ret["fn"] = fn.to!string;
+		ret["locals"] = localsT.length.iota
+			.map!(i => JSONValue(
+						["name": localsN[i], "type": localsT[i].toString]
+						))
+			.array;
+		ret["paramCount"] = JSONValue(paramCount);
+		ret["_name"] = "RFn";
+		return ret;
+	}
+public:
+	/// body
+	RExpr body;
+	/// function details
+	AFn* fn;
+	/// locals (parameters and variables) types
+	ADataType[] localsT;
+	/// locals names
+	string[] localsN;
+	/// how many of the locals are parameters
+	size_t paramCount;
+}
 
 /// Resovled Statement
 public abstract class RStatement : Statement{
@@ -22,11 +53,20 @@ protected:
 		JSONValue ret = super.jsonOf;
 		ret["statements"] = statements.map!(a => a.toJson).array;
 		ret["_name"] = "RBlock";
+		ret["locals"] = localsT.length.iota
+			.map!(i => JSONValue(
+						["name": localsN[i], "type": localsT[i].toString]
+						))
+			.array;
 		return ret;
 	}
 public:
 	/// statements
 	RStatement[] statements;
+	/// locals (parameters and variables) types
+	ADataType[] localsT;
+	/// locals names
+	string[] localsN;
 }
 
 /// Resovled Return Statement
@@ -190,7 +230,7 @@ protected:
 	}
 public:
 	/// identifier
-	IdentNode* ident;
+	Ident* ident;
 }
 
 /// Resolved Block Expression
