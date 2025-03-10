@@ -271,8 +271,8 @@ public struct ADataType{
 		Bool, /// a boolean
 		Slice, /// a slice
 		Array, /// an array
-		Fn, /// a function
 		Ref, /// a reference
+		Fn, /// a function
 		Struct, /// a struct
 		Union, /// a union
 		Enum, /// an enum
@@ -532,6 +532,51 @@ public struct ADataType{
 			// TODO: convert D enum to AEnum or AEnumConst
 		}
 		return ADataType;
+	}
+
+	bool opEquals(ref const ADataType rhs){
+		if (type != rhs.type)
+			return false;
+		final switch (type){
+			case Type.Seq:
+				if (seqT.length != rhs.seqT.length)
+					return false;
+				foreach (size_t i; seqT.length.iota){
+					if (seqT[i] != rhs.seqT[i])
+						return false;
+				}
+				return true;
+			case Type.IntX:
+			case Type.UIntX:
+			case Type.FloatX:
+			case Type.CharX:
+				return x == rhs.x;
+			case Type.Bool:
+				return true;
+			case Type.Slice:
+			case Type.Array:
+			case Type.Ref:
+				return refT == rhs.refT;
+			case Type.Fn:
+				if (retT != rhs.retT || paramT.length != rhs.paramT.length)
+					return false;
+				foreach (size_t i; paramT.length.iota){
+					if (paramT[i] != rhs.paramT[i])
+						return false;
+				}
+				return true;
+			case Type.Struct:
+				return structT == rhs.structT;
+			case Type.Union:
+				return unionT == rhs.unionT;
+			case Type.Enum:
+				return enumT == rhs.enumT;
+			case Type.EnumConst:
+				return enumConstT == rhs.enumConstT;
+			case Type.NoInit:
+				return true;
+		}
+		return true;
 	}
 }
 
