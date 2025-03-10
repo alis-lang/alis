@@ -54,9 +54,6 @@ public struct AValCT{
 		this.type = Type.Type;
 		this.typeT = type;
 	}
-	this (T)(T val){
-		// TODO implement creating AValCT from generic T
-	}
 }
 
 /// a symbol
@@ -325,17 +322,18 @@ public struct ADataType{
 			case Type.Array:
 				return (*refT).toString.format!"$array(%s)"; // cannot be const
 			case Type.Fn:
-				// TODO: implement ADataType.Type.Fn .toString
+				return format!"fn (%s) -> %s"(
+						paramT.map!(p => p.toString).join(","), retT.toString);
 			case Type.Ref:
 				return ret ~ (*refT).toString.format!"@%s";
 			case Type.Struct:
-				// TODO: implement ADataType.Type.Struct .toString
+				return structT.toString;
 			case Type.Union:
-				// TODO: implement ADataType.Type.Union .toString
+				return unionT.toString;
 			case Type.Enum:
-				// TODO: implement ADataType.Type.Enum .toString
+				return enumT.toString;
 			case Type.EnumConst:
-				// TODO: implement ADataType.Type.EnumConst .toString
+				return enumConstT.toString;
 			case Type.NoInit:
 				return "$noinit";
 		}
@@ -533,7 +531,7 @@ public struct ADataType{
 		static if (is (T == enum)){
 			// TODO: convert D enum to AEnum or AEnumConst
 		}
-		return ADataType();
+		return ADataType;
 	}
 }
 
@@ -543,18 +541,32 @@ public struct ADT{
 	ADataType[] types;
 	/// byte offsets for fields
 	size_t[] offsets;
-	/// maps member names to index in `types` and `offsets`
-	size_t[string] nameInds;
+	/// names (can be null) for fields
+	string[] names;
 	/// table itself
 	ubyte[] tb;
 	/// Returns: size of virtual table
 	pragma(inline, true) @property size_t sizeOf() const pure {
 		return tb.length;
 	}
+
+	string toString() const pure {
+		string ret = "ADT {\n#\ttype\toffset\tname\tval\n";
+		size_t off;
+		foreach (size_t i; 0 .. types.length){
+			ret ~= format!"%d\t%s\t%d\t%s\t%s\n"(i, types[i].toString, offsets[i],
+					names[i], types[i].decodeStr(tb[off .. off + types[i].sizeOf]));
+			off += types[i].sizeOf;
+		}
+		ret ~= "}";
+		return ret;
+	}
 }
 
 /// Alis struct
 public struct AStruct{
+	/// identifier
+	string ident;
 	/// structure
 	ADT dt;
 	/// Virtual Table, if any
@@ -566,14 +578,21 @@ public struct AStruct{
 	@property size_t sizeOf() const pure {
 		return dt.sizeOf + (vt.tb.length > 0);
 	}
+
+	string toString() const pure {
+		return format!"struct %s{\nDataTable:\n%s\nVirtualTable:\n%s}"(ident, dt,
+				vt);
+	}
 }
 
 /// Alis union
 public struct AUnion{
+	/// identifier
+	string ident;
 	/// types of members
 	ADataType[] types;
-	/// maps member names/aliases to index in `types` and `offsets`
-	size_t[string] names;
+	/// member names
+	string[] names;
 	/// default type index
 	size_t defInd;
 	/// initialized value
@@ -589,26 +608,59 @@ public struct AUnion{
 	@property size_t sizeOf() const pure {
 		return dt.length + size_t.sizeof;
 	}
+
+	string toString() const pure {
+		string ret = format!"union %s{\n#\ttype\tname\tval\n"(ident);
+		foreach (size_t i, ref const ADataType type; types){
+			ret ~= format!"%d\t%s\t%s\t%s\n"(i,
+					types[i].toString, names.length ? names[i] : null,
+					defInd == i ? types[i].decodeStr(dt) : null);
+		}
+		ret ~= "}";
+		return ret;
+	}
 }
 
 /// Alis Enum
 public struct AEnum{
+	/// identifier
+	string ident;
 	/// Data Type. This will be `struct{}` in case of empty emum
 	ADataType type;
 	/// member names, mapped to their values
-	ubyte[][string] members;
+	string[] names;
+	/// member values
+	ubyte[][] values;
+
+	string toString() const pure {
+		string ret = format!"enum %s %s{\n#\tname\tval\n"(type, ident);
+		foreach (size_t i, string name; names){
+			ret ~= format!"%d\t%s\t%s\n"(i, name, type.decodeStr(values[i]));
+		}
+		ret ~= "}";
+		return ret;
+	}
 }
 
 /// Alis Enum Constant
 public struct AEnumConst{
+	/// identifier
+	string ident;
 	/// type
 	ADataType type;
 	/// value bytes
 	ubyte[] data;
+
+	string toString() const pure {
+		return format!"enum %s %s = %s;"(type.toString, ident,
+				type.decodeStr(data));
+	}
 }
 
 /// Alis Function Information
 public struct AFn{
+	/// identifier
+	string ident;
 	/// return type
 	ADataType retT;
 	/// locals, including parameters
@@ -619,19 +671,37 @@ public struct AFn{
 	size_t paramRequired;
 	/// stack frame size
 	size_t stackFrameSize;
+
+	string toString() const pure {
+		return format!"fn %s->%s paramReq=%d, stackFrameSize=%d, locals={\n%s\n}"(
+				ident, retT, paramRequired, stackFrameSize, locals);
+	}
 }
 
 /// Alis Variable
 public struct AVar{
+	/// identifier
+	string ident;
 	/// data type
 	ADataType type;
 	/// offset
 	size_t offset;
+	/// whether is global or local
+	bool isGlobal;
+
+	string toString() const pure {
+		return format!"var %s%s %s ,off=%d"(isGlobal ? "global" : null, type,
+				ident, offset);
+	}
 }
 
 /// Alis Alias
 public struct AAlias{
 	// TODO: what to store in AAlias
+
+	string toString() const pure {
+		return format!"alias";
+	}
 }
 
 /// Alis Import
@@ -640,9 +710,17 @@ public struct AImport{
 	string[] modIdent;
 	/// aliased name, if any
 	string name;
+
+	string toString() const pure {
+		return format!"import %s as %s"(modIdent.join("."), name);
+	}
 }
 
 /// Alis Template
 public struct ATemplate{
 	// TODO: what to store in ATemplate
+
+	string toString() const pure {
+		return format!"template";
+	}
 }
