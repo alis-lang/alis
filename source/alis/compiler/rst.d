@@ -33,7 +33,7 @@ public:
 	/// body
 	RExpr body;
 	/// function details
-	AFn* fn;
+	AFn fn;
 	/// locals (parameters and variables) types
 	ADataType[] localsT;
 	/// locals names
@@ -122,7 +122,7 @@ public:
 	/// counter name, can be null
 	string countIdent;
 	/// value type
-	ADataType* valType;
+	ADataType valType;
 	/// value
 	string valIdent;
 	/// range
@@ -225,12 +225,12 @@ protected:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "RIdentExpr";
-		ret["ident"] = ident.toString;
+		ret["ident"] = ident;
 		return ret;
 	}
 public:
 	/// identifier
-	Ident* ident;
+	string ident;
 }
 
 /// Resolved Block Expression
@@ -245,7 +245,7 @@ protected:
 	}
 public:
 	/// return type
-	ADataType* type;
+	ADataType type;
 	/// block
 	RBlock block;
 }
@@ -291,7 +291,7 @@ protected:
 	}
 public:
 	/// type
-	ADataType* type;
+	ADataType type;
 }
 
 /// Resolved Assignment Expression
@@ -460,7 +460,7 @@ protected:
 	}
 public:
 	/// function
-	AFn* fn;
+	AFn fn;
 }
 
 /// Resolved Struct Literal
@@ -508,5 +508,5 @@ public:
 	/// value
 	ubyte[] value;
 	/// type
-	ADataType* type;
+	ADataType type;
 }
