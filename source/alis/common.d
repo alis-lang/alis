@@ -1,6 +1,7 @@
 module alis.common;
 
 import std.string,
+			 std.traits,
 			 std.range,
 			 std.format,
 			 std.typecons,
@@ -15,14 +16,14 @@ public struct AValCT{
 		Type, /// a Data Type
 	}
 	/// currently stored type
-	Type type;
+	Type type = Type.Type;
 	union{
 		struct{
 			ubyte[] dataL; /// data for `Literal`
-			ADataType* typeL; /// data type for `Literal`
+			ADataType typeL; /// data type for `Literal`
 		}
-		ASymbol* symS; /// symbol for `Symbol`
-		ADataType* typeT; /// data type for `Type`
+		ASymbol symS; /// symbol for `Symbol`
+		ADataType typeT; /// data type for `Type`
 	}
 
 	string toString() const pure {
@@ -36,34 +37,33 @@ public struct AValCT{
 		}
 		return null;
 	}
-}
 
-/// an identiier node
-public struct Ident{
-	/// the identifier
-	string ident;
-	/// parameters, if any
-	AValCT[] params;
-	/// next Ident, if any, otherwise `null`
-	Ident* next;
-	/// Returns: string representation
-	@property string toString() const pure {
-		string ret = ident;
-		if (params)
-			ret = format!"%s(%s)"(ident, params.map!(p => p.toString).join(","));
-		if (next)
-			return format!"%s.%s"(ret, next.toString);
-		return ret;
+	/// constructor
+	this (ADataType type, ubyte[] data){
+		this.type = Type.Literal;
+		this.dataL = data;
+		this.typeL = type;
+	}
+	/// ditto
+	this (ASymbol sym){
+		this.type = Type.Symbol;
+		this.symS = sym;
+	}
+	/// ditto
+	this (ADataType type){
+		this.type = Type.Type;
+		this.typeT = type;
+	}
+	this (T)(T val){
+		// TODO implement creating AValCT from generic T
 	}
 }
 
 /// a symbol
 public struct ASymbol{
 public:
-	/// symbol name (in its own local scope)
-	string name;
 	/// identifier
-	Ident* ident;
+	string ident;
 	/// possible Symbol types
 	enum Type{
 		Struct,
@@ -75,26 +75,81 @@ public:
 		Var,
 		Alias,
 		Import,
-		Template, // TODO add Template sub-types (fn/struct/etc)
+		Template,
 	}
+	/// type of this symbol
+	Type type;
 	union{
-		AStruct* structS; /// struct for `Type.Struct`
-		AUnion* unionS; /// union for `Type.Union`
+		AStruct structS; /// struct for `Type.Struct`
+		AUnion unionS; /// union for `Type.Union`
 		struct{
 			/// enum for `Type.Enum`, or `Type.EnumMember`
-			AEnum* enumS;
+			AEnum enumS;
 			/// enum member name for `Type.EnumMember`
 			string enumMember;
 		}
-		AEnumConst* enumCS; /// enum for `Type.EnumConst`
-		AFn* fnS; /// function for `Type.Fn`
-		AVar* varS; /// variable for `Type.Var`
-		AAlias* aliasS; /// alias for `Type.Alias`
-		AImport* importS; /// import for `Type.Import`
+		AEnumConst enumCS; /// enum for `Type.EnumConst`
+		AFn fnS; /// function for `Type.Fn`
+		AVar varS; /// variable for `Type.Var`
+		AAlias aliasS; /// alias for `Type.Alias`
+		AImport importS; /// import for `Type.Import`
+		ATemplate templateS;
 	}
 	/// Returns: string representation, equivalent to `ASymbol.ident.toString`
-	@property string toString() const pure {
-		return ident.toString;
+	string toString() const pure {
+		return ident;
+	}
+
+	/// constructor
+	this (AStruct structS){
+		this.type = Type.Struct;
+		this.structS = structS;
+	}
+	/// ditto
+	this (AUnion unionS){
+		this.type = Type.Union;
+		this.unionS = unionS;
+	}
+	/// ditto
+	this (AEnum enumS){
+		this.type = Type.Enum;
+		this.enumS = enumS;
+	}
+	/// ditto
+	this (AEnumConst enumCS){
+		this.type = Type.EnumConst;
+		this.enumCS = enumCS;
+	}
+	/// ditto
+	this (AEnum enumS, string enumMember){
+		this.type = Type.EnumMember;
+		this.enumS = enumS;
+		this.enumMember = enumMember;
+	}
+	/// ditto
+	this (AFn fnS){
+		this.type = Type.Fn;
+		this.fnS = fnS;
+	}
+	/// ditto
+	this (AVar varS){
+		this.type = Type.Var;
+		this.varS = varS;
+	}
+	/// ditto
+	this (AAlias aliasS){
+		this.type = Type.Alias;
+		this.aliasS = aliasS;
+	}
+	/// ditto
+	this (AImport importS){
+		this.type = Type.Import;
+		this.importS = importS;
+	}
+	/// ditto
+	this (ATemplate templateS){
+		this.type = Type.Template;
+		this.templateS = templateS;
 	}
 }
 
@@ -179,9 +234,7 @@ public:
 		Mixin, /// resolves to a mixin template
 		Var, /// resolves to a var
 		TParam, /// resolves to a template parameter.
-						/// TODO: maybe resolve it completely here?
 		FParam, /// resolves to a funtion parameter
-						/// TODO: maybe resolve it completely here?
 		EnumConst, /// resolves to an enum const definition. Regular enum->DataType
 		EnumMemeber, /// resolves to enum member
 		Import, /// resolves to an imported module's aliased name
@@ -190,7 +243,7 @@ public:
 	/// what is being resovled
 	TypeS typeS;
 	/// result from resolution
-	ASymbol sym; // TODO: store ptr?
+	ASymbol sym;
 	union{
 		/// subject symbol name, for `Ident`, `Intrinsic`, or `IntrinsicCall`
 		string nameS;
@@ -211,8 +264,6 @@ public:
 
 /// Alis Data Type
 public struct ADataType{
-	/// whether it is a const
-	bool isConst;
 	/// possible Data Types
 	enum Type{
 		Seq, /// a sequence of types
@@ -228,54 +279,63 @@ public struct ADataType{
 		Struct, /// a struct
 		Union, /// a union
 		Enum, /// an enum
+		EnumConst, /// an enumConst
 		NoInit, /// `$noinit`
 	}
+	/// whether it is a const
+	bool isConst = false;
 	/// type
-	Type type;
+	Type type = Type.NoInit;
 	union{
 		ubyte x; /// X-bits for `IntX`, `UIntX`, `FloatX`, or `CharX`
 		ADataType* refT; /// type being referenced, for `Ref`, `Slice`, or `Array`
 		ADataType[] seqT; /// type sequence, for `Seq`
 		struct{
 			bool isUnique; /// whether it is a unique type, for `Struct` or `Union`
-			string nameT; /// name, if any, for `Struct`, `Union`, `Enum`, or `EnumConst`
 			union{
-				AStruct* structT; /// struct type, for `Struct`
-				AUnion* unionT; /// union type, for `Union`
-				AEnum* enumT; /// enum type, for `Enum`
-				AEnumConst* enumConstT; /// EnumConst type, for `EnumConst`
+				AStruct structT; /// struct type, for `Struct`
+				AUnion unionT; /// union type, for `Union`
 			}
+		}
+		AEnum* enumT; /// enum type, for `Enum`
+		AEnumConst* enumConstT; /// EnumConst type, for `EnumConst`
+		struct{
+			ADataType* retT; /// return type, for `Fn`
+			ADataType[] paramT; /// parameter types, for `Fn`
 		}
 	}
 
 	string toString() const pure {
+		string ret = isConst ? "const " : null;
 		final switch (type){
 			case Type.Seq:
-				return "(" ~ seqT.map!(t => t.toString).join(",") ~ ")";
+				return ret ~ "(" ~ seqT.map!(t => t.toString).join(",") ~ ")";
 			case Type.IntX:
-				return x.format!"$int(%d)";
+				return ret ~ x.format!"$int(%d)";
 			case Type.UIntX:
-				return x.format!"$uint(%d)";
+				return ret ~ x.format!"$uint(%d)";
 			case Type.FloatX:
-				return x.format!"$float(%d)";
+				return ret ~ x.format!"$float(%d)";
 			case Type.CharX:
-				return x.format!"$char(%d)";
+				return ret ~ x.format!"$char(%d)";
 			case Type.Bool:
-				return "bool";
+				return ret ~ "bool";
 			case Type.Slice:
-				return (*refT).toString.format!"$slice(%s)";
+				return (*refT).toString.format!"$slice(%s)"; // cannot be const
 			case Type.Array:
-				return (*refT).toString.format!"$array(%s)";
+				return (*refT).toString.format!"$array(%s)"; // cannot be const
 			case Type.Fn:
 				// TODO: implement ADataType.Type.Fn .toString
 			case Type.Ref:
-				return (*refT).toString.format!"@%s";
+				return ret ~ (*refT).toString.format!"@%s";
 			case Type.Struct:
 				// TODO: implement ADataType.Type.Struct .toString
 			case Type.Union:
 				// TODO: implement ADataType.Type.Union .toString
 			case Type.Enum:
 				// TODO: implement ADataType.Type.Enum .toString
+			case Type.EnumConst:
+				// TODO: implement ADataType.Type.EnumConst .toString
 			case Type.NoInit:
 				return "$noinit";
 		}
@@ -305,6 +365,7 @@ public struct ADataType{
 				return unionT.sizeOf;
 			case Type.Enum:
 				return enumT.type.sizeOf;
+			case Type.EnumConst:
 			case Type.NoInit:
 				return 0;
 		}
@@ -315,6 +376,164 @@ public struct ADataType{
 	string decodeStr(const ubyte[] data) const pure {
 		// TODO: implement ADataType.decodeStr
 		return format!"{type: %s, data: %s}"(this.toString, data);
+	}
+
+	/// Returns: Sequence data type
+	static ADataType ofSeq(ADataType[] seq) pure {
+		ADataType ret;
+		ret.type = Type.Seq;
+		ret.seqT = seq;
+		return ret;
+	}
+
+	/// Returns: Integer of X bits type
+	static ADataType ofInt(ubyte x = size_t.sizeof * 8) pure {
+		ADataType ret;
+		ret.type = Type.IntX;
+		ret.x = x;
+		return ret;
+	}
+
+	/// Returns: Unsigned Integer of X bits type
+	static ADataType ofUInt(ubyte x = ptrdiff_t.sizeof * 8) pure {
+		ADataType ret;
+		ret.type = Type.UIntX;
+		ret.x = x;
+		return ret;
+	}
+
+	/// Returns: Float of X bits type
+	static ADataType ofFloat(ubyte x = double.sizeof * 8) pure {
+		ADataType ret;
+		ret.type = Type.FloatX;
+		ret.x = x;
+		return ret;
+	}
+
+	/// Returns: Char of X bits type
+	static ADataType ofChar(ubyte x = dchar.sizeof * 8) pure {
+		ADataType ret;
+		ret.type = Type.CharX;
+		ret.x = x;
+		return ret;
+	}
+
+	/// Returns: Bool type
+	static ADataType ofBool() pure {
+		ADataType ret;
+		ret.type = Type.Bool;
+		return ret;
+	}
+
+	/// Returns: slice type
+	static ADataType ofSlice(ADataType elemT) pure {
+		ADataType ret;
+		ret.type = Type.Slice;
+		ret.refT = [elemT].ptr;
+		return ret;
+	}
+
+	/// Returns: array type
+	static ADataType ofArray(ADataType elemT) pure {
+		ADataType ret;
+		ret.type = Type.Array;
+		ret.refT = [elemT].ptr;
+		return ret;
+	}
+
+	static ADataType ofString() pure {
+		ADataType str;
+		str.type = Type.Slice;
+		str.refT = [ADataType.ofChar(1)].ptr;
+		str.refT.isConst = true;
+		return str; // $slice(const char)
+	}
+
+	/// Returns: function type
+	static ADataType ofFn(ADataType retT, ADataType[] paramT) pure {
+		ADataType ret;
+		ret.type = Type.Fn;
+		ret.retT = [retT].ptr;
+		ret.paramT = paramT;
+		return ret;
+	}
+
+	/// Returns: reference type
+	static ADataType ofRef(ADataType refT) pure {
+		ADataType ret;
+		ret.type = Type.Ref;
+		ret.refT = [refT].ptr;
+		return ret;
+	}
+
+	/// Returns: struct type
+	static ADataType of(AStruct structT) pure {
+		ADataType ret;
+		ret.type = Type.Struct;
+		ret.structT = structT;
+		return ret;
+	}
+
+	/// Returns: union type
+	static ADataType of(AUnion unionT) pure {
+		ADataType ret;
+		ret.type = Type.Union;
+		ret.unionT = unionT;
+		return ret;
+	}
+
+	/// Returns: enum type
+	static ADataType of(AEnum enumT) pure {
+		ADataType ret;
+		ret.type = Type.Enum;
+		ret.enumT = [enumT].ptr;
+		return ret;
+	}
+
+	/// Returns: enum const type
+	static ADataType of(AEnumConst enumConstT) pure {
+		ADataType ret;
+		ret.type = Type.EnumConst;
+		ret.enumConstT = [enumConstT].ptr;
+		return ret;
+	}
+
+	/// Returns: ADataType against a D type
+	static ADataType of(T)() pure {
+		static if (is (T == string) || is (T == const char[])){
+			return ofString;
+		} else
+		static if (is (T == char[])){
+			return ofArray(ADataType.ofChar(1));
+		} else
+		static if (isUnsigned!T) {
+			return ofUInt(T.sizeof * 8);
+		} else
+		static if (isSigned!T) {
+			return ofInt(T.sizeof * 8);
+		} else
+		static if (isFloatingPoint!T){
+			return ofFloat(T.sizeof * 8);
+		} else
+		static if (isSomeChar!T){
+			return ofChar(T.sizeof * 8);
+		} else
+		static if (is (T == bool)){
+			return ofBool;
+		} else
+		static if (isFunction!T || isFunctionPointer!T){
+			return ofFn(ReturnType!T, [staticMap!(of, Parameters!T)]);
+		} else
+		static if (is (T == struct)){
+			// TODO: convert D struct to AStruct
+		} else
+		static if (is (T == union)){
+			// TODO: convert D union to AUnion
+		} else
+		static if (is (T == enum)){
+			// TODO: convert D enum to AEnum or AEnumConst
+		}
+		return ADataType();
 	}
 }
 
@@ -339,13 +558,13 @@ public struct AStruct{
 	/// structure
 	ADT dt;
 	/// Virtual Table, if any
-	ADT* vt;
+	ADT vt;
 	/// whether this has an `alias this = X`. the member being aliased to `this`
 	/// will be at index 0 in `types` and `offsets`
 	bool hasBase = false;
 	/// Returns: size of this struct
 	@property size_t sizeOf() const pure {
-		return dt.sizeOf + vt ? vt.sizeOf : 0;
+		return dt.sizeOf + (vt.tb.length > 0);
 	}
 }
 
@@ -375,7 +594,7 @@ public struct AUnion{
 /// Alis Enum
 public struct AEnum{
 	/// Data Type. This will be `struct{}` in case of empty emum
-	ADataType* type;
+	ADataType type;
 	/// member names, mapped to their values
 	ubyte[][string] members;
 }
@@ -383,7 +602,7 @@ public struct AEnum{
 /// Alis Enum Constant
 public struct AEnumConst{
 	/// type
-	ADataType* type;
+	ADataType type;
 	/// value bytes
 	ubyte[] data;
 }
@@ -391,7 +610,7 @@ public struct AEnumConst{
 /// Alis Function Information
 public struct AFn{
 	/// return type
-	ADataType* retT;
+	ADataType retT;
 	/// locals, including parameters
 	ADT locals;
 	/// label name in ABC
@@ -405,7 +624,7 @@ public struct AFn{
 /// Alis Variable
 public struct AVar{
 	/// data type
-	ADataType* type;
+	ADataType type;
 	/// offset
 	size_t offset;
 }
@@ -427,5 +646,3 @@ public struct AImport{
 public struct ATemplate{
 	// TODO: what to store in ATemplate
 }
-
-// TODO implement rest of alis/common.d
