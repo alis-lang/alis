@@ -1,3 +1,6 @@
+/++
+Alis Common Data Types
++/
 module alis.common;
 
 import std.string,
