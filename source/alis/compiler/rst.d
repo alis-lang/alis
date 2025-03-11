@@ -13,6 +13,22 @@ import std.json,
 			 std.array,
 			 std.algorithm;
 
+/// Resolved Module
+public class RModule : ASTNode{
+protected:
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["fns"] = fns.map!(f => f.toJson).array;
+		ret["globCtx"] = globCtx.toString;
+		return ret;
+	}
+public:
+	/// functions
+	RFn[] fns;
+	/// global context
+	ADT globCtx;
+}
+
 /// Resolved Function
 public class RFn : DefNode{
 protected:
