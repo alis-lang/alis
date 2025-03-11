@@ -18,17 +18,35 @@ public class RModule : ASTNode{
 protected:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
-		ret["fns"] = fns.map!(f => f.toJson).array;
-		ret["globCtx"] = globCtx.toString;
+		ret["fns"] = fns.length.iota
+			.map!((size_t i){
+					JSONValue f = fns[i].toJson;
+					f["isPublic"] = fnIsPublic[i];
+					return f;
+			})
+			.array;
+		ret["globals"] = globalsT.length.iota
+			.map!(i => JSONValue([
+						"name": globalsN[i],
+						"type": globalsT[i].toString,
+						"vis": globalsV.to!string
+			]))
+			.array;
 		return ret;
 	}
 public:
 	/// functions
 	RFn[] fns;
+	/// whether any function is public
+	bool[] fnIsPublic;
 	/// init blocks
 	RBlock[] initers;
-	/// global context
-	ADT globCtx;
+	/// globals (parameters and variables) types
+	ADataType[] globalsT;
+	/// globals names
+	string[] globalsN;
+	/// globals visibility
+	Visibility[] globalsV;
 }
 
 /// Resolved Function
