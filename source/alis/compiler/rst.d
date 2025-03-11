@@ -25,12 +25,14 @@ protected:
 public:
 	/// functions
 	RFn[] fns;
+	/// init blocks
+	RBlock[] initers;
 	/// global context
 	ADT globCtx;
 }
 
 /// Resolved Function
-public class RFn : DefNode{
+public class RFn : ASTNode{
 protected:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
