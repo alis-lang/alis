@@ -259,7 +259,7 @@ public struct ADataType{
 	/// whether it is a const
 	bool isConst = false;
 	/// type
-	Type type = Type.NoInit;
+	Type type = Type.Struct;
 	union{
 		/// X-bits for `IntX`, `UIntX`, `FloatX`, or `CharX`
 		ubyte x;
