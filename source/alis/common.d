@@ -1,3 +1,6 @@
+/++
+Alis Common Data Types
++/
 module alis.common;
 
 import std.string,
@@ -53,6 +56,65 @@ public struct AValCT{
 	this (ADataType type){
 		this.type = Type.Type;
 		this.typeT = type;
+	}
+}
+
+/// an identiier node
+public struct Ident{
+	/// the identifier
+	string ident;
+	/// parameters, if any
+	AValCT[] params;
+	/// next Ident, if any, otherwise `null`
+	Ident* next;
+	/// Returns: string representation
+	@property string toString() const pure {
+		string ret = ident;
+		if (params)
+			ret = format!"%s(%s)"(ident, params.map!(p => p.toString).join(","));
+		if (next)
+			return format!"%s.%s"(ret, next.toString);
+		return ret;
+	}
+}
+
+/// Alis Template Resolution Node. TODO: move this to semantic package
+public struct ATResN{
+private:
+	ATResN* _leaf;
+	ATResN* _next;
+	ATResN* _prev;
+
+public:
+	/// what is being resolved
+	Ident* subject;
+	/// result from resolution
+	ASymbol sym;
+
+	/// previous resolution, if any
+	@property ATResN* prev() const pure {
+		return cast(ATResN*)_prev;
+	}
+	/// next resolution, if any
+	@property ATResN* next() const pure {
+		return cast(ATResN*)_next;
+	}
+	/// Returns: most resolved Resolution. will be `this` if `next is null`
+	@property ATResN* leaf() pure {
+		if (_leaf is null){
+			if (_next is null)
+				return _leaf = &this;
+			return _leaf = next.leaf;
+		}
+		if (_leaf.next){
+			_leaf._leaf = null;
+			return _leaf = _leaf.leaf;
+		}
+		return _leaf;
+	}
+	/// pushes a new resolution at end of this list
+	void push(ATResN* r) pure {
+		leaf._next = r;
 	}
 }
 
@@ -174,91 +236,6 @@ public struct AModule{
 	ATemplate[] templates;
 }
 
-/// A resolution chain node. TODO: what THE HELL is this?
-public struct Resolution{
-private:
-	Resolution* _leaf;
-	Resolution* _next;
-	Resolution* _prev;
-
-public:
-	/// previous resolution, if any
-	@property Resolution* prev() pure {
-		return _prev;
-	}
-	/// next resolution, if any
-	@property Resolution* next() pure {
-		return _next;
-	}
-
-	/// Returns: most resolved Resolution. will be `this` if `next is null`
-	@property Resolution* leaf() pure {
-		if (_leaf is null){
-			if (_next is null)
-				return _leaf = &this;
-			return _leaf = next.leaf;
-		}
-		if (_leaf.next){
-			_leaf._leaf = null;
-			return _leaf = _leaf.leaf;
-		}
-		return _leaf;
-	}
-	/// pushes a new resolution at end of this list
-	void push(Resolution* r) pure {
-		leaf._next = r;
-	}
-
-	/// Types of what is being resolved
-	enum TypeS{
-		Ident, /// identifier resolution
-		Alias, /// alias resolution
-		OpBinEval, /// binary operator evaluation resolution
-		OpPreEval, /// prefix operator evaluation resolution
-		OpPostEval, /// postfix operator evaluation resolution
-		Intrinsic, /// intrinsic resolution
-		IntrinsicCall, /// intrinsic call resolution
-		Call, /// call resolution
-		OpDot, /// OpDot resolution
-	}
-
-	/// Types of what it resolved to
-	enum TypeT{
-		Alias, /// resolves to Alias
-		DataType, /// resolves to a Data Type
-		Fn, /// resolves to a function
-		Template, /// resolves to a template
-		Mixin, /// resolves to a mixin template
-		Var, /// resolves to a var
-		TParam, /// resolves to a template parameter.
-		FParam, /// resolves to a funtion parameter
-		EnumConst, /// resolves to an enum const definition. Regular enum->DataType
-		EnumMemeber, /// resolves to enum member
-		Import, /// resolves to an imported module's aliased name
-	}
-
-	/// what is being resovled
-	TypeS typeS;
-	/// result from resolution
-	ASymbol sym;
-	union{
-		/// subject symbol name, for `Ident`, `Intrinsic`, or `IntrinsicCall`
-		string nameS;
-		/// subject symbol for `Alias`, or `Call`
-		ASymbol* symS;
-		struct{
-			string op; /// operator, for `OpBinEval`, `OpPreEval`, or `OpPostEval`
-			union{
-				ASymbol* operand; /// operand, for `OpPreEval`, or `OpPostEval`
-				struct{
-					ASymbol* operandLhs; /// LHS operand, for `OpBinEval`
-					ASymbol* operandRhs; /// RHS operand, for `OpBinEval`
-				}
-			}
-		}
-	}
-}
-
 /// Alis Data Type
 public struct ADataType{
 	/// possible Data Types
@@ -282,7 +259,7 @@ public struct ADataType{
 	/// whether it is a const
 	bool isConst = false;
 	/// type
-	Type type = Type.NoInit;
+	Type type = Type.Struct;
 	union{
 		/// X-bits for `IntX`, `UIntX`, `FloatX`, or `CharX`
 		ubyte x;
