@@ -55,7 +55,7 @@ protected:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["body"] = body.toJson;
-		ret["fn"] = fn.to!string;
+		ret["ident"] = ident;
 		ret["locals"] = localsT.length.iota
 			.map!(i => JSONValue(
 						["name": localsN[i], "type": localsT[i].toString]
@@ -66,10 +66,10 @@ protected:
 		return ret;
 	}
 public:
+	/// identifier
+	string ident;
 	/// body
 	RExpr body;
-	/// function details
-	AFn fn;
 	/// locals (parameters and variables) types
 	ADataType[] localsT;
 	/// locals names
@@ -306,6 +306,7 @@ protected:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["name"] = name;
+		ret["params"] = params.map!(p => p.toJson).array;
 		ret["_name"] = "RIntrinsicCallExpr";
 		return ret;
 	}
@@ -496,7 +497,7 @@ protected:
 	}
 public:
 	/// function
-	AFn fn;
+	AFn fn; // TODO: NO. Very Bad!
 }
 
 /// Resolved Struct Literal
