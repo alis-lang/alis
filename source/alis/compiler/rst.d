@@ -13,13 +13,49 @@ import std.json,
 			 std.array,
 			 std.algorithm;
 
+/// Resolved Module
+public class RModule : ASTNode{
+protected:
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["fns"] = fns.length.iota
+			.map!((size_t i){
+					JSONValue f = fns[i].toJson;
+					f["isPublic"] = fnIsPublic[i];
+					return f;
+			})
+			.array;
+		ret["globals"] = globalsT.length.iota
+			.map!(i => JSONValue([
+						"name": globalsN[i],
+						"type": globalsT[i].toString,
+						"vis": globalsV.to!string
+			]))
+			.array;
+		return ret;
+	}
+public:
+	/// functions
+	RFn[] fns;
+	/// whether any function is public
+	bool[] fnIsPublic;
+	/// init blocks
+	RBlock[] initers;
+	/// globals (parameters and variables) types
+	ADataType[] globalsT;
+	/// globals names
+	string[] globalsN;
+	/// globals visibility
+	Visibility[] globalsV;
+}
+
 /// Resolved Function
-public class RFn : DefNode{
+public class RFn : ASTNode{
 protected:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["body"] = body.toJson;
-		ret["fn"] = fn.to!string;
+		ret["ident"] = ident;
 		ret["locals"] = localsT.length.iota
 			.map!(i => JSONValue(
 						["name": localsN[i], "type": localsT[i].toString]
@@ -30,10 +66,10 @@ protected:
 		return ret;
 	}
 public:
+	/// identifier
+	string ident;
 	/// body
 	RExpr body;
-	/// function details
-	AFn* fn;
 	/// locals (parameters and variables) types
 	ADataType[] localsT;
 	/// locals names
@@ -122,7 +158,7 @@ public:
 	/// counter name, can be null
 	string countIdent;
 	/// value type
-	ADataType* valType;
+	ADataType valType;
 	/// value
 	string valIdent;
 	/// range
@@ -225,12 +261,12 @@ protected:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "RIdentExpr";
-		ret["ident"] = ident.toString;
+		ret["ident"] = ident;
 		return ret;
 	}
 public:
 	/// identifier
-	Ident* ident;
+	string ident;
 }
 
 /// Resolved Block Expression
@@ -245,7 +281,7 @@ protected:
 	}
 public:
 	/// return type
-	ADataType* type;
+	ADataType type;
 	/// block
 	RBlock block;
 }
@@ -270,6 +306,7 @@ protected:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["name"] = name;
+		ret["params"] = params.map!(p => p.toJson).array;
 		ret["_name"] = "RIntrinsicCallExpr";
 		return ret;
 	}
@@ -291,7 +328,7 @@ protected:
 	}
 public:
 	/// type
-	ADataType* type;
+	ADataType type;
 }
 
 /// Resolved Assignment Expression
@@ -460,7 +497,7 @@ protected:
 	}
 public:
 	/// function
-	AFn* fn;
+	AFn fn; // TODO: NO. Very Bad!
 }
 
 /// Resolved Struct Literal
@@ -508,5 +545,5 @@ public:
 	/// value
 	ubyte[] value;
 	/// type
-	ADataType* type;
+	ADataType type;
 }
