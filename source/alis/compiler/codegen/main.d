@@ -54,7 +54,7 @@ class BytecodeGenerator {
 		} else if (auto switchStmt = cast(RSwitch)statement) {
 			generateSwitchBytecode(switchStmt);
 		} else if (auto expr = cast(RExpr)statement) {
-			//generateExpressionBytecode(expr);
+			generateExpressionBytecode(expr);
 		} else {
 			throw new Exception("Unsupported statement type: " ~ typeid(statement).toString);
 		}
@@ -80,7 +80,7 @@ class BytecodeGenerator {
 		string elseLabel = generateLabel("if_else");
 		
 		// Generate condition expression bytecode
-		//generateExpressionBytecode(ifStmt.condition);
+		generateExpressionBytecode(ifStmt.condition);
 		
 		// Jump to else branch if condition is false
 		if (ifStmt.onFalse) {
@@ -96,7 +96,7 @@ class BytecodeGenerator {
 			addInstruction(elseLabel ~ ":");
 			generateStatementBytecode(ifStmt.onFalse);
 		} else {
-			// If there's no else branch, just skip the true branch if condition is false
+			// If there's no else branch and condition is false, just skip the true branch
 			addInstruction("jmpC", [endLabel]);
 			
 			// Generate true branch code
@@ -147,6 +147,17 @@ class BytecodeGenerator {
 			case "float64":
 				return "F8";
 			default: throw new Exception("Unsupported literal type: " ~ type);
+		}
+	}
+
+	private void generateExpressionBytecode(RExpr expr){
+		if (auto literal = cast(RLiteralExpr)expr){
+			generateLiteralBytecode(literal);
+		} else if (auto identExpr = cast(RIdentExpr) expr){
+			generateIdentExprBytecode(identExpr);
+		}
+		else {
+			throw new Exception("Unsupported expression type: " ~ typeid(expr).toString);
 		}
 	}
 
@@ -228,7 +239,7 @@ class BytecodeGenerator {
 	// 		generateExpressionBytecode(derefExpr.val);
 	// 		addInstruction("get", ["4", "0"]); // Assuming 4-byte pointer dereferencing
 	// 	}
-	// 	// Add more expression types as needed
+	// 
 	// }
 
 	// Generates Bytecode of Literals
@@ -239,9 +250,8 @@ class BytecodeGenerator {
 		
 		if (type == ADataType.Type.IntX) {
 			// Convert the byte array to the appropriate IntX type
-			int size = literalExpr.type.x;
-			instruction = "pshI" ~ to!string(size);
-			
+			size_t size = literalExpr.type.sizeOf;
+			instruction = "pshI" ~ to!string(size);			
 			
 			if (size == 1) {
 				byte value = as!byte(literalExpr.value);
@@ -259,7 +269,7 @@ class BytecodeGenerator {
 		} else if (type == ADataType.Type.FloatX) {
 			// Convert the byte array to the appropriate FloatX type
 
-			int size = literalExpr.type.x;
+			size_t size = literalExpr.type.x;
 			instruction = "pshF" ~ to!string(size);
 			
 			if (size == 4) {
@@ -272,6 +282,10 @@ class BytecodeGenerator {
 		}
 		
 		addInstruction(instruction, params);
+	}
+
+	private void generateIdentExprBytecode(RIdentExpr identExpr){
+		
 	}
 
 

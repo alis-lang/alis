@@ -38,7 +38,7 @@ public struct AValCT{
 	}
 }
 
-/// an identiier node
+/// an identifier node
 public struct Ident{
 	/// the identifier
 	string ident;
