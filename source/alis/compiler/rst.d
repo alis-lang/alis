@@ -56,9 +56,9 @@ protected:
 		JSONValue ret = super.jsonOf;
 		ret["body"] = body.toJson;
 		ret["ident"] = ident;
-		ret["locals"] = localsT.length.iota
+		ret["locals"] = paramsT.length.iota
 			.map!(i => JSONValue(
-						["name": localsN[i], "type": localsT[i].toString]
+						["name": paramsN[i], "type": paramsT[i].toString]
 						))
 			.array;
 		ret["paramCount"] = JSONValue(paramCount);
@@ -70,10 +70,10 @@ public:
 	string ident;
 	/// body
 	RExpr body;
-	/// locals (parameters and variables) types
-	ADataType[] localsT;
-	/// locals names
-	string[] localsN;
+	/// paramter types
+	ADataType[] paramsT;
+	/// parameter names
+	string[] paramsN;
 	/// how many of the locals are parameters
 	size_t paramCount;
 }
