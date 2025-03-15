@@ -12,10 +12,9 @@ import alis.compiler.parser.parser,
 
 /// Parses Alis Tokens Range into a Module AST Node
 /// Returns: CmpErrVal (CmpErr, or Module)
-public CmpErrVal!Module parse(TokRange toks){
-	return parseModule(toks);
-}
-/// ditto
-public CmpErrVal!Module parse(ref TokRange toks){
-	return parseModule(toks);
+public CmpErrVal!Module parse()(auto ref TokRange toks, string ident = null){
+	CmpErrVal!Module ret = parseModule(toks);
+	if (!ret.isErr)
+		ret.val.ident = ident;
+	return ret;
 }
