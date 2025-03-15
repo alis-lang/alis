@@ -26,6 +26,8 @@ protected:
 		return ret;
 	}
 public:
+	/// module identifier (can have dots)
+	string ident;
 	/// definitions
 	GlobDef[] defs;
 	/// conditional compilation
