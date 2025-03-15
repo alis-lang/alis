@@ -4,6 +4,7 @@
 whitespace = {space | "\t" | "\n"}-;
 singleLineComment = "//", {? . ?}-, ? newline ?;
 multiLineComment = "/*", {? . ?}-, "*/";
+docComment = "///", {? . ?}-, ? newline ?;
 identifier = ("_" | alphabet), {"_" | alphabet | decimalDigit};
 shebang = "#!", {? . ?}, ? newline ?;
 
