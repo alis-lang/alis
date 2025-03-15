@@ -1,6 +1,6 @@
 module alis.compiler.parser.main;
 
-//version(parser):
+version(parser):
 import std.stdio,
 			 std.json,
 			 std.datetime.stopwatch;
