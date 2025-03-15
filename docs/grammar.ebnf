@@ -14,7 +14,7 @@ integerHex = "0", ("x" | "X"), {hexadecimalDigit}-;
 integerScientific = (integerDecimal | literalFloat), "e", integerDecimal;
 literalInt = integerDecimal | integerBinary | integerHex | integerScientific;
 
-literalFloat = ["-"], {decimalDigit}-, ".", {decimalDigit}-;
+literalFloat = {decimalDigit}-, ".", {decimalDigit}-;
 literalString = ('"', {? . ? | '\"'}, '"') |
 				('"""', ? newline ?, {? . ? | '\"' | ? newline ?}, ? newline ?, '"""');
 literalChar = "'", (("\", ? . ?) | ? . ? | ("\", "'")), "'";
