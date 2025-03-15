@@ -9,13 +9,12 @@ import alis.compiler.lexer.tokens;
 
 import utils.ds : Flags;
 
-version(lexer){
-	import std.stdio;
-	void main(){
-		string source;
-		while (!stdin.eof)
-			source ~= stdin.readln;
-		foreach (Tok tok; source.tokenize)
-			tok.writeln;
-	}
+version(lexer):
+import std.stdio;
+void main(){
+	string source;
+	while (!stdin.eof)
+		source ~= stdin.readln;
+	foreach (Tok tok; source.tokenize)
+		tok.writeln;
 }
