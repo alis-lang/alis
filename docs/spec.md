@@ -174,21 +174,14 @@ will be used to check if the test failed or not.
 
 ## Variable Declaration
 
-Global Variables can be declared like:
+Variables can be declared like:
 
 ```
-[attributes] var TYPE var0, var1, var2;
+var TYPE var0, var1, var2;
 ```
 
-- `attributes` (optional). See Attributes section.
 - `TYPE` is the data type of the variables
 - `var0`, `var1`, `var2` are the names of the variables. Comma separated.
-
-Local Variables declared as:
-
-```
-var [attributes] [static] TYPE var0, var1, var2;
-```
 
 Value assignment can also be done in the variable declaration statement like:
 
@@ -231,7 +224,7 @@ var const int FIFTEEN = 15;
 Or use the short syntax:
 
 ```
-const TYPE NAME = VALUE;
+const int FIFTEEN = 15;
 ```
 
 ---
@@ -504,7 +497,7 @@ Anonymous structs have all members as public, and visibility cannot be changed.
 
 ## Equivalence
 
-Structs defined through the `struct NAME{...}` syntax are always different:
+Structs defined through the `struct NAME{...}` syntax are always unique:
 
 ```
 struct Foo{ string a; int i; }
@@ -516,8 +509,8 @@ bar = foo; // error, incompatible types
 ```
 
 Anonymous structs, can be implicitly casted to any other struct type, as long
-as the `To` type is a superset of the `From` type. If the `To` type has any
-additional members, those must be auto-initializable.
+as the destination type is a superset of the source type. If the destination
+type has any additional members, those must be auto-initializable.
 
 ```
 struct Foo{ int i; }
@@ -532,11 +525,11 @@ bar = baz; // valid
 bar = foo; // invalid
 ```
 
-## `this` member in struct
+## `this` alias in struct
 
-Having `X.this` defined, where X is a struct, will add a fallback member to do
+Having `X.this` alias, where X is a struct, will add a fallback member to do
 operations on rather than the struct itself. `this` can only be an alias, not
-directly a member name:
+directly a member:
 
 ```
 struct Length{
@@ -549,6 +542,9 @@ len = 1;
 writeln(len + 5); // Length + int is not implemented, evaluates to len.len + 5
 writeln(len.unit); // prints "cm"
 ```
+
+This works by allowing implicit conversions of the struct type into the aliased
+member's type.
 
 ## Constructing Structs
 
@@ -880,8 +876,8 @@ var auto err = ErrorType.FileNotFound;
 An enum can exist by itself, with or without a value:
 
 ```
-enum Foo = 5;
-enum Bar;
+enum auto Foo = 5;
+enum auto Bar; // Bar can never be instantiated, but is a valid type
 ```
 
 ## Constants
@@ -1031,21 +1027,9 @@ fn main() -> void{
 
 # Attributes
 
-The `#` prefix operator can be used to tag declarations. Following declarations
-can be tagged:
+The `#` prefix operator can be used to tag definitions. 
 
-- `fn`
-- `struct`
-- `union`
-- `enum`
-- `alias`
-- `var`
-- function parameters
-- struct members
-- union members
-- enum members
-
-To tag any of these, prefix the definition (after optional `pub` or `ipub`):
+Prefix the definition (after the `pub` or `ipub`, if in global scope):
 
 ```
 #Tag fn foo(#Xyz int i) -> void;
@@ -1055,7 +1039,7 @@ pub #Bar struct Baz{}
 Any value or data type is a valid tag:
 
 ```
-enum Xyz;
+enum auto Xyz;
 
 pub #Xyz fn foo() -> void;
 #"hello" struct Bar{}
@@ -1063,7 +1047,7 @@ pub #Xyz fn foo() -> void;
 
 ## Intrinsics
 
-The compiler provides following intrinsics for working with Attributes:
+The compiler provides following intrinsics for working with attributes:
 
 - `$attrsOf(X)` - Gets sequence of all attributes of all types for symbol `X`
 - `$byAttrs(X, A)` - Gets all symbols that are children of `X`, which can be
@@ -1096,7 +1080,7 @@ import MODULE_NAME as y, MODULE_NAME as z;
 To expose public members of an imported module:
 
 ```
-pub import(MODULE_NAME);
+pub import MODULE_NAME;
 ```
 
 ## Visibility
@@ -1191,7 +1175,7 @@ for (auto val; data)
 
 // is equivalent to:
 auto range = data.opRange;
-while !range.empty {
+while !range.isEmpty {
 	var auto val = range.front;
 	writeln(val);
 	range.popFront;
@@ -1200,13 +1184,13 @@ while !range.empty {
 
 ## Ranges
 
-A data type `T` can qualify as a range if the following functions can be called
-on it:
+A data type `T` can qualify as a range if the following operations can be
+evaluated on it:
 
 ```
-T.empty(); // should return true if there are no more values left to pop
-T.front(); // current value
-T.popFront(); // pop current element
+T.isEmpty; // should return true if there are no more values left to pop
+T.front; // current value
+T.popFront; // pop current element
 ```
 
 To make a data type `X` iterable, `X.opRange` should return a range, for
@@ -1221,14 +1205,14 @@ fn opRange(X) -> RangeObjectOfX{
 ## Ranges Example
 
 ```
-struct ArrayRange $($type T){
-	@const T[] arr; // ref to array
+struct ArrayRange $($type T) {
+	$slice(T) arr; // ref to array
 	uint index;
 }
 fn opRange $($type T) (@const T[] arr) -> ArrayRange(T){
 	return {arr = arr, index = 0};
 }
-alias empty $(alias R : ArrayRange(T), $type T) = (R.index >= R.arr.length);
+alias isEmpty $(alias R : ArrayRange(T), $type T) = (R.index >= R.arr.length);
 alias front $(alias R : ArrayRange(T), $type T) = R.arr[R.index];
 alias popFront $(alias R : ArrayRange(T), $type T) = void{ R.index ++; };
 ```
@@ -1293,6 +1277,7 @@ case int { ... }
 
 Operators are read in this order (higher precedence to lower), comma separated:
 
+- `- A`
 - `A . B`, `A -> B`
 - `A [ B`
 - `@ A`
@@ -1431,6 +1416,7 @@ All variations of the assignment operator that combine an arithmetic operator
 
 Following operators can be overloaded:
 
+- `- A`
 - `A [ B`
 - `A ++`
 - `A --`
