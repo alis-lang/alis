@@ -1210,7 +1210,7 @@ struct ArrayRange $($type T) {
 	uint index;
 }
 fn opRange $($type T) (@const T[] arr) -> ArrayRange(T){
-	return {arr = arr, index = 0};
+	return {arr = arr, index = 0}.(ArrayRange(T));
 }
 alias isEmpty $(alias R : ArrayRange(T), $type T) = (R.index >= R.arr.length);
 alias front $(alias R : ArrayRange(T), $type T) = R.arr[R.index];
