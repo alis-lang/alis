@@ -2047,7 +2047,7 @@ $name(args...)
 These will be added as the compiler and runtime is developed, since they are
 directly dependent on the underlying data structures in the compiler/runtime.
 
-An initial list of intrinsics is provided:
+## Types
 
 - `type` - template paramater type, can accept data type
 - `noinit` - a data type, of zero size, and no default value
@@ -2058,23 +2058,56 @@ An initial list of intrinsics is provided:
 - `char(X)` - data type,  an X bits character
 - `slice(X)` - data type, fixed size contiguous block, elements of type `X`
 - `array(X)` - data type, contiguous block, elements of type `X`
+- `vt` - an intrinsic data type for Virtual Table.
+- `isType(T)` - whether `T` resolves to a type.
+- `typeOf(symbol)` - data type of a symbol
+
+## Arrays & Sequences
+
 - `arrayLen(A)` - array length get, for array `A`
 - `arrayLen(A, l)` - array length set, to `l`, for array `A`
 - `arrayInd(A, i)` - Gets element from array, at index `i`, for array `A`
+- `seqLen(T...)` - gets length of the `T...` sequence, in `uint`.
+- `seqInd(T..., uint I)` - gets `I`th element in the `T...` sequence.
+
+## Unions & Aggregates
+
 - `unionIs(T)` - whether a union's tag indicates `this` member being stored
 - `unionIs(T.M)` - whether a union's tag indicates `M` member being stored, or
 	member of type `M`.
-- `vt` - a special intrinsic data type for Virtual Table.
+
+## Attributes
+
 - `attrsOf(X)` - gets sequence of all attributes of `X`.
 - `byAttrs(X, A)` - gets sequence of all symbols, that are members of `X`,
 	which are of type `A`. `X` can be a module, struct, enum, or function
 	(parameters are considered members). `A` can be a type: attributes of type
 	`A` will be matched. `A` can be a value: attributes of type and value of `A`
 	will be matched.
+
+# Misc.
+
 - `debug` - whether building in debug mode or not.
 - `stackTrace` - only available in `$debug`. Gives a stack trace.
-- `isType(T)` - whether `T` resolves to a type.
-- `seqLen(T...)` - gets length of the `T...` sequence, in `uint`.
-- `seqInd(T..., uint I)` - gets `I`th element in the `T...` sequence.
 - `err(str)` - Emits error as a compiler error
-- `typeOf(symbol)` - data type of a symbol
+
+# Arithmetic Operations
+
+Any intrinsic here that accepts 2 parameters, both should be of the same type.
+
+- `arithNeg(X)` - returns `X` with negated sign
+- `arithBinNot(X)` - returns bitwise not of `X`
+- `arithBinOr(X, Y)` - returns bitwise or of `X` and `Y`
+- `arithBinAnd(X, Y)` - returns bitwise and of `X` and `Y`.
+- `arithBinXor(X, Y)` - returns bitwise xor of `X` and `Y`
+- `arithAdd(X, Y)` - returns `X+Y`
+- `arithSub(X, Y)` - returns `X-Y`
+- `arithMul(X, Y)` - returns `X*Y`
+- `arithDiv(X, Y)` - returns `X/Y`
+- `arithMod(X, Y)` - returns `X%Y`. Only for integers, not floats.
+
+For the left/right shift, `X` and `Y` must be integers. Same type is not
+required:
+
+- `arithLShift(X, Y)` - returns `X << Y`
+- `arithRShift(X, Y)` - return `X >> Y`
