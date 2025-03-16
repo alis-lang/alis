@@ -1991,7 +1991,7 @@ This also means that Sequences cannot be multi-dimensional.
 
 ---
 
-# `.` operator in place of `()`
+# Calling Through Dot Operator
 
 You can write `a.b` instead of `b(a)`. For example, if you have a function
 `foo`:
