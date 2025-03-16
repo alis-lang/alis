@@ -378,12 +378,12 @@ Where it is not possible to detect whether `auto` should resolve to `T` or
 
 An array type provides the following operations:
 
-- Resize (change length): `$arrayLen(A, l)`. This intrinsic results in a 
+- Resize (change length): `$arrLen(A, l)`. This intrinsic results in a 
 	runtime function call, that resizes array `A` to length `l`
 - implicit cast to `$slice(X)`
-- Get Length: `$arrayLen(A)`. This intrinsics tells length of array or slice,
+- Get Length: `$arrLen(A)`. This intrinsics tells length of array or slice,
 	in number of elements it can hold.
-- Get Element: `$arrayInd(A, i)`. Gets element at `i`th index in `A` array or
+- Get Element: `$arrInd(A, i)`. Gets element at `i`th index in `A` array or
 	slice.
 
 ## `$slice(X)`
@@ -2064,9 +2064,9 @@ directly dependent on the underlying data structures in the compiler/runtime.
 
 ## Arrays & Sequences
 
-- `arrayLen(A)` - array length get, for array `A`
-- `arrayLen(A, l)` - array length set, to `l`, for array `A`
-- `arrayInd(A, i)` - Gets element from array, at index `i`, for array `A`
+- `arrLen(A)` - array length get, for array `A`
+- `arrLen(A, l)` - array length set, to `l`, for array `A`
+- `arrInd(A, i)` - Gets element from array, at index `i`, for array `A`
 - `seqLen(T...)` - gets length of the `T...` sequence, in `uint`.
 - `seqInd(T..., uint I)` - gets `I`th element in the `T...` sequence.
 
