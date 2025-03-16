@@ -2091,7 +2091,7 @@ directly dependent on the underlying data structures in the compiler/runtime.
 - `stackTrace` - only available in `$debug`. Gives a stack trace.
 - `err(str)` - Emits error as a compiler error
 
-# Debugging
+# Printing
 
 These should only be used for debugging. 
 
@@ -2120,4 +2120,4 @@ For the left/right shift, `X` and `Y` must be integers. Same type is not
 required:
 
 - `arithLShift(X, Y)` - returns `X << Y`
-- `arithRShift(X, Y)` - return `X >> Y`
+- `arithRShift(X, Y)` - returns `X >> Y`
