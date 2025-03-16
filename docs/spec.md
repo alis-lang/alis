@@ -2090,7 +2090,16 @@ directly dependent on the underlying data structures in the compiler/runtime.
 - `debug` - whether building in debug mode or not.
 - `stackTrace` - only available in `$debug`. Gives a stack trace.
 - `err(str)` - Emits error as a compiler error
-- `writeln(T...)` - prints parameters. Only for debugging Alis itself.
+
+# Debugging
+
+These should only be used for debugging. 
+
+- `rtWrite(T...)` - prints parameters, at runtime. **Only for debugging Alis
+	itself. May not be available in final version**
+- `rtWriteln(T...)` - prints parameters, at runtime. **Only for debugging Alis
+	itself. May not be available in final version**
+- `ctWriteln(T...)` - prints parameters, at compile time.
 
 # Arithmetic Operations
 
