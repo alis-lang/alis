@@ -2091,7 +2091,7 @@ directly dependent on the underlying data structures in the compiler/runtime.
 - `stackTrace` - only available in `$debug`. Gives a stack trace.
 - `err(str)` - Emits error as a compiler error
 
-# Printing
+## Printing
 
 These should only be used for debugging. 
 
@@ -2101,7 +2101,7 @@ These should only be used for debugging.
 	itself. May not be available in final version**
 - `ctWriteln(T...)` - prints parameters, at compile time.
 
-# Arithmetic Operations
+## Arithmetic Operations
 
 Any intrinsic here that accepts 2 parameters, both should be of the same type.
 
