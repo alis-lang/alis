@@ -24,6 +24,7 @@ struct CmpErr{
 		Literal, /// Invalid value in a literal
 		UnxpAttrs, /// Unexpected Attribute List
 		UnionMixedName, /// Union being named and unnamed
+		AttrListExpr, /// Attribute List invalid Expression
 	}
 	/// line and column number of error
 	size_t line, col;
@@ -79,4 +80,11 @@ public CmpErr errrUnionMixed(Tok tok){
 	return CmpErr(tok.line, tok.col,
 			"Union cannot have mixed named and unnamed members",
 			CmpErr.Type.UnionMixedName);
+}
+
+public CmpErr errAttrListExpr(CmpErr err){
+	return CmpErr(
+			err.line, err.col,
+			"Invalid Expression Found in Attribute List: " ~ err.msg,
+			CmpErr.Type.AttrListExpr);
 }
