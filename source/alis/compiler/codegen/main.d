@@ -1,5 +1,3 @@
-
-
 module alis.compiler.codegen.main;
 import alis.compiler.common;
 import alis.common;
@@ -68,9 +66,6 @@ class BytecodeGenerator {
 		// Push Return address, parameters and local variables to stack
 		RBlockExpr fnBlockExpr = cast(RBlockExpr)fn.body;
 		generateBlockExprBytecode(fnBlockExpr);
-		
-		
-
 
 	}
 
