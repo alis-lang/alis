@@ -62,8 +62,6 @@ class BytecodeGenerator {
 
 	private void generateFunctionBytecode(RFn fn){
 
-		string instruction;
-
 		// Add Fucntion Identifier
 		addInstruction(fn.ident ~ ":");
 
@@ -76,12 +74,11 @@ class BytecodeGenerator {
 
 	}
 
+
+
 	private void generateBlockBytecode(RBlock block) {
 		writeln("Mock: generateBlockBytecode called") ;
-		foreach (statement ; block.statements){
-			generateStatementBytecode(statement);
-			
-		}
+		
 	}
 
 	private void generateReturnBytecode(RReturn returnStmt) {
@@ -147,6 +144,7 @@ class BytecodeGenerator {
 
 
 	// Utility methods to convert literals
+	// TODO: Not being used anymore so probably delete this
 	private string convertLiteralToType(RLiteralExpr literalExpr) {
 		string type = literalExpr.type.toString;
 		switch (type) {
@@ -171,94 +169,13 @@ class BytecodeGenerator {
 			generateLiteralBytecode(literal);
 		} else if (auto identExpr = cast(RIdentExpr) expr){
 			generateIdentExprBytecode(identExpr);
-		} else if (auto blockExpr = cast(BlockExpr) expr){
-			generateIdentExprBytecode(blockExpr);
+		} else if (auto blockExpr = cast(RBlockExpr) expr){
+			generateBlockExprBytecode(blockExpr);
 		}
 		else {
 			throw new Exception("Unsupported expression type: " ~ typeid(expr).toString);
 		}
 	}
-
-	// 
-	// private void generateExpressionBytecode(RExpr expr) {
-	// 	if (auto literal = cast(RLiteralExpr)expr) {
-	// 		generateLiteralBytecode(literal);
-
-
-	// 	} else if (auto identExpr = cast(RIdentExpr)expr) {
-	// 		// Handle identifier
-	// 		int offset = 0; // Would need to determine actual offset from symbol table
-	// 		string typeStr = identExpr.ident.toString;
-			
-	// 		if (typeStr.startsWith("int")) {
-	// 			int size = to!int(typeStr[3..$]);
-	// 			addInstruction("get", [to!string(size/8), to!string(offset)]);
-	// 		} else if (typeStr.startsWith("float")) {
-	// 			int size = to!int(typeStr[5..$]);
-	// 			addInstruction("get", [to!string(size/8), to!string(offset)]);
-	// 		}
-	// 	} else if (auto assignExpr = cast(RAssignExpr)expr) {
-	// 		// For assignment, generate the right side first (which puts value on stack),
-	// 		// then store it to the location of the left side
-	// 		generateExpressionBytecode(assignExpr.rhs);
-			
-	// 		// Determine the left side location
-	// 		if (auto identExpr = cast(RIdentExpr)assignExpr.lhs) {
-	// 			int offset = 0; // Would need actual offset
-	// 			string typeStr = identExpr.ident.toString;
-				
-	// 			if (typeStr.startsWith("int")) {
-	// 				int size = to!int(typeStr[3..$]);
-	// 				addInstruction("putI" ~ to!string(size/8), [to!string(offset)]);
-	// 			} else if (typeStr.startsWith("float")) {
-	// 				int size = to!int(typeStr[5..$]);
-	// 				addInstruction("putF" ~ to!string(size/8), [to!string(offset)]);
-	// 			}
-	// 		}
-	// 	} else if (auto fnCallExpr = cast(RFnCallExpr)expr) {
-	// 		// Push parameters in reverse order
-	// 		foreach_reverse (param; fnCallExpr.params) {
-	// 			generateExpressionBytecode(param);
-	// 		}
-			
-	// 		// Generate callee expression
-	// 		if (auto identExpr = cast(RIdentExpr)fnCallExpr.callee) {
-	// 			string funcName = identExpr.ident.toString;
-	// 			addInstruction("call", ["@" ~ funcName]);
-	// 		} else {
-	// 			// More complex function call (function pointer, etc.)
-	// 			generateExpressionBytecode(fnCallExpr.callee);
-	// 			addInstruction("call", ["R"]);  // Call through register
-	// 		}
-	// 	} else if (auto commaExpr = cast(RCommaExpr)expr) {
-	// 		// Evaluate all expressions, but only the last one's value is kept
-	// 		foreach (subExpr; commaExpr.exprs) {
-	// 			generateExpressionBytecode(subExpr);
-				
-	// 			// Pop intermediate results except the last one
-	// 			if (subExpr != commaExpr.exprs[$-1]) {
-	// 				addInstruction("popN", ["1"]);
-	// 			}
-	// 		}
-	// 	} else if (auto refExpr = cast(RRefExpr)expr) {
-	// 		// Get reference to value
-	// 		if (auto identExpr = cast(RIdentExpr)refExpr.val) {
-	// 			int offset = 0; // Would need actual offset
-	// 			addInstruction("pshO");
-	// 			addInstruction("pshI4", [to!string(offset)]);
-	// 			addInstruction("addI4");
-	// 		} else {
-	// 			// More complex reference
-	// 			generateExpressionBytecode(refExpr.val);
-	// 			addInstruction("getR");
-	// 		}
-	// 	} else if (auto derefExpr = cast(RDerefExpr)expr) {
-	// 		// Dereference a pointer
-	// 		generateExpressionBytecode(derefExpr.val);
-	// 		addInstruction("get", ["4", "0"]); // Assuming 4-byte pointer dereferencing
-	// 	}
-	// 
-	// }
 
 	// Generates Bytecode of Literals
 	private void generateLiteralBytecode(RLiteralExpr literalExpr) {
@@ -306,18 +223,26 @@ class BytecodeGenerator {
 		
 	}
 
-	private void generateBlockExprBytecode(BlockExpr blockExpr){
-		size_t returnAddressSize = blockExpr.type.sizeOf;
-		instruction = returnAddressSize.format!"pshI%d";
+	private void generateBlockExprBytecode(RBlockExpr blockExpr){
+		size_t returnAddressSize = blockExpr.type.sizeOf/8;
+		string instruction = returnAddressSize.format!"\tpshN %d";
 		addInstruction(instruction); // Instruction for Return Address 
+		RBlock block = blockExpr.block;
 
-		foreach (localT ; blockExpr.block.localsT){
-			instruction = localT.sizeOf.format!"pshI%d";
-			string[] params = [];
-			addInstruction(instruction, params); //Instruction for Parameters and Local Vars
+		foreach (localT ; block.localsT){
+			instruction = (localT.sizeOf/8).format!"\tpshN %d";
+			addInstruction(instruction); //Instruction for Parameters and Local Vars
 		}
+
+		generateStatementsBytecode(block.statements);
+		
 	}
 
+	private void generateStatementsBytecode(RStatement[] statements){
+		foreach (statement ; statements){
+			generateStatementBytecode(statement);				
+		}
+	}
 
 }
 
@@ -360,138 +285,118 @@ void printBytecodeToFile(string filename, string[][] bytecodeInstructions) {
 
 }
 
-private ADataType* getTypeFromString(string typeStr) {
-	alias Type = ADataType.Type;
-	switch (typeStr) {
-		case "int8":
-			return new ADataType(false, Type.IntX, 8);
-		case "int16":
-			return new ADataType(false, Type.IntX, 16);
-		case "int32":
-			return new ADataType(false, Type.IntX, 32);
-		case "int64":
-			return new ADataType(false, Type.IntX, 64);
-		case "float32":
-			return new ADataType(false, Type.FloatX, 32);
-		case "float64":
-			return new ADataType(false, Type.FloatX, 64);
-		default:
-			throw new Exception("Unknown type: " ~ typeStr);
+// Tesing conversion of literals to bytes and then back to values 
+unittest{
+	
+	auto generator = new BytecodeGenerator;
+
+	// Integer literal
+	auto intLiteral = new RLiteralExpr;
+	intLiteral.type = ADataType.ofInt(4);
+	intLiteral.value = asBytes!int(1);
+
+	// Float literal
+	auto floatLiteral = new RLiteralExpr;
+	floatLiteral.type = ADataType.ofFloat(4);
+	floatLiteral.value = asBytes!float(1.0f);
+
+	// Double literal
+	auto doubleLiteral = new RLiteralExpr;
+	doubleLiteral.type = ADataType.ofInt(8);
+	doubleLiteral.value = asBytes!double(3.14159);
+
+	// Short literal
+	auto shortLiteral = new RLiteralExpr;
+	shortLiteral.type = ADataType.ofInt(2);
+	shortLiteral.value = asBytes!short(42);
+
+	// Long literal
+	auto longLiteral = new RLiteralExpr;
+	longLiteral.type = ADataType.ofInt(8);
+	longLiteral.value = asBytes!long(123456789);
+
+	// Print converted values
+	assert(as!int(intLiteral.value) ==  1);
+	assert(as!float(floatLiteral.value) ==  1.0f);
+	assert(as!double(doubleLiteral.value) ==  3.14159);
+	assert(as!short(shortLiteral.value) ==  42);
+	assert(as!long(longLiteral.value) ==  123456789);
+
+	bool exceptionThrown = false;
+	try {
+		auto invalidLiteral = new RLiteralExpr;
+		invalidLiteral.type = ADataType.ofString();
+	} catch (Exception e) {
+		exceptionThrown = true;
 	}
+
+
+	RReturn intReturnStmt = new RReturn;
+	intReturnStmt.val = intLiteral;
+
+	RReturn floatReturnStmt = new RReturn;
+	floatReturnStmt.val = floatLiteral;
+
+	
+	auto intBytecode = generator.generateBytecode(intReturnStmt);
+	printBytecodeToFile(testFolder ~ "generated_int_code.txt", intBytecode);
+
+	auto floatBytecode = generator.generateBytecode(floatReturnStmt);
+	printBytecodeToFile(testFolder ~ "generated_float_code.txt", floatBytecode);
+
+	RBlock block = new RBlock;
+	block.statements ~= intReturnStmt;
+	block.statements ~= floatReturnStmt;
+
+	RIf ifStmt = new RIf;
+	ifStmt.condition = intLiteral;
+	ifStmt.onTrue = block;
+
+	RFor forStmt = new RFor;
+	forStmt.countIdent = "i"; // TODO check why these are strings
+	forStmt.valIdent = "j"; // TODO check why these are strings
+	forStmt.body = block;
+
+
+
+	auto complexBytecode = generator.generateBytecode(forStmt);
+	printBytecodeToFile(testFolder ~  "complex_code.txt", complexBytecode);
+
 }
 
-// Tesing conversion of literals to bytes and then back to values 
-// unittest{
-	
-// 	auto generator = new BytecodeGenerator;
-
-// 	// Integer literal
-// 	auto intLiteral = new RLiteralExpr;
-// 	intLiteral.type = getTypeFromString("int32");
-// 	intLiteral.value = asBytes!int(1);
-
-// 	// Float literal
-// 	auto floatLiteral = new RLiteralExpr;
-// 	floatLiteral.type = getTypeFromString("float32");
-// 	floatLiteral.value = asBytes!float(1.0f);
-
-// 	// Double literal
-// 	auto doubleLiteral = new RLiteralExpr;
-// 	doubleLiteral.type = getTypeFromString("float64");
-// 	doubleLiteral.value = asBytes!double(3.14159);
-
-// 	// Short literal
-// 	auto shortLiteral = new RLiteralExpr;
-// 	shortLiteral.type = getTypeFromString("int16");
-// 	shortLiteral.value = asBytes!short(42);
-
-// 	// Long literal
-// 	auto longLiteral = new RLiteralExpr;
-// 	longLiteral.type = getTypeFromString("int64");
-// 	longLiteral.value = asBytes!long(123456789);
-
-// 	// Print converted values
-// 	assert(as!int(intLiteral.value) ==  1);
-// 	assert(as!float(floatLiteral.value) ==  1.0f);
-// 	assert(as!double(doubleLiteral.value) ==  3.14159);
-// 	assert(as!short(shortLiteral.value) ==  42);
-// 	assert(as!long(longLiteral.value) ==  123456789);
-
-// 	bool exceptionThrown = false;
-// 	try {
-// 		auto invalidLiteral = new RLiteralExpr;
-// 		invalidLiteral.type = getTypeFromString("string");
-// 	} catch (Exception e) {
-// 		exceptionThrown = true;
-// 	}
-// 	assert(exceptionThrown);
-
-// 	RReturn intReturnStmt = new RReturn;
-// 	intReturnStmt.val = intLiteral;
-
-// 	RReturn floatReturnStmt = new RReturn;
-// 	floatReturnStmt.val = floatLiteral;
-
-	
-// 	auto intBytecode = generator.generateBytecode(intReturnStmt);
-// 	printBytecodeToFile(testFolder ~ "generated_int_code.txt", intBytecode);
-
-// 	auto floatBytecode = generator.generateBytecode(floatReturnStmt);
-// 	printBytecodeToFile(testFolder ~ "generated_float_code.txt", floatBytecode);
-
-// 	RBlock block = new RBlock;
-// 	block.statements ~= intReturnStmt;
-// 	block.statements ~= floatReturnStmt;
-
-// 	RIf ifStmt = new RIf;
-// 	ifStmt.condition = intLiteral;
-// 	ifStmt.onTrue = block;
-
-// 	RFor forStmt = new RFor;
-// 	forStmt.countIdent = "i"; // TODO check why these are strings
-// 	forStmt.valIdent = "j"; // TODO check why these are strings
-// 	forStmt.body = block;
-
-
-
-// 	auto complexBytecode = generator.generateBytecode(forStmt);
-// 	printBytecodeToFile(testFolder ~  "complex_code.txt", complexBytecode);
-
-// }
-
 // Testing literal expressions
-// unittest {
+unittest {
 
-// 	auto generator = new BytecodeGenerator;
+	auto generator = new BytecodeGenerator;
 
-// 	// Test for 4-byte int literal
-// 	auto intLiteral = new RLiteralExpr;
-// 	intLiteral.type = new ADataType(false, ADataType.Type.IntX, 4);
-// 	intLiteral.value = asBytes!int(42);
-// 	generator.generateLiteralBytecode(intLiteral);
+	// Test for 4-byte int literal
+	auto intLiteral = new RLiteralExpr;
+	intLiteral.type = ADataType.ofInt(4);
+	intLiteral.value = asBytes!int(42);
+	generator.generateLiteralBytecode(intLiteral);
 
-// 	// Test for 8-byte long literal
-// 	auto longLiteral = new RLiteralExpr;
-// 	longLiteral.type = new ADataType(false, ADataType.Type.IntX, 8);
-// 	longLiteral.value = asBytes!long(123456789L);	
-// 	generator.generateLiteralBytecode(longLiteral);
+	// Test for 8-byte long literal
+	auto longLiteral = new RLiteralExpr;
+	longLiteral.type = ADataType.ofInt(8);
+	longLiteral.value = asBytes!long(123456789L);	
+	generator.generateLiteralBytecode(longLiteral);
 
-// 	// Test for 32-bit float literal
-// 	auto floatLiteral = new RLiteralExpr;
-// 	floatLiteral.type = new ADataType(false, ADataType.Type.FloatX, 4);
-// 	floatLiteral.value = asBytes!float(3.14f);	
-// 	generator.generateLiteralBytecode(floatLiteral);
+	// Test for 32-bit float literal
+	auto floatLiteral = new RLiteralExpr;
+	floatLiteral.type = ADataType.ofFloat(4);
+	floatLiteral.value = asBytes!float(3.14f);	
+	generator.generateLiteralBytecode(floatLiteral);
 
-// 	// // Test for 64-bit double literal
-// 	auto doubleLiteral = new RLiteralExpr;
-// 	doubleLiteral.type = new ADataType(false, ADataType.Type.FloatX, 8);
-// 	doubleLiteral.value = asBytes!double(2.717);	
-// 	generator.generateLiteralBytecode(doubleLiteral);
+	// // Test for 64-bit double literal
+	auto doubleLiteral = new RLiteralExpr;
+	doubleLiteral.type = ADataType.ofInt(8);
+	doubleLiteral.value = asBytes!double(2.717);	
+	generator.generateLiteralBytecode(doubleLiteral);
 
-// 	printBytecodeToFile(testFolder ~  "literal_code.txt", generator.bytecodeInstructions);
-// 	printBytecode(generator.bytecodeInstructions);
+	printBytecodeToFile(testFolder ~  "literal_code.txt", generator.bytecodeInstructions);
+	//printBytecode(generator.bytecodeInstructions);
 
-// } 
+} 
 
 // Testing Function Bytecode Generator
 

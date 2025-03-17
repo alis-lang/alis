@@ -1,7 +1,7 @@
 testFunction:
-pshI0
-pshI64
-pshI64
-pshI64
-pshI64
+	pshN 0
+	pshN 8
+	pshN 8
+	pshN 8
+	pshN 8
 
