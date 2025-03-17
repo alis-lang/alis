@@ -117,11 +117,8 @@ class BytecodeGenerator {
 
 	private void generateForBytecode(RFor forStmt) {
 		writeln("Mock: generateForBytecode called: ");
-		RStatement[] body = (cast(RBlock)forStmt.body).statements;
-		foreach (statement ; body){
-			generateStatementBytecode(statement);
-			
-		}
+		RStatement[] statements = (cast(RBlock)forStmt.body).statements;
+		generateStatementsBytecode(statements);
 	}
 
 	private void generateWhileBytecode(RWhile whileStmt) {
@@ -395,33 +392,30 @@ unittest {
 
 // Testing Function Bytecode Generator
 
-	unittest{
-		RFn fn = new RFn;
-		fn.ident = "testFunction";
+unittest{
+	RFn fn = new RFn;
+	fn.ident = "testFunction";
 
-		// Create function body as a block expression
-		RBlockExpr blockExpr = new RBlockExpr;
-		blockExpr.type.type = ADataType.Type.Struct; // Assume void return type
-		blockExpr.block = new RBlock;
-		fn.body = blockExpr;
+	// Create function body as a block expression
+	RBlockExpr blockExpr = new RBlockExpr;
+	blockExpr.type.type = ADataType.Type.Struct; // Assume void return type
+	blockExpr.block = new RBlock;
+	fn.body = blockExpr;
 
-		// Define function parameters and local variables
-		blockExpr.block.localsN = ["param1", "param2", "local1", "local2"];
-		blockExpr.block.localsT = [
-			ADataType.ofInt,  // param1
-			ADataType.ofInt,  // param2
-			ADataType.ofFloat, // local1
-			ADataType.ofInt    // local2
-		];
+	// Define function parameters and local variables
+	blockExpr.block.localsN = ["param1", "param2", "local1", "local2"];
+	blockExpr.block.localsT = [
+		ADataType.ofInt,  // param1
+		ADataType.ofInt,  // param2
+		ADataType.ofFloat, // local1
+		ADataType.ofInt    // local2
+	];
 
-		auto generator = new BytecodeGenerator;
-		generator.generateFunctionBytecode(fn);
-		printBytecodeToFile(testFolder ~  "fnbytecode_code.txt", generator.bytecodeInstructions);
+	auto generator = new BytecodeGenerator;
+	generator.generateFunctionBytecode(fn);
+	printBytecodeToFile(testFolder ~  "fnbytecode_code.txt", generator.bytecodeInstructions);
 
-
-
-
-	}
+}
 
 
 version (codegen) {
