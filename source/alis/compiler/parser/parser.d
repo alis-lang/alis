@@ -7,6 +7,8 @@ import alis.compiler.common,
 			 alis.compiler.lexer,
 			 alis.compiler.error;
 
+import meta;
+
 import utils.ds;
 
 import std.meta,
@@ -19,21 +21,6 @@ import std.meta,
 			 std.string;
 
 debug import std.stdio;
-
-/// T.stringof
-private enum StringOf(alias T) = T.stringof;
-/// Joins sequences of strings `T` with `S` as separator
-private template Join(string S, T...){
-	enum Join = join();
-	string join(){
-		string ret = T[0];
-		foreach (t; T[1 .. $])
-			ret ~= S ~ t;
-		return ret;
-	}
-}
-/// if `T` is not an abstract class
-private enum IsNotAbstractClass(T) = !isAbstractClass!T;
 
 /// Returns: CmpErr with UnxpTokErr
 private CmpErr unxpTokErr(R...)(Tok tok){
@@ -102,20 +89,6 @@ struct OpPre{
 
 /// UDA: Tag as a post processing function
 enum PFn;
-
-/// If any of the `U` UDAs exist on `T`
-private template HasAnyUDA(U...){
-	template HasAnyUDA(alias T){
-		enum HasAnyUDA = doTheCheck();
-		private bool doTheCheck(){
-			static foreach (u; U){
-				static if (hasUDA!(T, u))
-					return true;
-			}
-			return false;
-		}
-	}
-}
 
 /// Whether a Grammar Function is a Hookless Operator parser
 private template GrmrFnOpIsHkls(alias Fn){
@@ -223,52 +196,6 @@ private template IsGrmrFn(E, Err) if (is (E : ASTNode)){
 		} else {
 			enum IsGrmrFn = false;
 		}
-	}
-}
-
-/// Gets most derived common parent class across all `T...`
-private template CommonParent(T...) if (T.length > 0){
-	static if (T.length == 1){
-		alias CommonParent = T;
-	} else {
-		private alias Base(C) = AliasSeq!(C, BaseClassesTuple!C);
-		alias CommonParent = Base!(T[0])[getInd()];
-		private size_t getInd(){
-			foreach (i, P; Base!(T[0])){
-				bool found = true;
-				static foreach (C; T[1 .. $]){
-					static if (staticIndexOf!(P, Base!C) == -1)
-						found = false;
-				}
-				if (found)
-					return i;
-			}
-			return cast(ptrdiff_t)Base!(T[0]).length - 1;
-		}
-	}
-}
-
-/// Gets the first parameter type for functions
-private template FirstParamsOf(F...) if (allSatisfy!(isCallable, F)){
-	alias FirstParamsOf = AliasSeq!();
-	static foreach (fn; F){
-		static if (Parameters!fn.length == 0)
-			static assert(false, "function in FirstParamsOf has zero parameters");
-		FirstParamsOf = AliasSeq!(FirstParamsOf, Parameters!fn[0]);
-	}
-}
-
-/// Gets parent classes for `C`, among `T...`
-private template ParentSubset(C, T...) if (T.length > 0){
-	static if (T.length == 1){
-		static if (is (C : T)){
-			alias ParentSubset = T;
-		} else {
-			alias ParentSubset = AliasSeq!();
-		}
-	} else {
-		enum IsInT(X) = staticIndexOf!(X, T) != -1;
-		alias ParentSubset = Filter!(IsInT, AliasSeq!(C, BaseClassesTuple!C));
 	}
 }
 
