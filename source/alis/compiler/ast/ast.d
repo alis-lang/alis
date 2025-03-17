@@ -1,7 +1,7 @@
 /++
 AST Node definitions package
 +/
-module alis.compiler.ast;
+module alis.compiler.ast.ast;
 
 import std.array,
 			 std.conv,
