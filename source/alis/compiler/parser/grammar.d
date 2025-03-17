@@ -2392,60 +2392,6 @@ CmpErrVal!IdentExpr parseIdentExpr(ref TokRange toks){
 }
 
 @PFn
-void postOpPost(OpPostExprOverridable expr){
-	OpCallExpr next = new OpCallExpr();
-	next.parent = expr;
-	LiteralStringExpr opExpr = new LiteralStringExpr;
-	IdentExpr callee = new IdentExpr;
-	opExpr.pos = next.pos = callee.pos = expr.pos;
-	next.callee = callee;
-	callee.ident = "opPost";
-	next.params = [opExpr, expr.operand];
-	opExpr.val = expr.op;
-	expr.next = next;
-}
-
-@PFn
-void postOpPre(OpPreExprOverridable expr){
-	OpCallExpr next = new OpCallExpr();
-	next.parent = expr;
-	LiteralStringExpr opExpr = new LiteralStringExpr;
-	IdentExpr callee = new IdentExpr;
-	opExpr.pos = next.pos = callee.pos = expr.pos;
-	next.callee = callee;
-	callee.ident = "opPre";
-	next.params = [opExpr, expr.operand];
-	opExpr.val = expr.op;
-	expr.next = next;
-}
-
-@PFn
-void postOpBin(OpBinExprOverridable expr){
-	OpCallExpr next = new OpCallExpr();
-	next.parent = expr;
-	LiteralStringExpr opExpr = new LiteralStringExpr;
-	IdentExpr callee = new IdentExpr;
-	opExpr.pos = next.pos = callee.pos = expr.pos;
-	next.callee = callee;
-	callee.ident = "opBin";
-	next.params = [opExpr, expr.lhs, expr.rhs];
-	opExpr.val = expr.op;
-	expr.next = next;
-}
-
-@PFn
-void postOpIndex(OpIndexExpr expr){
-	OpCallExpr next = new OpCallExpr;
-	next.parent = expr;
-	IdentExpr callee = new IdentExpr;
-	next.pos = callee.pos = expr.pos;
-	next.callee = callee;
-	callee.ident = "opIndex";
-	next.params = expr.lhs ~ expr.indexes;
-	expr.next = next;
-}
-
-@PFn
 void postOpAssignCompound(OpAssignCompound expr){
 	OpAssignBin next = new OpAssignBin;
 	next.parent = expr;
