@@ -89,8 +89,8 @@ package RModule rstub_test(){
 	ret.fns ~= write;
 	write.ident = "main.write";
 	write.paramCount = 1;
-	write.localsT = [ADataType.ofInt];
-	write.localsN = ["main.write.i"];
+	write.paramsT = [ADataType.ofInt];
+	write.paramsN = ["main.write.i"];
 	iExpr = new RIdentExpr;
 	iExpr.ident = "main.write.i";
 	RIntrinsicCallExpr writeln = new RIntrinsicCallExpr;
