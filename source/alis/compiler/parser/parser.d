@@ -20,27 +20,6 @@ import std.meta,
 
 debug import std.stdio;
 
-/// parent to all nodes
-public abstract class ASTNode{
-protected:
-	import std.json : JSONValue;
-	/// returns: JSON representation
-	JSONValue jsonOf() const pure {
-		JSONValue ret;
-		ret["location.line"] = JSONValue(pos.line);
-		ret["location.col"] = JSONValue(pos.col);
-		ret["_name"] = "ASTNode";
-		return ret;
-	}
-public:
-	/// location in source code
-	Location pos;
-	/// returns: JSON representation
-	JSONValue toJson() const pure {
-		return this.jsonOf;
-	}
-}
-
 /// T.stringof
 private enum StringOf(alias T) = T.stringof;
 /// Joins sequences of strings `T` with `S` as separator

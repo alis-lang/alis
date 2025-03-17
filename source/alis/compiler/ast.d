@@ -7,7 +7,7 @@ import std.array,
 			 std.conv,
 			 std.algorithm;
 
-public import alis.compiler.common;
+import alis.compiler.common;
 
 /// alis module
 public class Module : ASTNode{
