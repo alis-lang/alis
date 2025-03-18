@@ -9,6 +9,8 @@ import std.meta,
 			 std.traits,
 			 std.algorithm;
 
+debug import std.stdio;
+
 import meta;
 
 /// UDA for tagging as pre-order iteration
@@ -73,10 +75,10 @@ private template IsRel(T){
 
 /// Gets relevant fields' names of N
 private template FieldNamesRel(N) if (is (N : ASTNode)){
-	alias FieldsRel = AliasSeq!();
+	alias FieldNamesRel = AliasSeq!();
 	static foreach (size_t i, F; Fields!N){
 		static if (IsRel!F){
-			FieldsRel = AliasSeq!(FieldsRel, FieldNameTuple!F[i]);
+			FieldNamesRel = AliasSeq!(FieldNamesRel, FieldNameTuple!N[i]);
 		}
 	}
 }
@@ -92,17 +94,47 @@ private template FieldTypesRel(N) if (is (N : ASTNode)){
 /// `S` - State Type. Must be `struct`
 /// `Fns` - Iterator Functions
 public struct ASTIter(S, Fns...) if (
-		is (S == struct) && allSatisfy!(IsItFn!S, Fns)){
+		is (S == struct) /*&& allSatisfy!(IsItFn!S, Fns)*/){
+	/// types being handles
+	private alias RelT = NoDuplicates!(FirstParamsOf!Fns);
+
+	/// calls most suited ItFn
+	pragma(inline, true)
+	private static _callItFn(N)(N node, auto ref S state){
+		// TODO: this is only a stub
+		alias F = ItFnsFor!(N, Fns);
+		static if (F.length){
+			F[0](node, state);
+		}
+	}
+
+	/// iterates over array or single type
+	pragma(inline, true)
+	private static void _iterate(N)(N nodes, auto ref S state){
+		debug stderr.writefln!"_iterate: %s"(N.stringof);
+		static if (isArray!N){
+			foreach (n; nodes){
+				_iterate(n, state);
+			}
+		} else static if (!isArray!N){
+			iterate(nodes, state);
+		}
+	}
+
 	/// Descends down on node
 	pragma(inline, true)
-	private void _descend(N)(N node, auto ref S state){
+	private static void _descend(N)(N node, auto ref S state){
+		debug stderr.writefln!"_descend: %s"(N.stringof);
 		static foreach (size_t i, string name; FieldNamesRel!N){
 			_iterate!(FieldTypesRel!N[i])(__traits(getMember, node, name), state);
 		}
 	}
 
 	/// Default iterator for any type T
-	public void iterate(N)(N node, auto ref S state){
+	public static void iterate(N)(N node, auto ref S state){
+		if (node is null)
+			return;
+		debug stderr.writefln!"iterate: %s"(N.stringof);
 		alias F = ItFnsFor!(N, Fns);
 		static if (F.length == 0){
 			_descend(node, state);
@@ -110,13 +142,13 @@ public struct ASTIter(S, Fns...) if (
 		}
 		static if (F.length){
 			static if (hasUDA!(F[0], ItPre)){
-				F[0](node, state);
+				_callItFn(node, state);
 			}
 			static if (!hasUDA!(F[0], ItTerm)){
 				_descend(node, state);
 			}
 			static if (hasUDA!(F[0], ItPost)){
-				F[0](node, state);
+				_callItFn(node, state);
 			}
 		}
 	}
