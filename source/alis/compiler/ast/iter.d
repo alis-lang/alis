@@ -11,59 +11,113 @@ import std.meta,
 
 import meta;
 
-/// UDA for tagging as iterator function
-public enum IT;
+/// UDA for tagging as pre-order iteration
+public enum ItPre;
+/// UDA for tagging as post-order iteration
+public enum ItPost;
+/// UDA for tagging as iteration terminator
+public enum ItTerm;
 
 /// Sequence of Iterator Functions in a container (module etc)
-public template ITFnsOf(alias M){
-	alias ITFnsOf = AliasSeq!();
+/// Template Params:
+/// `S` - State Type
+/// `M` - container
+public template ItFnsOf(S, alias M){
+	alias ItFnsOf = AliasSeq!();
+	alias Checker = IsItFn!S;
 	static foreach (string N; __traits(allMembers, M)){
-		static if (IsITFn!(__traits(getMember, M, N))){
-			ITFnsOf = AliasSeq!(ITFnsOf, __traits(getMember, M, N));
+		static if (Checker!(__traits(getMember, M, N))){
+			ItFnsOf = AliasSeq!(ItFnsOf, __traits(getMember, M, N));
 		}
 	}
 }
 
-/// Whether something is a ITFn
-private template IsITFn(alias F){
-	static if (isCallable!F && hasUDA!(F, IT)){
-		enum IsITFn = true;
-	} else {
-		enum IsITFn = false;
+/// Whether something is a ItFn, for state type `S`
+private template IsItFn(S) if (is (S == struct)){
+	template IsItFn(alias F){
+		static if (isCallable!F &&
+				(hasUDA!(F, ItPre) || hasUDA!(F, ItPost)) &&
+				Parameters!F.length == 2 &&
+				is (Parameters!F[0] : ASTNode) &&
+				is (S : Parameters!F[1])){
+			enum IsItFn = true;
+		} else {
+			enum IsItFn = false;
+		}
 	}
 }
 
 /// Gets subset iterating functions for Node Type N, among `Us...`
-private template ITFnsFor(N, F...) if (
+private template ItFnsFor(N, F...) if (
 		is (N : ASTNode) && allSatisfy!(isCallable, F)){
-	alias ITFnsFor = AliasSeq!();
+	alias ItFnsFor = AliasSeq!();
 	static foreach (T; AliasSeq!(N, BaseClassesTuple!N)){
 		static if (staticIndexOf!(T, FirstParamsOf!F) != -1){
-			ITFnsFor = AliasSeq!(ITFnsFor,
+			ItFnsFor = AliasSeq!(ItFnsFor,
 					F[staticIndexOf!(T, FirstParamsOf!F)]);
 		}
 	}
 }
 
-/// Gets relevant fields of T
-private template FieldsRel(N) if (is (N : ASTNode)){
-	template IsRel(T){
-		static if (isArray!T){
-			alias IsRel = IsRel!(ForeachType!T);
-		} else {
-			static if (isAssociativeArray!T){
-				static assert(false, "assoc_array not yet supported sadly");
-			}
-			enum IsRel = is (T : ASTNode);
+/// Whether a type T is relevant for iteration
+private template IsRel(T){
+	static if (isArray!T){
+		alias IsRel = IsRel!(ForeachType!T);
+	} else {
+		static if (isAssociativeArray!T){
+			static assert(false, "assoc_array not yet supported sadly");
+		}
+		enum IsRel = is (T : ASTNode);
+	}
+}
+
+/// Gets relevant fields' names of N
+private template FieldNamesRel(N) if (is (N : ASTNode)){
+	alias FieldsRel = AliasSeq!();
+	static foreach (size_t i, F; Fields!N){
+		static if (IsRel!F){
+			FieldsRel = AliasSeq!(FieldsRel, FieldNameTuple!F[i]);
 		}
 	}
-	alias FieldsRel = Filter!(IsRel, Fields!N);
+}
+
+/// Gets relevant fields' types of N
+private template FieldTypesRel(N) if (is (N : ASTNode)){
+	alias FieldTypesRel = Filter!(IsRel, Fields!N);
 }
 
 /// AST Iterator
-public struct Iterator(Fns...){
+///
+/// Template Params:
+/// `S` - State Type. Must be `struct`
+/// `Fns` - Iterator Functions
+public struct ASTIter(S, Fns...) if (
+		is (S == struct) && allSatisfy!(IsItFn!S, Fns)){
+	/// Descends down on node
+	pragma(inline, true)
+	private void _descend(N)(N node, auto ref S state){
+		static foreach (size_t i, string name; FieldNamesRel!N){
+			_iterate!(FieldTypesRel!N[i])(__traits(getMember, node, name), state);
+		}
+	}
+
 	/// Default iterator for any type T
-	void _iterate(N)(N node){
-		// TODO continue from here
+	public void iterate(N)(N node, auto ref S state){
+		alias F = ItFnsFor!(N, Fns);
+		static if (F.length == 0){
+			_descend(node, state);
+			return;
+		}
+		static if (F.length){
+			static if (hasUDA!(F[0], ItPre)){
+				F[0](node, state);
+			}
+			static if (!hasUDA!(F[0], ItTerm)){
+				_descend(node, state);
+			}
+			static if (hasUDA!(F[0], ItPost)){
+				F[0](node, state);
+			}
+		}
 	}
 }
