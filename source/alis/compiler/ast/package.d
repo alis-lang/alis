@@ -3,5 +3,13 @@ AST Package
 +/
 module alis.compiler.ast;
 
-public import alis.compiler.ast.ast,
-			 alis.compiler.ast.iter;
+import std.meta;
+
+import alis.compiler.ast.iter;
+
+public import alis.compiler.ast.ast;
+
+public alias ASTIter(Fns...) =
+	Instantiate!(alis.compiler.ast.iter.ASTIter!ASTNodes, Fns);
+
+public import alis.compiler.ast.iter : ItTerm, ItPre, ItPost;
