@@ -77,7 +77,7 @@ template LeastDerivedChildren(N...) if (N.length > 0){
 		}();
 		alias LeastDerivedChildren = AliasSeq!();
 		static foreach (size_t i, C; N){
-			static if (Indexes[i] == Min && !is (C == T))
+			static if (Indexes[i] == Min && !is (C == T) && is (C : T))
 				LeastDerivedChildren = AliasSeq!(LeastDerivedChildren, C);
 		}
 	}
