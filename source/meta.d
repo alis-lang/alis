@@ -62,24 +62,25 @@ template CommonParent(T...) if (T.length > 0){
 	}
 }
 
-/// Gets least derived Child of `T` among `N`
-template LeastDerivedChild(N...) if (N.length > 0){
-	alias LeastDerivedChild(T) = N[(){
-		size_t min = size_t.max,
-					 minI = size_t.max;
-		static foreach (size_t i, C; N){{
-			enum Ind = staticIndexOf!(T, BaseClassesTuple!C);
-			import std.conv : to;
-			pragma(msg, C.stringof ~ " = " ~ Ind.to!string);
-			if (Ind < min && Ind != -1){
-				min = Ind;
-				minI = i;
+/// Gets least derived Children of `T` among `N`
+template LeastDerivedChildren(N...) if (N.length > 0){
+	template LeastDerivedChildren(T){
+		enum IndOf(TT) = staticIndexOf!(T, BaseClassesTuple!TT);
+		enum Indexes = staticMap!(IndOf, N);
+		enum Min = (){
+			size_t ret = size_t.max;
+			static foreach (size_t ind; Indexes){
+				if (ind != -1 && ind < ret)
+					ret = ind;
 			}
-		}}
-		if (min == size_t.max)
-			return staticIndexOf!(T, N);
-		return minI;
-	}()];
+			return ret;
+		}();
+		alias LeastDerivedChildren = AliasSeq!();
+		static foreach (size_t i, C; N){
+			static if (Indexes[i] == Min && !is (C == T))
+				LeastDerivedChildren = AliasSeq!(LeastDerivedChildren, C);
+		}
+	}
 }
 
 /// Gets the first parameter type for functions
