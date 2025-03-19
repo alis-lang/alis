@@ -22,7 +22,7 @@ private template GetAll(){
 }
 
 /// Sequence of all ASTNodes in this module
-alias ASTNodes = GetAll!();
+public alias ASTNodes = GetAll!();
 
 /// alis module
 public class Module : ASTNode{
