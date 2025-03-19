@@ -22,6 +22,11 @@ template Join(string S, T...){
 /// if `T` is not an abstract class
 enum IsNotAbstractClass(T) = !isAbstractClass!T;
 
+/// if `T` can be found in `List`
+template CanFind(List...){
+	enum CanFind(T) = staticIndexOf!(T, List) != -1;
+}
+
 /// If any of the `U` UDAs exist on `T`
 template HasAnyUDA(U...){
 	template HasAnyUDA(alias T){
@@ -55,6 +60,26 @@ template CommonParent(T...) if (T.length > 0){
 			return cast(ptrdiff_t)Base!(T[0]).length - 1;
 		}
 	}
+}
+
+/// Gets least derived Child of `T` among `N`
+template LeastDerivedChild(N...) if (N.length > 0){
+	alias LeastDerivedChild(T) = N[(){
+		size_t min = size_t.max,
+					 minI = size_t.max;
+		static foreach (size_t i, C; N){{
+			enum Ind = staticIndexOf!(T, BaseClassesTuple!C);
+			import std.conv : to;
+			pragma(msg, C.stringof ~ " = " ~ Ind.to!string);
+			if (Ind < min && Ind != -1){
+				min = Ind;
+				minI = i;
+			}
+		}}
+		if (min == size_t.max)
+			return staticIndexOf!(T, N);
+		return minI;
+	}()];
 }
 
 /// Gets the first parameter type for functions
