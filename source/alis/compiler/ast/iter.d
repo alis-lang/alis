@@ -35,25 +35,29 @@ public template ItFnsOf(S, alias M){
 }
 
 /// Whether something is a ItFn, for state type `S`
-private template IsItFn(S) if (is (S == struct)){
-	template IsItFn(alias F){
-		static if (isCallable!F &&
-				(hasUDA!(F, ItPre) || hasUDA!(F, ItPost)) &&
-				Parameters!F.length == 2 &&
-				is (Parameters!F[0] : ASTNode) &&
-				is (S : Parameters!F[1])){
-			enum IsItFn = true;
-		} else {
-			enum IsItFn = false;
-		}
+template IsItFn(alias F){
+	static if (isCallable!F &&
+			(hasUDA!(F, ItPre) || hasUDA!(F, ItPost)) &&
+			Parameters!F.length == 2 &&
+			is (Parameters!F[0] : ASTNode) &&
+			is (Parameters!F[1] == struct)){
+		enum IsItFn = true;
+	} else {
+		enum IsItFn = false;
 	}
 }
 
-/// Gets subset iterating functions for Node Type N, among `Us...`
+/// Gets relevant BaseClassesTuple of `T`, given relevant types `R...`
+private template RelBaseClasses(R...){
+	alias RelBaseClasses(T) = Filter!(CanFind!R, BaseClassesTuple!T);
+}
+
+/// Gets subset iterating functions for Node Type N, among `F...`
 private template ItFnsFor(N, F...) if (
-		is (N : ASTNode) && allSatisfy!(isCallable, F)){
+		IsASTNode!N && allSatisfy!(isCallable, F)){
 	alias ItFnsFor = AliasSeq!();
-	static foreach (T; AliasSeq!(N, BaseClassesTuple!N)){
+	static foreach (T; AliasSeq!(N,
+				Instantiate!(RelBaseClasses!(FirstParamsOf!F), N))){
 		static if (staticIndexOf!(T, FirstParamsOf!F) != -1){
 			ItFnsFor = AliasSeq!(ItFnsFor,
 					F[staticIndexOf!(T, FirstParamsOf!F)]);
@@ -91,65 +95,72 @@ private template FieldTypesRel(N) if (is (N : ASTNode)){
 /// AST Iterator
 ///
 /// Template Params:
-/// `S` - State Type. Must be `struct`
-/// `Fns` - Iterator Functions
-public struct ASTIter(S, Fns...) if (
-		is (S == struct) /*&& allSatisfy!(IsItFn!S, Fns)*/){
-	/// types being handles
-	private alias RelT = NoDuplicates!(FirstParamsOf!Fns);
+/// `N...` - AST Node Types
+/// `F...` - Iterator Functions
+public template ASTIter(N...) if (allSatisfy!(IsASTNode, N)){
+	/// least derived children
+	alias LDC = LeastDerivedChildren!N;
+	/// ASTIter itself
+	struct ASTIter(Fns...) if (allSatisfy!(IsItFn, Fns)){
+		/// types being handles
+		private alias RelT = NoDuplicates!(FirstParamsOf!Fns);
 
-	/// calls most suited ItFn
-	pragma(inline, true)
-	private static _callItFn(N)(N node, auto ref S state){
-		// TODO: this is only a stub
-		alias F = ItFnsFor!(N, Fns);
-		static if (F.length){
-			F[0](node, state);
-		}
-	}
-
-	/// iterates over array or single type
-	pragma(inline, true)
-	private static void _iterate(N)(N nodes, auto ref S state){
-		debug stderr.writefln!"_iterate: %s"(N.stringof);
-		static if (isArray!N){
-			foreach (n; nodes){
-				_iterate(n, state);
+		/// iterates over array or single type
+		pragma(inline, true)
+		private static void _iterate(N, S)(N nodes, auto ref S state){
+			debug stderr.writefln!"_iterate: %s"(N.stringof);
+			static if (isArray!N){
+				foreach (n; nodes){
+					_iterate(n, state);
+				}
+			} else static if (!isArray!N){
+				iterate(nodes, state);
 			}
-		} else static if (!isArray!N){
-			iterate(nodes, state);
 		}
-	}
 
-	/// Descends down on node
-	pragma(inline, true)
-	private static void _descend(N)(N node, auto ref S state){
-		debug stderr.writefln!"_descend: %s"(N.stringof);
-		static foreach (size_t i, string name; FieldNamesRel!N){
-			_iterate!(FieldTypesRel!N[i])(__traits(getMember, node, name), state);
-		}
-	}
-
-	/// Default iterator for any type T
-	public static void iterate(N)(N node, auto ref S state){
-		if (node is null)
-			return;
-		debug stderr.writefln!"iterate: %s"(N.stringof);
-		alias F = ItFnsFor!(N, Fns);
-		static if (F.length == 0){
-			_descend(node, state);
-			return;
-		}
-		static if (F.length){
-			static if (hasUDA!(F[0], ItPre)){
-				_callItFn(node, state);
+		/// Descends down on node
+		pragma(inline, true)
+		private static void _descend(N, S)(N node, auto ref S state){
+			debug stderr.writefln!"_descend: %s"(N.stringof);
+			static foreach (size_t i, string name; FieldNamesRel!N){
+				pragma(msg, N.stringof ~ " composes " ~ name);
+				_iterate!(FieldTypesRel!N[i])(__traits(getMember, node, name), state);
 			}
-			static if (!hasUDA!(F[0], ItTerm)){
+		}
+
+		/// Default iterator for any non-array type T
+		public static void iterate(N, S)(N node, auto ref S state){
+			if (node is null)
+				return;
+			debug stderr.writefln!"iterate: %s"(N.stringof);
+			static if (RelT.length == 0){
+				debug stderr.writefln!"%s no RelT"(N.stringof);
 				_descend(node, state);
+				return;
 			}
-			static if (hasUDA!(F[0], ItPost)){
-				_callItFn(node, state);
+
+			static foreach (C; LDC!N){
+				debug stderr.writefln!"%s -> %s"(N.stringof, C.stringof);
+				if (auto sub = cast(C)node){
+					iterate(sub, state);
+					return;
+				}
 			}
+
+			alias F = ItFnsFor!(N, Fns);
+			debug stderr.writefln!"%s LDC!N=%d, F=%d"(
+					N.stringof, LDC!N.length, F.length);
+
+			static if (F.length){
+				static if (hasUDA!(F[0], ItPre))
+					F[0](node, state);
+				static if (!hasUDA!(F[0], ItTerm))
+					_descend(node, state);
+				static if (hasUDA!(F[0], ItPost))
+					F[0](node, state);
+				return;
+			}
+			_descend(node, state);
 		}
 	}
 }
