@@ -7,7 +7,22 @@ import std.array,
 			 std.conv,
 			 std.algorithm;
 
-import alis.compiler.common : ASTNode, Visibility;
+import alis.compiler.common : ASTNode, Visibility, IsASTNode;
+
+import std.meta,
+			 std.traits;
+
+private template GetAll(){
+	alias GetAll = AliasSeq!();
+	static foreach (string name; __traits(allMembers, mixin(__MODULE__))){
+		static if (is (__traits(getMember, mixin(__MODULE__), name) : ASTNode)){
+			GetAll = AliasSeq!(GetAll, __traits(getMember, mixin(__MODULE__), name));
+		}
+	}
+}
+
+/// Sequence of all ASTNodes in this module
+alias ASTNodes = GetAll!();
 
 /// alis module
 public class Module : ASTNode{
