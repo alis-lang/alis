@@ -404,9 +404,6 @@ public struct Parser(E, alias M, ParserOpts O = ParserOpts()) if (
 
 	private alias P = PostFnsOf!M;
 
-	/// Whether a class is inherited from `ASTNode`
-	private enum IsA(T) = is (T : ASTNode);
-
 	/// parses prefix operator, limiting itself to Grammar Functions `Fns`
 	/// Returns: parsed node, or error
 	private static CmpErrVal!E _parseOpPre(Fns...)(ref TokRange toks){
@@ -552,7 +549,7 @@ Switch:
 	/// Will ignore `Expr`, `opPre`, `opPost`, and `opBin`
 	/// Returns: parsed node or error
 	public static CmpErrVal!(CommonParent!R) parse(R...)(ref TokRange toks) if (
-			allSatisfy!(IsA, R)){
+			allSatisfy!(IsASTNode, R)){
 		if (toks.empty)
 			return CmpErrVal!(CommonParent!R)(errEOF);
 		alias Fns = Filter!(GrmrFnIsOfType!R, Filter!(IsNotExpr, G));
@@ -608,7 +605,7 @@ Switch:
 	/// parses an expression, with precedence of `P`, possible return types `R`
 	/// Returns: parsed node or error
 	public static CmpErrVal!E parseExpr(ubyte P, R...)(ref TokRange toks) if(
-				allSatisfy!(IsA, R)){
+				allSatisfy!(IsASTNode, R)){
 		if (toks.empty)
 			return CmpErrVal!E(errEOF);
 		alias Fns = Filter!(GrmrFnIsOfType!R, G);

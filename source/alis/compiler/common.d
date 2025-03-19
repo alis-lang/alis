@@ -27,6 +27,9 @@ public:
 	}
 }
 
+/// Whether a class is inherited from `ASTNode`
+public enum IsASTNode(T) = is (T : ASTNode);
+
 /// Visibility specifier
 /// first rightmost bit -> 1 if can read
 /// second rightmost bit -> 1 if can write
