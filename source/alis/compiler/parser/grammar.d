@@ -1939,115 +1939,61 @@ CmpErrVal!OpAssignBin parseOpAssignBin(ref TokRange toks, Expression prev){
 
 /// parses tokens for OpAssignAddBin
 /// Returns: OpAssignAddBin or error
-@GFn @Bin!"+="
-CmpErrVal!OpAssignAddBin parseOpAssignAddBin(ref TokRange toks, Expression prev){
+@GFn
+@Bin!"+="
+@Bin!"-="
+@Bin!"*="
+@Bin!"/="
+@Bin!"%="
+@Bin!"&="
+@Bin!"|="
+@Bin!"^="
+CmpErrVal!OpAssignBin parseOpAssignAddBin(ref TokRange toks,
+		Expression prev){
+	string op = toks.front.token;
+	Location pos = Location(toks.front.line, toks.front.col);
 	toks.popFront;
-	OpAssignAddBin ret = new OpAssignAddBin;
-	CmpErrVal!Expression rhs = P.parseExpr!(PrecedOfBin!"+=", Expression)(toks);
-	if (rhs.isErr)
-		return CmpErrVal!OpAssignAddBin(rhs.err);
+	// HACK: assuming all compound assignment statements are same precedence
+	CmpErrVal!Expression rhsRes = P.parseExpr!(PrecedOfBin!"+=", Expression)(toks);
+	if (rhsRes.isErr)
+		return CmpErrVal!OpAssignBin(rhsRes.err);
+	OpBinExpr rhsVal = cast(OpBinExpr)(rhsRes.val);
+	OpAssignBin ret = new OpAssignBin;
+	OpBinExpr valExpr;
+	final switch (op){
+		case "+=":
+			valExpr = new OpAddBin;
+			break;
+		case "-=":
+			valExpr = new OpSubBin;
+			break;
+		case "*=":
+			valExpr = new OpMulBin;
+			break;
+		case "/=":
+			valExpr = new OpDivBin;
+			break;
+		case "%=":
+			valExpr = new OpModBin;
+			break;
+		case "&=":
+			valExpr = new OpBitAndBin;
+			break;
+		case "|=":
+			valExpr = new OpBitOrBin;
+			break;
+		case "^=":
+			valExpr = new OpBitXorBin;
+			break;
+	}
+	valExpr.pos = pos;
+	valExpr.lhs = prev;
+	valExpr.rhs = rhsVal;
 	ret.lhs = prev;
-	ret.rhs = rhs.val;
-	return CmpErrVal!OpAssignAddBin(ret);
+	ret.rhs = valExpr;
+	return CmpErrVal!OpAssignBin(ret);
 }
 
-/// parses tokens for OpAssignSubBin
-/// Returns: OpAssignSubBin or error
-@GFn @Bin!"-="
-CmpErrVal!OpAssignSubBin parseOpAssignSubBin(ref TokRange toks, Expression prev){
-	toks.popFront;
-	OpAssignSubBin ret = new OpAssignSubBin;
-	CmpErrVal!Expression rhs = P.parseExpr!(PrecedOfBin!"-=", Expression)(toks);
-	if (rhs.isErr)
-		return CmpErrVal!OpAssignSubBin(rhs.err);
-	ret.lhs = prev;
-	ret.rhs = rhs.val;
-	return CmpErrVal!OpAssignSubBin(ret);
-}
-
-/// parses tokens for OpAssignMulBin
-/// Returns: OpAssignMulBin or error
-@GFn @Bin!"*="
-CmpErrVal!OpAssignMulBin parseOpAssignMulBin(ref TokRange toks, Expression prev){
-	toks.popFront;
-	OpAssignMulBin ret = new OpAssignMulBin;
-	CmpErrVal!Expression rhs = P.parseExpr!(PrecedOfBin!"*=", Expression)(toks);
-	if (rhs.isErr)
-		return CmpErrVal!OpAssignMulBin(rhs.err);
-	ret.lhs = prev;
-	ret.rhs = rhs.val;
-	return CmpErrVal!OpAssignMulBin(ret);
-}
-
-/// parses tokens for OpAssignDivBin
-/// Returns: OpAssignDivBin or error
-@GFn @Bin!"/="
-CmpErrVal!OpAssignDivBin parseOpAssignDivBin(ref TokRange toks, Expression prev){
-	toks.popFront;
-	OpAssignDivBin ret = new OpAssignDivBin;
-	CmpErrVal!Expression rhs = P.parseExpr!(PrecedOfBin!"/=", Expression)(toks);
-	if (rhs.isErr)
-		return CmpErrVal!OpAssignDivBin(rhs.err);
-	ret.lhs = prev;
-	ret.rhs = rhs.val;
-	return CmpErrVal!OpAssignDivBin(ret);
-}
-
-/// parses tokens for OpAssignModBin
-/// Returns: OpAssignModBin or error
-@GFn @Bin!"%="
-CmpErrVal!OpAssignModBin parseOpAssignModBin(ref TokRange toks, Expression prev){
-	toks.popFront;
-	OpAssignModBin ret = new OpAssignModBin;
-	CmpErrVal!Expression rhs = P.parseExpr!(PrecedOfBin!"%=", Expression)(toks);
-	if (rhs.isErr)
-		return CmpErrVal!OpAssignModBin(rhs.err);
-	ret.lhs = prev;
-	ret.rhs = rhs.val;
-	return CmpErrVal!OpAssignModBin(ret);
-}
-
-/// parses tokens for OpAssignAndBin
-/// Returns: OpAssignAndBin or error
-@GFn @Bin!"&="
-CmpErrVal!OpAssignAndBin parseOpAssignAndBin(ref TokRange toks, Expression prev){
-	toks.popFront;
-	OpAssignAndBin ret = new OpAssignAndBin;
-	CmpErrVal!Expression rhs = P.parseExpr!(PrecedOfBin!"&=", Expression)(toks);
-	if (rhs.isErr)
-		return CmpErrVal!OpAssignAndBin(rhs.err);
-	ret.lhs = prev;
-	ret.rhs = rhs.val;
-	return CmpErrVal!OpAssignAndBin(ret);
-}
-
-/// parses tokens for OpAssignOrBin
-/// Returns: OpAssignOrBin or error
-@GFn @Bin!"|="
-CmpErrVal!OpAssignOrBin parseOpAssignOrBin(ref TokRange toks, Expression prev){
-	toks.popFront;
-	OpAssignOrBin ret = new OpAssignOrBin;
-	CmpErrVal!Expression rhs = P.parseExpr!(PrecedOfBin!"|=", Expression)(toks);
-	if (rhs.isErr)
-		return CmpErrVal!OpAssignOrBin(rhs.err);
-	ret.lhs = prev;
-	ret.rhs = rhs.val;
-	return CmpErrVal!OpAssignOrBin(ret);
-}
-
-/// parses tokens for OpAssignXorBin
-/// Returns: OpAssignXorBin or error
-@GFn @Bin!"^="
-CmpErrVal!OpAssignXorBin parseOpAssignXorBin(ref TokRange toks, Expression prev){
-	toks.popFront;
-	OpAssignXorBin ret = new OpAssignXorBin;
-	CmpErrVal!Expression rhs = P.parseExpr!(PrecedOfBin!"^=", Expression)(toks);
-	if (rhs.isErr)
-		return CmpErrVal!OpAssignXorBin(rhs.err);
-	ret.lhs = prev;
-	ret.rhs = rhs.val;
-	return CmpErrVal!OpAssignXorBin(ret);
-}
 
 /// parses tokens for OpAssignRefBin
 /// Returns: OpAssignRefBin or error
@@ -2392,23 +2338,6 @@ CmpErrVal!IdentExpr parseIdentExpr(ref TokRange toks){
 }
 
 @PFn
-void postOpAssignCompound(OpAssignCompound expr){
-	OpAssignBin next = new OpAssignBin;
-	next.parent = expr;
-	expr.next = next;
-	OpCallExpr op = new OpCallExpr;
-	next.rhs = op;
-	next.lhs = expr.lhs;
-	IdentExpr callee = new IdentExpr;
-	LiteralStringExpr opIdent = new LiteralStringExpr;
-	opIdent.pos = callee.pos = next.pos = op.pos = expr.pos;
-	callee.ident = "opBin";
-	opIdent.val = expr.op[0 .. $ - 1];
-	op.callee = callee;
-	op.params = [opIdent, expr.lhs, expr.rhs];
-}
-
-@PFn
 void postOpAndBin(OpAndBin expr){
 	// translate to:
 	// bool{if lhs { if rhs return true; } return false;}
@@ -2422,7 +2351,7 @@ void postOpAndBin(OpAndBin expr){
 	BoolLiteralExpr boolTrue = new BoolLiteralExpr,
 									boolFalse = new BoolLiteralExpr;
 	next.pos = block.pos = boolType.pos = ifA.pos = ifB.pos = retTrue.pos =
-		retFalse.pos = boolTrue.pos = boolFalse.pos = expr.pos ;
+		retFalse.pos = boolTrue.pos = boolFalse.pos = expr.pos;
 	next.parent = expr;
 	expr.next = next;
 	next.type = boolType;
