@@ -6,8 +6,41 @@ module alis.compiler.common;
 import std.conv,
 			 std.format;
 
+/// parent to all nodes
+public abstract class ASTNode{
+protected:
+	import std.json : JSONValue;
+	/// returns: JSON representation
+	JSONValue jsonOf() const pure {
+		JSONValue ret;
+		ret["location.line"] = JSONValue(pos.line);
+		ret["location.col"] = JSONValue(pos.col);
+		ret["_name"] = "ASTNode";
+		return ret;
+	}
+public:
+	/// location in source code
+	Location pos;
+	/// returns: JSON representation
+	JSONValue toJson() const pure {
+		return this.jsonOf;
+	}
+}
+
+/// Whether a class is inherited from `ASTNode`
+public enum IsASTNode(T) = is (T : ASTNode);
+
+/// Visibility specifier
+/// first rightmost bit -> 1 if can read
+/// second rightmost bit -> 1 if can write
+enum Visibility : ubyte{
+	Default = 0,
+	IPub = 1,
+	Pub = 2,
+}
+
 /// ASTNode location
-struct Location{
+public struct Location{
 	size_t line;
 	size_t col;
 }
