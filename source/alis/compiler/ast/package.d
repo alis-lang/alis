@@ -1,35 +1,15 @@
 /++
-AST Node definitions package
+AST Package
 +/
 module alis.compiler.ast;
 
-import std.array,
-			 std.algorithm;
+import std.meta;
 
-public import alis.compiler.parser.parser : ASTNode;
+import alis.compiler.ast.iter;
 
-public import
-			 alis.compiler.ast.defs,
-			 alis.compiler.ast.exprs,
-			 alis.compiler.ast.ccomp,
-			 alis.compiler.ast.misc,
-			 alis.compiler.ast.statements;
+public import alis.compiler.ast.ast;
 
-/// alis module
-public class Module : ASTNode{
-protected:
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		ret["defs"] = defs.map!(a => a.toJson).array;
-		ret["cComp"] = cComp.map!(a => a.toJson).array;
-		ret["_name"] = "Module";
-		return ret;
-	}
-public:
-	/// module identifier (can have dots)
-	string ident;
-	/// definitions
-	GlobDef[] defs;
-	/// conditional compilation
-	CCNode[] cComp;
-}
+public alias ASTIter(Fns...) =
+	Instantiate!(alis.compiler.ast.iter.ASTIter!ASTNodes, Fns);
+
+public import alis.compiler.ast.iter : ItTerm, ItPre, ItPost;
