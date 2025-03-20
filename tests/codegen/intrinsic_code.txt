@@ -1,0 +1,22 @@
+intrinsic_cmpI64:
+	pshN 8
+	pshI8 10
+	getR 0
+	getR 16
+	cmpI8
+	ret
+intrinsic_cmpI64:
+	pshN 8
+	pshI8 10
+	getR 0
+	getR 16
+	cmpI8
+	ret
+intrinsic_isI8:
+	pshN 1
+	jmp @intrinsic_isI1
+	pshI8 -1
+	getR 0
+	getR 16
+	cmpI1
+

@@ -31,7 +31,7 @@ package RModule rstub_helloWorld(){
 /// ```alis
 /// fn main () -> void{
 ///   var int i = 0;
-///   while $is8($cmpI64(i, 10), -1){
+///   while $isI8($cmpI64(i, 10), -1){
 ///     write(i);
 ///     $incI64(i);
 ///   }
