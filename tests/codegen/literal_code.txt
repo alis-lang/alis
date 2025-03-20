@@ -1,5 +1,5 @@
-pshI4 42
-pshI8 123456789
-pshF4 3.14
-pshI8 4613300558893800227
+	pshN 4
+	pshN 8
+	pshN 4
+	pshN 8
 
