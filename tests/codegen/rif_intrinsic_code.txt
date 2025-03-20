@@ -1,5 +1,6 @@
 	pshN 64
 	put 0
+	jmp @intrinsic_isI8
 intrinsic_cmpI64:
 	pshN 8
 	pshN 64

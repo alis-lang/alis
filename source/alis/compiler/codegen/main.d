@@ -321,12 +321,14 @@ class BytecodeGenerator {
 			}
 			
 			assert(intrinsicCallExpr.params.length == 2, name ~ " expects 2 parameters.");
+			addInstruction("\tjmp", ["@intrinsic_isI" ~ ((X*8).to!string)]);
 
 			// Left Param will be $cmp. Its output will be on top of the stack
 			RIntrinsicCallExpr cmpIntrinsic = cast(RIntrinsicCallExpr)intrinsicCallExpr.params[0];
 			generateIntrinsicCallExprBytecode(cmpIntrinsic);
 				
-			// Create return address space. Then Jump to $cmp 
+			// Create return address space. Then Jump to $cmp
+			//addInstruction("\tjmp", ["@intrinsic_isI" ~ ((X*8).to!string)]); 
 			addInstruction(intrinsicLabel ~ ":");  //  Generate $cmp bytecode first. Then $isI.
 			addInstruction("\tpshN", [X.to!string]); // Push space return address
 			addInstruction("\tjmp", ["@intrinsic_cmp" ~ ((X*8).to!string)]);
