@@ -3,15 +3,11 @@ AST Iterator module
 +/
 module alis.compiler.ast.iter;
 
-import alis.compiler.common;
+import meta,
+			 alis.compiler.common;
 
 import std.meta,
-			 std.traits,
-			 std.algorithm;
-
-debug import std.stdio;
-
-import meta;
+			 std.traits;
 
 /// UDA for tagging as pre-order iteration
 public enum ItPre;
@@ -98,59 +94,53 @@ private template FieldTypesRel(N) if (is (N : ASTNode)){
 /// `N...` - AST Node Types
 /// `F...` - Iterator Functions
 public template ASTIter(N...) if (allSatisfy!(IsASTNode, N)){
-	/// least derived children
-	alias LDC = LeastDerivedChildren!N;
-	/// ASTIter itself
 	struct ASTIter(Fns...) if (allSatisfy!(IsItFn, Fns)){
 		/// types being handles
 		private alias RelT = NoDuplicates!(FirstParamsOf!Fns);
+		/// least derived children, where children are only relevant ones
+		alias LDC = LeastDerivedChildren!RelT;
+		/// least derived children
+		alias LDC_all = LeastDerivedChildren!N;
 
-		/// iterates over array or single type
+		/// iterates over array
 		pragma(inline, true)
-		private static void _iterate(N, S)(N nodes, auto ref S state){
-			debug stderr.writefln!"_iterate: %s"(N.stringof);
+		private static void _arrayHandle(N, S)(N nodes, auto ref S state){
 			static if (isArray!N){
 				foreach (n; nodes){
-					_iterate(n, state);
+					_arrayHandle(n, state);
 				}
 			} else static if (!isArray!N){
-				iterate(nodes, state);
+				return iterate(nodes, state);
 			}
 		}
 
 		/// Descends down on node
 		pragma(inline, true)
 		private static void _descend(N, S)(N node, auto ref S state){
-			debug stderr.writefln!"_descend: %s"(N.stringof);
+			static foreach (C; LDC_all!N){
+				if (auto sub = cast(C)node){
+					return _descend(sub, state);
+				}
+			}
 			static foreach (size_t i, string name; FieldNamesRel!N){
-				pragma(msg, N.stringof ~ " composes " ~ name);
-				_iterate!(FieldTypesRel!N[i])(__traits(getMember, node, name), state);
+				_arrayHandle(__traits(getMember, node, name), state);
 			}
 		}
 
-		/// Default iterator for any non-array type T
+		/// Default iterator for any non-array type `N` with state of type `S`
 		public static void iterate(N, S)(N node, auto ref S state){
 			if (node is null)
 				return;
-			debug stderr.writefln!"iterate: %s"(N.stringof);
 			static if (RelT.length == 0){
-				debug stderr.writefln!"%s no RelT"(N.stringof);
-				_descend(node, state);
-				return;
+				return _descend(node, state);
 			}
-
 			static foreach (C; LDC!N){
-				debug stderr.writefln!"%s -> %s"(N.stringof, C.stringof);
 				if (auto sub = cast(C)node){
-					iterate(sub, state);
-					return;
+					return iterate(sub, state);
 				}
 			}
 
 			alias F = ItFnsFor!(N, Fns);
-			debug stderr.writefln!"%s LDC!N=%d, F=%d"(
-					N.stringof, LDC!N.length, F.length);
-
 			static if (F.length){
 				static if (hasUDA!(F[0], ItPre))
 					F[0](node, state);
@@ -160,7 +150,7 @@ public template ASTIter(N...) if (allSatisfy!(IsASTNode, N)){
 					F[0](node, state);
 				return;
 			}
-			_descend(node, state);
+			return _descend(node, state);
 		}
 	}
 }
