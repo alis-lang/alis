@@ -1,0 +1,26 @@
+	pshN 64
+	put 0
+intrinsic_cmpI64:
+	pshN 8
+	pshN 64
+	getR 0
+	getR 16
+	cmpI8
+	ret
+intrinsic_isI8:
+	pshN 1
+	jmp @intrinsic_cmp8
+	pshN 64
+	getR 0
+	getR 16
+	cmpI1
+	ret
+	jmpC @ if_else_1
+	pshN 64
+	put 0
+	jmp @ if_end_0
+if_else_1:
+	pshN 64
+	put 0
+if_end_0:
+

@@ -8,7 +8,7 @@ import std.file;
 import std.array;
 import std.conv;
 import std.format;
-import std.algorithm;
+import std.algorithm; 
 
 const string testFolder = "tests/codegen/";
 
@@ -98,6 +98,8 @@ class BytecodeGenerator {
 			generateBlockExprBytecode(blockExpr);
 		} else if (auto intrinsicCallExpr = cast(RIntrinsicCallExpr) expr) {
 			generateIntrinsicCallExprBytecode(intrinsicCallExpr);
+		} else if (auto assignExpr = cast(RAssignExpr) expr) {
+			generateAssignExprBytecode(assignExpr);
 		} else {
 			throw new Exception("Unsupported expression type: " ~ typeid(expr).toString);
 		}
@@ -138,20 +140,20 @@ class BytecodeGenerator {
 		
 		// Jump to else branch if condition is false
 		if (ifStmt.onFalse) {
-			addInstruction("jmpC", [elseLabel]);
+			addInstruction("\tjmpC", "@" ~ [elseLabel]);
 			
 			// Generate true branch code
 			generateStatementBytecode(ifStmt.onTrue);
 			
 			// Skip over else branch
-			addInstruction("jmp", [endLabel]);
+			addInstruction("\tjmp", "@" ~[endLabel]);
 			
 			// Else branch
 			addInstruction(elseLabel ~ ":");
 			generateStatementBytecode(ifStmt.onFalse);
 		} else {
 			// If there's no else branch and condition is false, just skip the true branch
-			addInstruction("jmpC", [endLabel]);
+			addInstruction("\tjmpC", "@" ~ [endLabel]);
 			
 			// Generate true branch code
 			generateStatementBytecode(ifStmt.onTrue);
@@ -386,7 +388,43 @@ class BytecodeGenerator {
 		}
 	}
 
+	private void generateAssignExprBytecode(RAssignExpr assignExpr){
+
+		// Generate the right-hand side expression first
+		// This will push the value onto the stack
+		generateExpressionBytecode(assignExpr.rhs);	
+
+		// Calculate the offset for storing the value
+		size_t offset = 0;
+
+		// Handle the left-hand side
+		if (auto identExpr = cast(RIdentExpr)assignExpr.lhs) {
+
+			// Find the variable in the current scope
+			string varName = identExpr.ident;
+			bool found = false;
+
+			// TODO: Find variable offset
+
+			// Store the value from stack to the variable location
+			addInstruction("\tput", [offset.to!string]);
+		}
+
+		
+
+		else if (auto memberGetExpr = cast(RMemberGetExpr)assignExpr.lhs) {
+			// TODO
+
+		} else if (auto derefExpr = cast(RDerefExpr)assignExpr.lhs) {
+			// TODO
+		} else {
+			// TODO
+		}
+
+	}
+
 }
+
 
 
 void printBytecode(string[][] bytecodeInstructions) {
@@ -567,39 +605,113 @@ unittest{
 	auto generator = new BytecodeGenerator;
 
 	RIdentExpr iExpr = new RIdentExpr;
-    iExpr.ident = "iExpr";
+	iExpr.ident = "iExpr";
 
 	RLiteralExpr litNegOne = new RLiteralExpr;
 	litNegOne.type = ADataType.ofInt;
-    litNegOne.value = (-1L).asBytes;
+	litNegOne.value = (-1L).asBytes;
 
-    RLiteralExpr litTen = new RLiteralExpr;
+	RLiteralExpr litTen = new RLiteralExpr;
 	litTen.type = ADataType.ofInt;
-    litTen.value = (10L).asBytes;
+	litTen.value = (10L).asBytes;
 
-    // cmpI64 = cmpI64(iExpr, 10)
-    RIntrinsicCallExpr cmpI64 = new RIntrinsicCallExpr;
-    cmpI64.name = "cmpI64";
-    cmpI64.params = [iExpr, litTen];
+	// cmpI64 = cmpI64(iExpr, 10)
+	RIntrinsicCallExpr cmpI64 = new RIntrinsicCallExpr;
+	cmpI64.name = "cmpI64";
+	cmpI64.params = [iExpr, litTen];
 
-    // isI8 = isI8(cmpI64, -1)
-    RIntrinsicCallExpr isI8 = new RIntrinsicCallExpr;
-    isI8.name = "isI8";
-    isI8.params = [cmpI64, litNegOne];
+	// isI8 = isI8(cmpI64, -1)
+	RIntrinsicCallExpr isI8 = new RIntrinsicCallExpr;
+	isI8.name = "isI8";
+	isI8.params = [cmpI64, litNegOne];
 
-    // incI32 = incI32(iExpr)
-    RIntrinsicCallExpr incI32 = new RIntrinsicCallExpr;
-    incI32.name = "incI32";
-    incI32.params = [iExpr];
+	// incI32 = incI32(iExpr)
+	RIntrinsicCallExpr incI32 = new RIntrinsicCallExpr;
+	incI32.name = "incI32";
+	incI32.params = [iExpr];
 
-    // Run test cases
-    //writeln("Testing isI8:");
-    generator.generateIntrinsicCallExprBytecode(isI8);
+	// Run test cases
+	//writeln("Testing isI8:");
+	generator.generateIntrinsicCallExprBytecode(isI8);
 
-    //writeln("Testing incI32:");
-    //generator.generateIntrinsicCallExprBytecode(incI32);
+	//writeln("Testing incI32:");
+	//generator.generateIntrinsicCallExprBytecode(incI32);
 
 	printBytecodeToFile(testFolder ~  "intrinsic_code.txt", generator.bytecodeInstructions);
+}
+
+// Testing if conditions
+unittest {
+	/*
+	var int x = 0;
+
+	if $isI8($cmpI64(x, 10), -1) {
+		x = 1;
+	} else {
+		x = 2;
+	}
+	*/
+
+	auto generator = new BytecodeGenerator();
+
+	// Define variable x
+	RIdentExpr xIdent = new RIdentExpr;
+	xIdent.ident = "x";
+
+	RLiteralExpr litZero = new RLiteralExpr;
+	litZero.type = ADataType.ofInt;
+	litZero.value = (0L).asBytes;
+
+	RAssignExpr initX = new RAssignExpr;
+	initX.lhs = xIdent;
+	initX.rhs = litZero;
+
+	// Define condition: isI8(cmpI64(x, 10), -1)
+	RLiteralExpr litTen = new RLiteralExpr;
+	litTen.type = ADataType.ofInt;
+	litTen.value = (10L).asBytes;
+
+	RLiteralExpr litNegOne = new RLiteralExpr;
+	litNegOne.type = ADataType.ofInt;
+	litNegOne.value = (-1L).asBytes;
+
+	RIntrinsicCallExpr cmpI64 = new RIntrinsicCallExpr;
+	cmpI64.name = "cmpI64";
+	cmpI64.params = [xIdent, litTen];
+
+	RIntrinsicCallExpr isI8 = new RIntrinsicCallExpr;
+	isI8.name = "isI8";
+	isI8.params = [cmpI64, litNegOne];
+
+	// Define if-true block: x = 1
+	RLiteralExpr litOne = new RLiteralExpr;
+	litOne.type = ADataType.ofInt;
+	litOne.value = (1L).asBytes;
+
+	RAssignExpr assignTrue = new RAssignExpr;
+	assignTrue.lhs = xIdent;
+	assignTrue.rhs = litOne;
+
+	// Define if-false block: x = 2
+	RLiteralExpr litTwo = new RLiteralExpr;
+	litTwo.type = ADataType.ofInt;
+	litTwo.value = (2L).asBytes;
+
+	RAssignExpr assignFalse = new RAssignExpr;
+	assignFalse.lhs = xIdent;
+	assignFalse.rhs = litTwo;
+
+	// Define if statement
+	RIf ifStmt = new RIf;
+	ifStmt.condition = isI8;
+	ifStmt.onTrue = assignTrue;
+	ifStmt.onFalse = assignFalse;
+
+	// Generate bytecode
+	generator.generateStatementBytecode(initX);
+	generator.generateStatementBytecode(ifStmt);
+
+	printBytecodeToFile(testFolder ~ "rif_intrinsic_code.txt", generator.bytecodeInstructions);
 }
 
 
