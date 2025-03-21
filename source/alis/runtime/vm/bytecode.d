@@ -16,7 +16,7 @@ import std.conv,
 
 /// Position Independent Code
 /// (label names, labels, instructions, data, & indexes of relative address)
-public struct ByteCode{
+public struct ABC{
 	string[] labelNames; /// labelNames, index corresponds `ByteCode.labels`
 	size_t[] labels; /// index in code for each label
 	ubyte[] code; /// instructions and their data
@@ -26,9 +26,9 @@ public struct ByteCode{
 /// ByteCode version
 public enum ushort ALISBC_VERSION = 0x02;
 
-public ByteCode parseByteCode(T...)(string[] lines)
+public ABC parseABC(T...)(string[] lines)
 		if (allSatisfy!(isCallable, T)){
-	ByteCode ret;
+	ABC ret;
 	string[][] argsAll;
 
 	// pass 1: split args, and read labels
@@ -85,7 +85,7 @@ public ByteCode parseByteCode(T...)(string[] lines)
 	return ret;
 }
 
-private ubyte[] parseArgs(alias Inst)(ref ByteCode code, string[] args){
+private ubyte[] parseArgs(alias Inst)(ref ABC code, string[] args){
 	ubyte[] ret;
 	static foreach (i, Arg; InstArgs!Inst){
 		static if (is (Arg == string)){
@@ -127,7 +127,7 @@ unittest{
 	void pop(){}
 	void add(){}
 	void print(){}
-	alias parse = parseByteCode!(push, push2, pop, add, print);
+	alias parse = parseABC!(push, push2, pop, add, print);
 	string[] source = [
 		"data: push 50",
 		"start: push 50",
@@ -136,7 +136,7 @@ unittest{
 		"add",
 		"print"
 	];
-	ByteCode code = parse(source);
+	ABC code = parse(source);
 	assert(code.labels.length == 2);
 	assert(code.labelNames.canFind("data"));
 	assert(code.labelNames.canFind("start"));
@@ -157,7 +157,7 @@ private size_t binStreamExpectedSize(
 /// Writes ByteCode to a binary stream
 ///
 /// Returns: binary date in a ubyte[]
-public ubyte[] toBin(ref ByteCode code, ubyte[8] magicPostfix = 0,
+public ubyte[] toBin(ref ABC code, ubyte[8] magicPostfix = 0,
 		ubyte[] metadata = null){
 	// figure out expected length
 	size_t expectedSize = binStreamExpectedSize(
@@ -200,7 +200,7 @@ public ubyte[] toBin(ref ByteCode code, ubyte[8] magicPostfix = 0,
 
 ///
 unittest{
-	ByteCode code;/// empty code
+	ABC code;/// empty code
 	ubyte[] bin = code.toBin([1, 2, 3, 4, 5, 6, 7, 8], [8, 9, 10]);
 	assert(bin.length == 17 + 8 + 3 + 8 + 8);
 	assert(bin[0 .. 7] == "ALISBC-"); // magic bytes
@@ -213,7 +213,7 @@ unittest{
 /// Reads ByteCode from a byte stream in ubyte[]
 /// Throws: Exception in case of error
 /// Returns: ByteCode
-public ByteCode fromBin(ubyte[] stream, ref ubyte[8] magicPostfix,
+public ABC fromBin(ubyte[] stream, ref ubyte[8] magicPostfix,
 		ref ubyte[] metadata){
 	if (stream.length < binStreamExpectedSize)
 		throw new Exception("Stream size if less than minimum possible size");
@@ -230,7 +230,7 @@ public ByteCode fromBin(ubyte[] stream, ref ubyte[8] magicPostfix,
 	metadata = stream[25 .. 25 + len];
 	size_t seek = 25 + len;
 
-	ByteCode code;
+	ABC code;
 
 	// labels
 	len = ByteUnion!(size_t, 8)(stream[seek .. seek + 8]).data;
@@ -263,7 +263,7 @@ public ByteCode fromBin(ubyte[] stream, ref ubyte[8] magicPostfix,
 ///
 unittest{
 	import std.functional, std.range;
-	ByteCode code;
+	ABC code;
 	ubyte[] data = iota(cast(ubyte)0, ubyte.max).cycle.take(0).array;
 	code.code = data.dup;
 	code.labelNames = ["data", "start", "loop", "end"];
@@ -277,7 +277,7 @@ unittest{
 	ubyte[] bin = code.toBin([1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 3]).dup;
 	ubyte[8] postfix;
 	ubyte[] metadata;
-	ByteCode decoded = bin.fromBin(postfix, metadata);
+	ABC decoded = bin.fromBin(postfix, metadata);
 	assert(postfix == [1, 2, 3, 4, 5, 6, 7, 8]);
 	assert(metadata == [1, 2, 3]);
 	assert(decoded.labels.length == 4);
