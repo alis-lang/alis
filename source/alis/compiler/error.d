@@ -9,9 +9,11 @@ import alis.compiler.common,
 import std.format,
 			 std.array,
 			 std.string;
-
 /// A possibly erroneous value (CompileErr or some valid value)
 alias CmpErrVal(T) = ErrVal!(T, CmpErr);
+
+/// CmpErrVal but with possibility of multiple errors
+alias CmpMErrVal(T) = ErrVal!(T, CmpErr[]);
 
 /// Alis Compiler Error
 struct CmpErr{
