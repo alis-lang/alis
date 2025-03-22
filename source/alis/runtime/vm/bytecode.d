@@ -14,13 +14,43 @@ import std.conv,
 			 std.typecons,
 			 std.algorithm;
 
-/// Position Independent Code
-/// (label names, labels, instructions, data, & indexes of relative address)
+/// Alis ByteCoded
 public struct ABC{
 	string[] labelNames; /// labelNames, index corresponds `ByteCode.labels`
 	size_t[] labels; /// index in code for each label
 	ubyte[] code; /// instructions and their data
 	size_t end; /// index+1 of last instruction in code
+}
+
+/// Alis ByteCode Writer
+public struct ABCWriter(IS...) if (allSatisfy!(isCallable, IS)){
+private:
+	/// next label counter
+	size_t _labN;
+	///
+
+public:
+
+	/// pushes a numbered label
+	///
+	/// Returns: new label's name
+	string labNPush(string prefix = null){
+		string label = prefix ~ (_labN ++).to!string;
+		code.labelNames ~= label;
+		code.labels ~= code.code.length;
+		return label;
+	}
+
+	/// pushes a label
+	void labPush(string label){
+		code.labelNames ~= label;
+		code.labels ~= code.code.length;
+	}
+
+	/// pushes an instruction
+	void instPush(I)(InstArgs!I params){
+
+	}
 }
 
 /// ByteCode version
