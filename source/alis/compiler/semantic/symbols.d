@@ -14,8 +14,8 @@ package alias STIter = ASTIter!(ItFnsOf!STFns);
 
 /// Iteration State for SymIter
 package struct STState{
-	/// symbol table. ASymbol against Ident.toString
-	ASymbol[string] st;
+	/// symbol table. ASymbol against each leaf identifier (Ident).
+	ASymbol[Ident] st;
 	/// module info
 	AModule mod;
 }
