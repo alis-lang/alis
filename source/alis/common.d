@@ -61,23 +61,30 @@ public struct AValCT{
 	}
 }
 
-/// an identifier node. for a unique `ident` and `params`, only one should exist
+/// identifier node. Only unique must exist.
+/// each node can be either an identifer,
+/// or parameters applied to a `prev` Ident
 public final class Ident{
 public:
-	/// the identifier
-	string ident;
-	/// parameters, if any
-	AValCT[] params;
-	/// previous Identifier, i.e: the `A` in `A.B` if this is `B`
+	/// whether it is ident (true) or is params (false)
+	bool isIdent;
+	union{
+		/// the identifier
+		string ident;
+		/// parameters, if any
+		AValCT[] params;
+	}
+	/// previous Identifier, i.e: the `A` in `A.B` or `A(B)` if this is `B`
 	Ident prev;
 	/// Returns: string representation
 	override string toString() const pure {
-		string ret = ident;
-		if (params)
-			ret = format!"%s(%s)"(ident, params.map!(p => p.toString).join(","));
-		if (prev)
-			return format!"%s.%s"(prev.toString, ret);
-		return ret;
+		if (isIdent){
+			if (prev)
+				return format!"%s.%s"(prev.toString, ident);
+			return ident;
+		}
+		return format!"%s(%s)"(prev.toString,
+				params.map!(p => p.toString).join(","));
 	}
 }
 
