@@ -3,6 +3,8 @@ Alis Common Data Types
 +/
 module alis.common;
 
+import alis.utils;
+
 import std.string,
 			 std.traits,
 			 std.range,
@@ -59,21 +61,22 @@ public struct AValCT{
 	}
 }
 
-/// an identifier node
-public struct Ident{
+/// an identifier node. for a unique `ident` and `params`, only one should exist
+public final class Ident{
+public:
 	/// the identifier
 	string ident;
 	/// parameters, if any
 	AValCT[] params;
-	/// next Ident, if any, otherwise `null`
-	Ident* next;
+	/// previous Identifier, i.e: the `A` in `A.B` if this is `B`
+	Ident prev;
 	/// Returns: string representation
-	@property string toString() const pure {
+	override string toString() const pure {
 		string ret = ident;
 		if (params)
 			ret = format!"%s(%s)"(ident, params.map!(p => p.toString).join(","));
-		if (next)
-			return format!"%s.%s"(ret, next.toString);
+		if (prev)
+			return format!"%s.%s"(prev.toString, ret);
 		return ret;
 	}
 }
@@ -739,4 +742,10 @@ public struct ATemplate{
 	string toString() const pure {
 		return format!"template";
 	}
+}
+
+/// Encodes function name, using function name and param types
+/// Returns: encoded name
+public string fnNameEncode(string name, ADataType[] args){
+	return format!"%s$%(_%s%)_$"(name, args.map!(a => a.toString));
 }
