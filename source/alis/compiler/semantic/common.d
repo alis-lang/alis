@@ -15,7 +15,7 @@ private:
 
 public:
 	/// what is being resolved
-	Ident* subject;
+	Ident subject;
 	/// result from resolution
 	ASymbol sym;
 
