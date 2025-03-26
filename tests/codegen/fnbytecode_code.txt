@@ -1,0 +1,7 @@
+testFunction:
+	pshN 0
+	pshN 8
+	pshN 8
+	pshN 8
+	pshN 8
+
