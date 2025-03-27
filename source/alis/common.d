@@ -43,6 +43,18 @@ public struct AValCT{
 		return null;
 	}
 
+	bool opEquals()(const auto ref AValCT rhs) const pure {
+		final switch (type){
+			case Type.Literal:
+				return typeL == rhs.typeL && dataL == rhs.dataL;
+			case Type.Symbol:
+				return symS == rhs.symS;
+			case Type.Type:
+				return typeT == rhs.typeT;
+		}
+		assert(false);
+	}
+
 	/// constructor
 	this (ADataType type, ubyte[] data){
 		this.type = Type.Literal;
@@ -86,6 +98,26 @@ public:
 		return format!"%s(%s)"(prev.toString,
 				params.map!(p => p.toString).join(","));
 	}
+
+	bool opEquals(string ident) const pure {
+		return isIdent && this.ident == ident;
+	}
+
+	bool opEquals(AValCT[] params) const pure {
+		if (!isIdent || this.params.length != params.length)
+			return false;
+		foreach (size_t i, param; this.params){
+			if (param != params[i])
+				return false;
+		}
+		return true;
+	}
+
+	/// exists only to make serve-d shut up about it not existing, while opEquals
+	/// exists
+	override size_t toHash() {
+		return super.toHash();
+	}
 }
 
 /// a symbol
@@ -127,6 +159,63 @@ public:
 	/// Returns: string representation, equivalent to `ASymbol.ident.toString`
 	string toString() const pure {
 		return ident;
+	}
+
+	bool opEquals()(auto const ref AStruct structS) const pure {
+		return this.type == Type.Struct && this.structS == structS;
+	}
+	bool opEquals()(auto const ref AUnion unionS) const pure {
+		return this.type == Type.Union && this.unionS == unionS;
+	}
+	bool opEquals()(auto const ref AEnum enumS) const pure {
+		return (this.type == Type.Enum || this.type == Type.EnumMember) &&
+			this.enumS == enumS;
+	}
+	bool opEquals()(auto const ref AEnumConst enumCS) const pure {
+		return this.type == Type.EnumConst && this.enumCS == enumCS;
+	}
+	bool opEquals()(auto const ref AFn fnS) const pure {
+		return this.type == Type.Fn && this.fnS == fnS;
+	}
+	bool opEquals()(auto const ref AVar varS) const pure {
+		return this.type == Type.Var && this.varS == varS;
+	}
+	bool opEquals()(auto const ref AAlias aliasS) const pure {
+		return this.type == Type.Alias && this.aliasS == aliasS;
+	}
+	bool opEquals()(auto const ref AImport importS) const pure {
+		return this.type == Type.Import && this.importS == importS;
+	}
+	bool opEquals()(auto const ref ATemplate templateS) const pure {
+		return this.type == Type.Template && this.templateS == templateS;
+	}
+
+	bool opEquals()(auto const ref ASymbol rhs) const pure {
+		if (rhs.type != this.type)
+			return false;
+		final switch (type){
+			case Type.Struct:
+				return rhs == this.structS;
+			case Type.Union:
+				return rhs == this.unionS;
+			case Type.Enum:
+				return rhs == this.enumS;
+			case Type.EnumMember:
+				return rhs == this.enumS && rhs.enumMember == this.enumMember;
+			case Type.EnumConst:
+				return rhs == this.enumCS;
+			case Type.Fn:
+				return rhs == this.fnS;
+			case Type.Var:
+				return rhs == this.varS;
+			case Type.Alias:
+				return rhs == this.aliasS;
+			case Type.Import:
+				return rhs == this.importS;
+			case Type.Template:
+				return this == this.templateS;
+		}
+		assert (false);
 	}
 
 	/// constructor
