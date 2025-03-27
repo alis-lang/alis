@@ -813,9 +813,9 @@ public struct AFn{
 
 	string toString() const pure {
 		return format!
-			"fn %s%s->%s paramReq=%d, stackFrameSize=%d, params={\n%s\n}"(
+			"fn %s%s->%s params={\n%s\n} ret=%s"(
 					(isAlisFn ? "" : "external "),
-					ident, retT, paramRequired, stackFrameSize, params);
+					ident, retT, params, retT);
 	}
 }
 
