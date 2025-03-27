@@ -43,7 +43,7 @@ public struct AValCT{
 		return null;
 	}
 
-	bool opEquals()(const auto ref AValCT rhs) const pure {
+	bool opEquals()(const auto ref AValCT rhs) const {
 		final switch (type){
 			case Type.Literal:
 				return typeL == rhs.typeL && dataL == rhs.dataL;
@@ -111,11 +111,11 @@ public:
 				params.map!(p => p.toString).join(","));
 	}
 
-	bool opEquals(string ident) const pure {
+	bool opEquals(string ident) const {
 		return isIdent && this.ident == ident;
 	}
 
-	bool opEquals(AValCT[] params) const pure {
+	bool opEquals(AValCT[] params) const {
 		if (!isIdent || this.params.length != params.length)
 			return false;
 		foreach (size_t i, param; this.params){
@@ -123,6 +123,10 @@ public:
 				return false;
 		}
 		return true;
+	}
+
+	bool opEquals(Ident rhs){
+		return rhs is this;
 	}
 
 	/// exists only to make serve-d shut up about it not existing, while opEquals
@@ -133,10 +137,7 @@ public:
 }
 ///
 unittest{
-	Ident id = new Ident;
-	id.ident = "foo";
-	id.prev = new Ident;
-	id.prev.ident = "main";
+	Ident id = new Ident("foo", new Ident("main"));
 	import std.stdio;
 	assert (id.toString == "main.foo");
 	assert (id == "foo");
@@ -145,9 +146,8 @@ unittest{
 
 /// a symbol
 public struct ASymbol{
-public:
 	/// identifier
-	string ident;
+	Ident ident;
 	/// possible Symbol types
 	enum Type{
 		Struct,
@@ -181,40 +181,40 @@ public:
 	}
 	/// Returns: string representation, equivalent to `ASymbol.ident.toString`
 	string toString() const pure {
-		return ident;
+		return ident.toString; // TODO: convert actual named symbol
 	}
 
-	bool opEquals()(auto const ref AStruct structS) const pure {
+	bool opEquals()(auto const ref AStruct structS) const {
 		return this.type == Type.Struct && this.structS == structS;
 	}
-	bool opEquals()(auto const ref AUnion unionS) const pure {
+	bool opEquals()(auto const ref AUnion unionS) const {
 		return this.type == Type.Union && this.unionS == unionS;
 	}
-	bool opEquals()(auto const ref AEnum enumS) const pure {
+	bool opEquals()(auto const ref AEnum enumS) const {
 		return (this.type == Type.Enum || this.type == Type.EnumMember) &&
 			this.enumS == enumS;
 	}
-	bool opEquals()(auto const ref AEnumConst enumCS) const pure {
+	bool opEquals()(auto const ref AEnumConst enumCS) const {
 		return this.type == Type.EnumConst && this.enumCS == enumCS;
 	}
-	bool opEquals()(auto const ref AFn fnS) const pure {
+	bool opEquals()(auto const ref AFn fnS) const {
 		return this.type == Type.Fn && this.fnS == fnS;
 	}
-	bool opEquals()(auto const ref AVar varS) const pure {
+	bool opEquals()(auto const ref AVar varS) const {
 		return this.type == Type.Var && this.varS == varS;
 	}
-	bool opEquals()(auto const ref AAlias aliasS) const pure {
+	bool opEquals()(auto const ref AAlias aliasS) const {
 		return this.type == Type.Alias && this.aliasS == aliasS;
 	}
-	bool opEquals()(auto const ref AImport importS) const pure {
+	bool opEquals()(auto const ref AImport importS) const {
 		return this.type == Type.Import && this.importS == importS;
 	}
-	bool opEquals()(auto const ref ATemplate templateS) const pure {
+	bool opEquals()(auto const ref ATemplate templateS) const {
 		return this.type == Type.Template && this.templateS == templateS;
 	}
 
-	bool opEquals()(auto const ref ASymbol rhs) const pure {
-		if (rhs.type != this.type)
+	bool opEquals()(auto const ref ASymbol rhs) const {
+		if (rhs.type != this.type || this.ident != ident)
 			return false;
 		final switch (type){
 			case Type.Struct:
@@ -377,7 +377,7 @@ public struct ADataType{
 	}
 
 	/// Returns: whether this is a primitive type
-	@property isPrimitive() const pure {
+	@property isPrimitive() const {
 		switch (type){
 			case Type.IntX, Type.UIntX, Type.FloatX, Type.CharX, Type.Bool:
 				return true;
@@ -616,18 +616,21 @@ public struct ADataType{
 			return ofFn(ReturnType!T, [staticMap!(of, Parameters!T)]);
 		} else
 		static if (is (T == struct)){
+			static assert (false, "creating ADataType of D struct not implemented");
 			// TODO: convert D struct to AStruct
 		} else
 		static if (is (T == union)){
+			static assert (false, "creating ADataType of D union not implemented");
 			// TODO: convert D union to AUnion
 		} else
 		static if (is (T == enum)){
+			static assert (false, "creating ADataType of D enum not implemented");
 			// TODO: convert D enum to AEnum or AEnumConst
 		}
 		return ADataType;
 	}
 
-	bool opEquals(const ADataType rhs) const pure {
+	bool opEquals(const ADataType rhs) const {
 		if (type != rhs.type)
 			return false;
 		final switch (type){
@@ -704,7 +707,7 @@ public struct ADT{
 /// Alis struct
 public struct AStruct{
 	/// identifier
-	string ident;
+	Ident ident;
 	/// structure
 	ADT dt;
 	/// Virtual Table, if any
@@ -847,7 +850,7 @@ public struct AImport{
 	/// module being imported
 	string[] modIdent;
 	/// aliased name, if any
-	string name;
+	string name; // TODO maybe it should be Ident
 
 	string toString() const pure {
 		return format!"import %s as %s"(modIdent.join("."), name);
