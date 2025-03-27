@@ -808,10 +808,6 @@ public struct AFn{
 	ADT params;
 	/// label name in ABC
 	string labN;
-	/// how many parameters must be provided
-	size_t paramRequired;
-	/// stack frame size
-	size_t stackFrameSize;
 	/// whether this is an alis function (true) or an external (false)
 	bool isAlisFn;
 
