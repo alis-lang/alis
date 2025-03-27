@@ -79,7 +79,7 @@ public struct AValCT{
 public final class Ident{
 public:
 	/// whether it is ident (true) or is params (false)
-	bool isIdent;
+	bool isIdent = true;
 	union{
 		/// the identifier
 		string ident;
@@ -118,6 +118,17 @@ public:
 	override size_t toHash() {
 		return super.toHash();
 	}
+}
+///
+unittest{
+	Ident id = new Ident;
+	id.ident = "foo";
+	id.prev = new Ident;
+	id.prev.ident = "main";
+	import std.stdio;
+	assert (id.toString == "main.foo");
+	assert (id == "foo");
+	assert ("foo" == id);
 }
 
 /// a symbol
