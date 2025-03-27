@@ -805,17 +805,21 @@ public struct AFn{
 	/// return type
 	ADataType retT;
 	/// locals, including parameters
-	ADT locals;
+	ADT params;
 	/// label name in ABC
 	string labN;
 	/// how many parameters must be provided
 	size_t paramRequired;
 	/// stack frame size
 	size_t stackFrameSize;
+	/// whether this is an alis function (true) or an external (false)
+	bool isAlisFn;
 
 	string toString() const pure {
-		return format!"fn %s->%s paramReq=%d, stackFrameSize=%d, locals={\n%s\n}"(
-				ident, retT, paramRequired, stackFrameSize, locals);
+		return format!
+			"fn %s%s->%s paramReq=%d, stackFrameSize=%d, params={\n%s\n}"(
+					(isAlisFn ? "" : "external "),
+					ident, retT, paramRequired, stackFrameSize, params);
 	}
 }
 
