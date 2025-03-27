@@ -729,7 +729,7 @@ public struct AStruct{
 /// Alis union
 public struct AUnion{
 	/// identifier
-	string ident;
+	Ident ident;
 	/// types of members
 	ADataType[] types;
 	/// member names
@@ -765,7 +765,7 @@ public struct AUnion{
 /// Alis Enum
 public struct AEnum{
 	/// identifier
-	string ident;
+	Ident ident;
 	/// Data Type. This will be `struct{}` in case of empty emum
 	ADataType type;
 	/// member names, mapped to their values
@@ -786,7 +786,7 @@ public struct AEnum{
 /// Alis Enum Constant
 public struct AEnumConst{
 	/// identifier
-	string ident;
+	Ident ident;
 	/// type
 	ADataType type;
 	/// value bytes
@@ -801,7 +801,7 @@ public struct AEnumConst{
 /// Alis Function Information
 public struct AFn{
 	/// identifier
-	string ident;
+	Ident ident;
 	/// return type
 	ADataType retT;
 	/// locals, including parameters
@@ -822,7 +822,7 @@ public struct AFn{
 /// Alis Variable
 public struct AVar{
 	/// identifier
-	string ident;
+	Ident ident;
 	/// data type
 	ADataType type;
 	/// offset
