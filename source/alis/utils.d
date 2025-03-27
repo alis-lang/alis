@@ -18,13 +18,13 @@ public union ByteUnion(T, ubyte N = T.sizeof){
 
 /// Reads a ubyte[] as a type
 /// Returns: value in type T
-pragma(inline, true) public T as(T)(ubyte[] data) {
+pragma(inline, true) public T as(T)(ubyte[] data) pure {
 	assert(data.length >= T.sizeof);
 	return *(cast(T*)data.ptr);
 }
 
 /// Returns: ubyte[] against a value of type T
-pragma(inline, true) public ubyte[] asBytes(T)(T val) {
+pragma(inline, true) public ubyte[] asBytes(T)(T val) pure {
 	ubyte[] ret;
 	ret.length = T.sizeof;
 	return ret[] = (cast(ubyte*)&val)[0 .. T.sizeof];

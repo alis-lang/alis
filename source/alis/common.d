@@ -3,6 +3,8 @@ Alis Common Data Types
 +/
 module alis.common;
 
+import alis.utils;
+
 import std.string,
 			 std.traits,
 			 std.range,
@@ -41,6 +43,18 @@ public struct AValCT{
 		return null;
 	}
 
+	bool opEquals()(const auto ref AValCT rhs) const {
+		final switch (type){
+			case Type.Literal:
+				return typeL == rhs.typeL && dataL == rhs.dataL;
+			case Type.Symbol:
+				return symS == rhs.symS;
+			case Type.Type:
+				return typeT == rhs.typeT;
+		}
+		assert(false);
+	}
+
 	/// constructor
 	this (ADataType type, ubyte[] data){
 		this.type = Type.Literal;
@@ -59,30 +73,81 @@ public struct AValCT{
 	}
 }
 
-/// an identifier node
-public struct Ident{
-	/// the identifier
-	string ident;
-	/// parameters, if any
-	AValCT[] params;
-	/// next Ident, if any, otherwise `null`
-	Ident* next;
-	/// Returns: string representation
-	@property string toString() const pure {
-		string ret = ident;
-		if (params)
-			ret = format!"%s(%s)"(ident, params.map!(p => p.toString).join(","));
-		if (next)
-			return format!"%s.%s"(ret, next.toString);
-		return ret;
+/// identifier node. Only unique must exist.
+/// each node can be either an identifer,
+/// or parameters applied to a `prev` Ident
+public final class Ident{
+public:
+	/// whether it is ident (true) or is params (false)
+	bool isIdent = true;
+	union{
+		/// the identifier
+		string ident;
+		/// parameters, if any
+		AValCT[] params;
 	}
+	/// previous Identifier, i.e: the `A` in `A.B` or `A(B)` if this is `B`
+	Ident prev;
+	/// constructor for ident
+	this (string ident, Ident prev = null){
+		this.ident = ident;
+		this.prev = prev;
+		this.isIdent = true;
+	}
+	/// constructor for params
+	this (AValCT[] params, Ident prev){
+		this.params = params;
+		this.prev = prev;
+		this.isIdent = false;
+	}
+	/// Returns: string representation
+	override string toString() const pure {
+		if (isIdent){
+			if (prev)
+				return format!"%s.%s"(prev.toString, ident);
+			return ident;
+		}
+		return format!"%s(%s)"(prev.toString,
+				params.map!(p => p.toString).join(","));
+	}
+
+	bool opEquals(string ident) const {
+		return isIdent && this.ident == ident;
+	}
+
+	bool opEquals(AValCT[] params) const {
+		if (!isIdent || this.params.length != params.length)
+			return false;
+		foreach (size_t i, param; this.params){
+			if (param != params[i])
+				return false;
+		}
+		return true;
+	}
+
+	bool opEquals(Ident rhs){
+		return rhs is this;
+	}
+
+	/// exists only to make serve-d shut up about it not existing, while opEquals
+	/// exists
+	override size_t toHash() {
+		return super.toHash();
+	}
+}
+///
+unittest{
+	Ident id = new Ident("foo", new Ident("main"));
+	import std.stdio;
+	assert (id.toString == "main.foo");
+	assert (id == "foo");
+	assert ("foo" == id);
 }
 
 /// a symbol
 public struct ASymbol{
-public:
-	/// identifier
-	string ident;
+	/// identifier, `_` if anonymous
+	Ident ident;
 	/// possible Symbol types
 	enum Type{
 		Struct,
@@ -116,7 +181,64 @@ public:
 	}
 	/// Returns: string representation, equivalent to `ASymbol.ident.toString`
 	string toString() const pure {
-		return ident;
+		return ident.toString; // TODO: convert actual named symbol
+	}
+
+	bool opEquals()(auto const ref AStruct structS) const {
+		return this.type == Type.Struct && this.structS == structS;
+	}
+	bool opEquals()(auto const ref AUnion unionS) const {
+		return this.type == Type.Union && this.unionS == unionS;
+	}
+	bool opEquals()(auto const ref AEnum enumS) const {
+		return (this.type == Type.Enum || this.type == Type.EnumMember) &&
+			this.enumS == enumS;
+	}
+	bool opEquals()(auto const ref AEnumConst enumCS) const {
+		return this.type == Type.EnumConst && this.enumCS == enumCS;
+	}
+	bool opEquals()(auto const ref AFn fnS) const {
+		return this.type == Type.Fn && this.fnS == fnS;
+	}
+	bool opEquals()(auto const ref AVar varS) const {
+		return this.type == Type.Var && this.varS == varS;
+	}
+	bool opEquals()(auto const ref AAlias aliasS) const {
+		return this.type == Type.Alias && this.aliasS == aliasS;
+	}
+	bool opEquals()(auto const ref AImport importS) const {
+		return this.type == Type.Import && this.importS == importS;
+	}
+	bool opEquals()(auto const ref ATemplate templateS) const {
+		return this.type == Type.Template && this.templateS == templateS;
+	}
+
+	bool opEquals()(auto const ref ASymbol rhs) const {
+		if (rhs.type != this.type || this.ident != ident)
+			return false;
+		final switch (type){
+			case Type.Struct:
+				return rhs == this.structS;
+			case Type.Union:
+				return rhs == this.unionS;
+			case Type.Enum:
+				return rhs == this.enumS;
+			case Type.EnumMember:
+				return rhs == this.enumS && rhs.enumMember == this.enumMember;
+			case Type.EnumConst:
+				return rhs == this.enumCS;
+			case Type.Fn:
+				return rhs == this.fnS;
+			case Type.Var:
+				return rhs == this.varS;
+			case Type.Alias:
+				return rhs == this.aliasS;
+			case Type.Import:
+				return rhs == this.importS;
+			case Type.Template:
+				return this == this.templateS;
+		}
+		assert (false);
 	}
 
 	/// constructor
@@ -255,7 +377,7 @@ public struct ADataType{
 	}
 
 	/// Returns: whether this is a primitive type
-	@property isPrimitive() const pure {
+	@property isPrimitive() const {
 		switch (type){
 			case Type.IntX, Type.UIntX, Type.FloatX, Type.CharX, Type.Bool:
 				return true;
@@ -494,18 +616,21 @@ public struct ADataType{
 			return ofFn(ReturnType!T, [staticMap!(of, Parameters!T)]);
 		} else
 		static if (is (T == struct)){
+			static assert (false, "creating ADataType of D struct not implemented");
 			// TODO: convert D struct to AStruct
 		} else
 		static if (is (T == union)){
+			static assert (false, "creating ADataType of D union not implemented");
 			// TODO: convert D union to AUnion
 		} else
 		static if (is (T == enum)){
+			static assert (false, "creating ADataType of D enum not implemented");
 			// TODO: convert D enum to AEnum or AEnumConst
 		}
 		return ADataType;
 	}
 
-	bool opEquals(const ADataType rhs) const pure {
+	bool opEquals(const ADataType rhs) const {
 		if (type != rhs.type)
 			return false;
 		final switch (type){
@@ -581,8 +706,8 @@ public struct ADT{
 
 /// Alis struct
 public struct AStruct{
-	/// identifier
-	string ident;
+	/// identifier, `_` if anonymous
+	Ident ident;
 	/// structure
 	ADT dt;
 	/// Virtual Table, if any
@@ -603,8 +728,8 @@ public struct AStruct{
 
 /// Alis union
 public struct AUnion{
-	/// identifier
-	string ident;
+	/// identifier, `_` if anonymous
+	Ident ident;
 	/// types of members
 	ADataType[] types;
 	/// member names
@@ -640,7 +765,7 @@ public struct AUnion{
 /// Alis Enum
 public struct AEnum{
 	/// identifier
-	string ident;
+	Ident ident;
 	/// Data Type. This will be `struct{}` in case of empty emum
 	ADataType type;
 	/// member names, mapped to their values
@@ -661,7 +786,7 @@ public struct AEnum{
 /// Alis Enum Constant
 public struct AEnumConst{
 	/// identifier
-	string ident;
+	Ident ident;
 	/// type
 	ADataType type;
 	/// value bytes
@@ -675,29 +800,33 @@ public struct AEnumConst{
 
 /// Alis Function Information
 public struct AFn{
-	/// identifier
-	string ident;
+	/// identifier, `_` if anonymous
+	Ident ident;
 	/// return type
 	ADataType retT;
 	/// locals, including parameters
-	ADT locals;
+	ADT params;
 	/// label name in ABC
 	string labN;
 	/// how many parameters must be provided
 	size_t paramRequired;
 	/// stack frame size
 	size_t stackFrameSize;
+	/// whether this is an alis function (true) or an external (false)
+	bool isAlisFn;
 
 	string toString() const pure {
-		return format!"fn %s->%s paramReq=%d, stackFrameSize=%d, locals={\n%s\n}"(
-				ident, retT, paramRequired, stackFrameSize, locals);
+		return format!
+			"fn %s%s->%s paramReq=%d, stackFrameSize=%d, params={\n%s\n}"(
+					(isAlisFn ? "" : "external "),
+					ident, retT, paramRequired, stackFrameSize, params);
 	}
 }
 
 /// Alis Variable
 public struct AVar{
 	/// identifier
-	string ident;
+	Ident ident;
 	/// data type
 	ADataType type;
 	/// offset
@@ -725,7 +854,7 @@ public struct AImport{
 	/// module being imported
 	string[] modIdent;
 	/// aliased name, if any
-	string name;
+	string name; // TODO maybe it should be Ident
 
 	string toString() const pure {
 		return format!"import %s as %s"(modIdent.join("."), name);
@@ -739,4 +868,10 @@ public struct ATemplate{
 	string toString() const pure {
 		return format!"template";
 	}
+}
+
+/// Encodes function name, using function name and param types
+/// Returns: encoded name
+public string fnNameEncode(string name, ADataType[] args){
+	return format!"%s$%(_%s%)_$"(name, args.map!(a => a.toString));
 }

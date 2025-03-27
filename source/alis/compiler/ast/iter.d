@@ -10,21 +10,19 @@ import std.meta,
 			 std.traits;
 
 /// UDA for tagging as pre-order iteration
-public enum ItPre;
+package enum ItPre;
 /// UDA for tagging as post-order iteration
-public enum ItPost;
+package enum ItPost;
 /// UDA for tagging as iteration terminator
-public enum ItTerm;
+package enum ItTerm;
 
 /// Sequence of Iterator Functions in a container (module etc)
 /// Template Params:
-/// `S` - State Type
 /// `M` - container
-public template ItFnsOf(S, alias M){
+package template ItFnsOf(alias M){
 	alias ItFnsOf = AliasSeq!();
-	alias Checker = IsItFn!S;
 	static foreach (string N; __traits(allMembers, M)){
-		static if (Checker!(__traits(getMember, M, N))){
+		static if (IsItFn!(__traits(getMember, M, N))){
 			ItFnsOf = AliasSeq!(ItFnsOf, __traits(getMember, M, N));
 		}
 	}
@@ -93,7 +91,7 @@ private template FieldTypesRel(N) if (is (N : ASTNode)){
 /// Template Params:
 /// `N...` - AST Node Types
 /// `F...` - Iterator Functions
-public template ASTIter(N...) if (allSatisfy!(IsASTNode, N)){
+package template ASTIter(N...) if (allSatisfy!(IsASTNode, N)){
 	struct ASTIter(Fns...) if (allSatisfy!(IsItFn, Fns)){
 		/// types being handles
 		private alias RelT = NoDuplicates!(FirstParamsOf!Fns);
