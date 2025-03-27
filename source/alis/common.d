@@ -88,6 +88,18 @@ public:
 	}
 	/// previous Identifier, i.e: the `A` in `A.B` or `A(B)` if this is `B`
 	Ident prev;
+	/// constructor for ident
+	this (string ident, Ident prev = null){
+		this.ident = ident;
+		this.prev = prev;
+		this.isIdent = true;
+	}
+	/// constructor for params
+	this (AValCT[] params, Ident prev){
+		this.params = params;
+		this.prev = prev;
+		this.isIdent = false;
+	}
 	/// Returns: string representation
 	override string toString() const pure {
 		if (isIdent){
