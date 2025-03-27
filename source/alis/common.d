@@ -146,7 +146,7 @@ unittest{
 
 /// a symbol
 public struct ASymbol{
-	/// identifier
+	/// identifier, `_` if anonymous
 	Ident ident;
 	/// possible Symbol types
 	enum Type{
@@ -706,7 +706,7 @@ public struct ADT{
 
 /// Alis struct
 public struct AStruct{
-	/// identifier
+	/// identifier, `_` if anonymous
 	Ident ident;
 	/// structure
 	ADT dt;
@@ -728,7 +728,7 @@ public struct AStruct{
 
 /// Alis union
 public struct AUnion{
-	/// identifier
+	/// identifier, `_` if anonymous
 	Ident ident;
 	/// types of members
 	ADataType[] types;
@@ -800,7 +800,7 @@ public struct AEnumConst{
 
 /// Alis Function Information
 public struct AFn{
-	/// identifier
+	/// identifier, `_` if anonymous
 	Ident ident;
 	/// return type
 	ADataType retT;
