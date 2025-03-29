@@ -27,22 +27,28 @@ struct CmpErr{
 		UnxpAttrs, /// Unexpected Attribute List
 		UnionMixedName, /// Union being named and unnamed
 	}
-	/// line and column number of error
-	size_t line, col;
+	/// where error happen
+	Location pos;
 	/// error message
 	string msg;
 	/// Type
 	Type type;
 	/// Returns: string representation of this error
 	string toString() const pure {
-		return "%d,%d: %s".format(line, col, msg);
+		return format!"%s: %s"(pos, msg);
 	}
 
 	@disable this();
 	/// constructor
 	this (size_t line, size_t col, string msg, Type type){
-		this.line = line;
-		this.col = col;
+		this.pos.line = line;
+		this.pos.col = col;
+		this.msg = msg;
+		this.type = type;
+	}
+	/// ditto
+	this (Location pos, string msg, Type type){
+		this.pos = pos;
 		this.msg = msg;
 		this.type = type;
 	}

@@ -138,14 +138,15 @@ package template ASTIter(N...) if (allSatisfy!(IsASTNode, N)){
 				}
 			}
 
-			alias F = ItFnsFor!(N, Fns);
-			static if (F.length){
-				static if (hasUDA!(F[0], ItPre))
-					F[0](node, state);
-				static if (!hasUDA!(F[0], ItTerm))
+			alias Pre = ItFnsFor!(N, Filter!(HasAnyUDA!ItPre, Fns));
+			alias Post = ItFnsFor!(N, Filter!(HasAnyUDA!ItPost, Fns));
+			static if (Pre.length || Post.length){
+				static if (Pre.length)
+					Pre[0](node, state);
+				static if (Pre.length == 0 || !hasUDA!(Pre[0], ItTerm))
 					_descend(node, state);
-				static if (hasUDA!(F[0], ItPost))
-					F[0](node, state);
+				static if (Post.length)
+					Post[0](node, state);
 				return;
 			}
 			return _descend(node, state);

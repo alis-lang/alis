@@ -10,7 +10,8 @@ import std.stdio,
 import alis.compiler.error,
 			 alis.compiler.lexer,
 			 alis.compiler.parser,
-			 alis.compiler.semantic;
+			 alis.compiler.semantic,
+			 alis.compiler.ast;
 
 import core.stdc.stdlib;
 
@@ -33,12 +34,22 @@ void main(){
 	// TODO: do the semantic analysis. HOW??? HOW????
 	sw.stop;
 	stderr.writefln!"semantic analysis in: %d msecs"(sw.peek.total!"msecs");
-	if (errs){
+	doTheStuff(node.val);
+	/*if (errs){
 		JSONValue err;
 		err["_error"] = errs.map!(e => e.toString).array;
 		writeln(err.toPrettyString);
 		exit(1);
 	} else {
 		stdout.writeln(node.val.toJson.toPrettyString);
-	}
+	}*/
+}
+
+void doTheStuff(Module node){
+	node.ident = "alis-main";
+	import alis.compiler.semantic.symbols;
+	STState state;
+	STIter.iterate(node, state);
+	state.writeln;
+	(*state.ctx).writeln;
 }

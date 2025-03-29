@@ -751,11 +751,11 @@ protected:
 	}
 public:
 	/// counter name, can be null
-	string countIdent;
+	string countIdent; // TODO store VarDef instead
 	/// value type
 	Expression valType;
 	/// value
-	string valIdent;
+	string valIdent; // TODO store VarDef instead
 	/// range
 	Expression range;
 	/// loop body
