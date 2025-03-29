@@ -323,24 +323,8 @@ public struct ASymbol{
 public struct AModule{
 	/// globals
 	ADT globals;
-	/// structs
-	AStruct[] structs;
-	/// unions
-	AUnion[] unions;
-	/// enums
-	AEnum[] enums;
-	/// enum consts
-	AEnumConst[] enumConsts;
-	/// functions
-	AFn[] fns;
-	/// variables
-	AVar[] vars;
-	/// aliases
-	AAlias[] aliases;
-	/// imports
-	AImport[] imports;
-	/// templates
-	ATemplate[] templates;
+	/// symbols (globals will be repeated in this)
+	ASymbol[Ident] st;
 }
 
 /// Alis Data Type
