@@ -10,6 +10,7 @@ import std.algorithm,
 import alis.common,
 			 alis.compiler.common,
 			 alis.compiler.semantic.common,
+			 alis.compiler.semantic.error,
 			 alis.compiler.ast,
 			 alis.compiler.ast.iter;
 
