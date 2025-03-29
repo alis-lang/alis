@@ -7,6 +7,8 @@ import std.algorithm,
 			 std.range,
 			 std.traits;
 
+debug import std.stdio;
+
 import alis.common,
 			 alis.compiler.common,
 			 alis.compiler.semantic.common,
@@ -23,10 +25,10 @@ package struct STState{
 	DefNode[Ident] sti;
 	/// symbol table final
 	ASymbol[Ident] st;
-	/// module info
-	AModule mod;
 	/// current context identifier
 	Ident* ctx;
+	/// errors
+	SmErr[] errs;
 }
 
 /// symbol table builder functions
@@ -39,36 +41,50 @@ private static:
 		return i in state.sti || i in state.st;
 	}
 	/// extracts imports into symbol table
-	void importExtract(R)(R range, ref STState state) if (
+	void importsExtract(R)(R range, ref STState state) if (
 			is (ForeachType!R : Import)){
 		foreach (Import imp; range){
 			// TODO: how to merge imported ST?
 			Ident id = Ident(imp.name, state.ctx);
 			AImport aImp = AImport(imp.moduleIdent, id);
 			if (identExists(id, state)){
-				import std.stdio;
-				stderr.writeln("ajeeb");
-				// TODO error
+				state.errs ~= errIdentReuse(imp.pos, imp.name);
 				continue;
 			}
 			state.st[id] = ASymbol(aImp);
+			// TODO merge imported module's symbol table
 		}
 	}
 
 	@ItPre
 	void modIter(Module node, ref STState state){
 		state.ctx = new Ident(node.ident);
-		importExtract(node.defs
+		importsExtract(node.defs
 				.map!(d => cast(Import)(d.def))
 				.filter!(d => d !is null),
 				state);
 	}
 
+	@ItPre @ItPost{
+		void modImportIgnore(Import, ref STState){}
+		void varDefListIgnore(VarDefList, ref STState){}
+	}
+
 	@ItPre
 	void defIter(DefNode node, ref STState state){
-		Ident* subCtx = new Ident(node.name, state.ctx);
-		if (*subCtx in state.sti || *subCtx in state.st){
-
+		Ident id = Ident(node.name, state.ctx);
+		if (identExists(id, state)){
+			state.errs ~= errIdentReuse(node.pos, node.name);
+			return;
 		}
+		state.sti[id] = node;
+		state.ctx = new Ident;
+		*(state.ctx) = id;
+	}
+
+	@ItPost
+	void defIterPost(DefNode node, ref STState state){
+		if (state.ctx.ident == node.name)
+			state.ctx = state.ctx.prev;
 	}
 }
