@@ -71,20 +71,20 @@ private static:
 	}
 
 	@ItPre
-	void defIter(DefNode node, ref STState state){
+	bool defIter(DefNode node, ref STState state){
 		Ident id = Ident(node.name, state.ctx);
 		if (identExists(id, state)){
 			state.errs ~= errIdentReuse(node.pos, node.name);
-			return;
+			return false;
 		}
 		state.sti[id] = node;
 		state.ctx = new Ident;
 		*(state.ctx) = id;
+		return true;
 	}
 
 	@ItPost
-	void defIterPost(DefNode node, ref STState state){
-		if (state.ctx.ident == node.name)
-			state.ctx = state.ctx.prev;
+	void defIterPost(DefNode, ref STState state){
+		state.ctx = state.ctx.prev;
 	}
 }
