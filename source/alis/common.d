@@ -10,7 +10,8 @@ import std.string,
 			 std.range,
 			 std.format,
 			 std.typecons,
-			 std.algorithm;
+			 std.algorithm,
+			 std.digest.crc;
 
 /// an Alis CompileTime Value
 public struct AValCT{
@@ -73,81 +74,76 @@ public struct AValCT{
 	}
 }
 
-/// identifier node. Only unique must exist.
-/// each node can be either an identifer,
-/// or parameters applied to a `prev` Ident
-public final class Ident{
+/// identifier node.
+/// each node will be a name, with optional parameters applied to a it
+public struct Ident{
 public:
-	/// whether it is ident (true) or is params (false)
-	bool isIdent = true;
-	union{
-		/// the identifier
-		string ident;
-		/// parameters, if any
-		AValCT[] params;
-	}
-	/// previous Identifier, i.e: the `A` in `A.B` or `A(B)` if this is `B`
-	Ident prev;
-	/// constructor for ident
-	this (string ident, Ident prev = null){
+	/// the identifier
+	string ident;
+	/// parameters, if any
+	AValCT[] params;
+	/// previous, if any
+	Ident* prev;
+	/// constructor
+	this (string ident, AValCT[] params, Ident* prev = null){
 		this.ident = ident;
-		this.prev = prev;
-		this.isIdent = true;
-	}
-	/// constructor for params
-	this (AValCT[] params, Ident prev){
 		this.params = params;
 		this.prev = prev;
-		this.isIdent = false;
+	}
+	/// constructor
+	this (string ident, Ident* prev = null){
+		this.ident = ident;
+		this.prev = prev;
 	}
 	/// Returns: string representation
-	override string toString() const pure {
-		if (isIdent){
-			if (prev)
-				return format!"%s.%s"(prev.toString, ident);
-			return ident;
-		}
-		return format!"%s(%s)"(prev.toString,
-				params.map!(p => p.toString).join(","));
+	string toString() const pure {
+		string ret = ident;
+		if (prev)
+			ret = format!"%s.%s"(prev.toString, ret);
+		if (params.length)
+			ret = format!"%s(%s)"(ret, params.map!(p => p.toString).join(","));
+		return ret;
 	}
 
-	bool opEquals(string ident) const {
-		return isIdent && this.ident == ident;
+	bool opEquals()(auto ref const Ident rhs) const pure {
+		return this is rhs || toString == rhs.toString;
 	}
 
-	bool opEquals(AValCT[] params) const {
-		if (!isIdent || this.params.length != params.length)
-			return false;
-		foreach (size_t i, param; this.params){
-			if (param != params[i])
-				return false;
-		}
-		return true;
+	size_t toHash() const pure {
+		return *cast(ulong*)toString.crc32Of.ptr;
 	}
-
-	bool opEquals(Ident rhs){
-		return rhs is this;
-	}
-
-	/// exists only to make serve-d shut up about it not existing, while opEquals
-	/// exists
-	override size_t toHash() {
-		return super.toHash();
-	}
-}
-///
-unittest{
-	Ident id = new Ident("foo", new Ident("main"));
-	import std.stdio;
-	assert (id.toString == "main.foo");
-	assert (id == "foo");
-	assert ("foo" == id);
 }
 
 /// a symbol
 public struct ASymbol{
 	/// identifier, `_` if anonymous
-	Ident ident;
+	@property auto inout ident() pure {
+		final switch (type){
+			case Type.Struct:
+				return structS.ident;
+			case Type.Union:
+				return unionS.ident;
+			case Type.Enum:
+				return enumS.ident;
+			case Type.EnumMember:
+				return enumMember.ident;
+			case Type.EnumConst:
+				return enumCS.ident;
+			case Type.Fn:
+				return fnS.ident;
+			case Type.Var:
+				return varS.ident;
+			case Type.Alias:
+				//return aliasS.ident;
+				return varS.ident; // HACK: just to get it to compile
+			case Type.Import:
+				return importS.ident;
+			case Type.Template:
+				//return templateS.ident;
+				return varS.ident; // HACK: just to get it to compile
+		}
+		assert(false);
+	}
 	/// possible Symbol types
 	enum Type{
 		Struct,
@@ -170,7 +166,7 @@ public struct ASymbol{
 			/// enum for `Type.Enum`, or `Type.EnumMember`
 			AEnum enumS;
 			/// enum member name for `Type.EnumMember`
-			string enumMember;
+			AEnumMember enumMember;
 		}
 		AEnumConst enumCS; /// enum for `Type.EnumConst`
 		AFn fnS; /// function for `Type.Fn`
@@ -181,7 +177,29 @@ public struct ASymbol{
 	}
 	/// Returns: string representation, equivalent to `ASymbol.ident.toString`
 	string toString() const pure {
-		return ident.toString; // TODO: convert actual named symbol
+		final switch (type){
+			case Type.Struct:
+				return structS.toString;
+			case Type.Union:
+				return unionS.toString;
+			case Type.Enum:
+				return enumS.toString;
+			case Type.EnumMember:
+				return enumMember.toString;
+			case Type.EnumConst:
+				return enumCS.toString;
+			case Type.Fn:
+				return fnS.toString;
+			case Type.Var:
+				return varS.toString;
+			case Type.Alias:
+				return aliasS.toString;
+			case Type.Import:
+				return importS.toString;
+			case Type.Template:
+				return templateS.toString;
+		}
+		assert(false);
 	}
 
 	bool opEquals()(auto const ref AStruct structS) const {
@@ -191,6 +209,10 @@ public struct ASymbol{
 		return this.type == Type.Union && this.unionS == unionS;
 	}
 	bool opEquals()(auto const ref AEnum enumS) const {
+		return (this.type == Type.Enum || this.type == Type.EnumMember) &&
+			this.enumS == enumS;
+	}
+	bool opEquals()(auto const ref AEnumMember enumS) const {
 		return (this.type == Type.Enum || this.type == Type.EnumMember) &&
 			this.enumS == enumS;
 	}
@@ -241,6 +263,10 @@ public struct ASymbol{
 		assert (false);
 	}
 
+	size_t toHash() const pure {
+		return ident().toHash;
+	}
+
 	/// constructor
 	this (AStruct structS){
 		this.type = Type.Struct;
@@ -262,9 +288,8 @@ public struct ASymbol{
 		this.enumCS = enumCS;
 	}
 	/// ditto
-	this (AEnum enumS, string enumMember){
+	this (AEnumMember enumMember){
 		this.type = Type.EnumMember;
-		this.enumS = enumS;
 		this.enumMember = enumMember;
 	}
 	/// ditto
@@ -768,18 +793,27 @@ public struct AEnum{
 	Ident ident;
 	/// Data Type. This will be `struct{}` in case of empty emum
 	ADataType type;
-	/// member names, mapped to their values
-	string[] names;
-	/// member values
-	ubyte[][] values;
+	/// members
+	AEnumMember[] members;
 
 	string toString() const pure {
 		string ret = format!"enum %s %s{\n#\tname\tval\n"(type, ident);
-		foreach (size_t i, string name; names){
-			ret ~= format!"%d\t%s\t%s\n"(i, name, type.decodeStr(values[i]));
+		foreach (size_t i, const AEnumMember member; members){
+			ret ~= format!"%d\t%s"(i, member);
 		}
 		ret ~= "}";
 		return ret;
+	}
+}
+
+/// Alis Enum Members
+public struct AEnumMember{
+	/// identifier
+	Ident ident;
+	/// value
+	ubyte[] val;
+	string toString() const pure {
+		return format!"%s\t%s\n"(ident, val);
 	}
 }
 
@@ -850,10 +884,10 @@ public struct AImport{
 	/// module being imported
 	string[] modIdent;
 	/// aliased name, if any
-	string name; // TODO maybe it should be Ident
+	Ident ident;
 
 	string toString() const pure {
-		return format!"import %s as %s"(modIdent.join("."), name);
+		return format!"import %s as %s"(modIdent.join("."), ident);
 	}
 }
 
