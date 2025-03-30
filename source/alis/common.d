@@ -78,7 +78,7 @@ public struct AValCT{
 public struct IdentU{
 public:
 	/// identifier
-	string ident;
+	string ident = "_";
 	/// parameters, if any
 	AValCT[] params;
 	/// constructor
@@ -92,8 +92,8 @@ public:
 					params.map!(p => p.toString).join(","));
 		return ident;
 	}
-	bool opEquals()(const auto ref IdentU rhs) const pure {
-		return rhs._toString == _toString;
+	bool opEquals()(auto const ref IdentU rhs) const pure {
+		return rhs.toString == toString;
 	}
 	size_t toHash() const pure {
 		return *(cast(ulong*)toString.crc32Of.ptr);
@@ -112,9 +112,14 @@ public:
 		this.ident = IdentU(ident, params);
 		this.prev = prev;
 	}
-	/// constructor
+	/// ditto
 	this (string ident, Ident* prev = null){
 		this.ident = ident.IdentU;
+		this.prev = prev;
+	}
+	/// ditto
+	this (IdentU ident, Ident* prev = null){
+		this.ident = ident;
 		this.prev = prev;
 	}
 	/// Returns: string representation
