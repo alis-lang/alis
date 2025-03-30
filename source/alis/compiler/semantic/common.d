@@ -5,6 +5,39 @@ module alis.compiler.semantic.common;
 
 import alis.common;
 
+/// Symbol Table single level
+struct STab1L(T){
+private:
+	struct Node{
+		T val; /// value
+		IdentU id; /// identifier
+		Ident vis; /// visibility limited to this ident, if not null
+	}
+	Node[IdentU] _map;
+public:
+	/// Returns: true if an identifier exists
+	bool exists(IdentU id) const pure {
+		return id in _map;
+	}
+	/// Add a new value. Will overwrite existing.
+	void add(Ident id, T val, Ident vis = null) pure {
+		_map[id] = Node(val, id, vis);
+	}
+	/// remove a value
+	/// Returns: true if done, false if does not exist
+	bool remove(Ident id) pure {
+		if (!exists(id))
+			return false;
+		_map.remove(id);
+		return true;
+	}
+	/// Add a copy of `target` at `id`
+	/// Returns: true if successful, false on failure i.e: `target` not existing
+	bool addAlias(Ident target, Ident id) pure {
+
+	}
+}
+
 /// Alis Template Resolution Node. Usually for tracking resolution across
 /// aliases
 package struct ATResN{
