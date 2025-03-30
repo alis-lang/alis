@@ -9,32 +9,55 @@ import alis.common;
 struct STab1L(T){
 private:
 	struct Node{
-		T val; /// value
+		bool isST = false; /// if this is a Symbol Table (true) or value (false)
+		union{
+			T val; /// value
+			STab1L!T st;
+		}
 		IdentU id; /// identifier
 		Ident vis; /// visibility limited to this ident, if not null
+		@disable this();
+		this (IdentU id, T val, Ident vis){
+			this.isST = false;
+			this.val = val;
+			this.id = id;
+			this.vis = vis;
+		}
+		this (IdentU id, STab1L!T st, Ident vis){
+			this.isST = true;
+			this.st = st;
+			this.id = id;
+			this.vis = vis;
+		}
 	}
+	/// the symbol table
 	Node[IdentU] _map;
+
 public:
 	/// Returns: true if an identifier exists
 	bool exists(IdentU id) const pure {
-		return id in _map;
+		return (id in _map) !is null;
+	}
+	/// ditto
+	bool exists(Ident id) const pure {
+		/// TODO: implement
+		return false;
 	}
 	/// Add a new value. Will overwrite existing.
-	void add(Ident id, T val, Ident vis = null) pure {
-		_map[id] = Node(val, id, vis);
+	void add(IdentU id, T val, Ident vis) pure {
+		_map[id] = Node(id, val, vis);
+	}
+	/// Add a new Symbol Table. Will overwrite existing.
+	void add(IdentU id, STab1L!T st, Ident vis) pure {
+		_map[id] = Node(id, st, vis);
 	}
 	/// remove a value
 	/// Returns: true if done, false if does not exist
-	bool remove(Ident id) pure {
+	bool remove(IdentU id) pure {
 		if (!exists(id))
 			return false;
 		_map.remove(id);
 		return true;
-	}
-	/// Add a copy of `target` at `id`
-	/// Returns: true if successful, false on failure i.e: `target` not existing
-	bool addAlias(Ident target, Ident id) pure {
-
 	}
 }
 
