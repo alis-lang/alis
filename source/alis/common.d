@@ -74,41 +74,58 @@ public struct AValCT{
 	}
 }
 
-/// identifier node.
-/// each node will be a name, with optional parameters applied to a it
-public struct Ident{
+/// identifier node unit
+public struct IdentU{
 public:
-	/// the identifier
+	/// identifier
 	string ident;
 	/// parameters, if any
 	AValCT[] params;
+	/// constructor
+	this (string ident, AValCT[] params = null) pure {
+		this.ident = ident;
+		this.params = params.dup;
+	}
+	string toString() const pure {
+		if (params)
+			return format!"%s(%s)"(ident,
+					params.map!(p => p.toString).join(","));
+		return ident;
+	}
+	bool opEquals()(const auto ref IdentU rhs) const pure {
+		return rhs._toString == _toString;
+	}
+	size_t toHash() const pure {
+		return *(cast(ulong*)toString.crc32Of.ptr);
+	}
+}
+
+/// complete identifier
+public struct Ident{
+public:
+	/// identifier
+	IdentU ident;
 	/// previous, if any
 	Ident* prev;
 	/// constructor
 	this (string ident, AValCT[] params, Ident* prev = null){
-		this.ident = ident;
-		this.params = params;
+		this.ident = IdentU(ident, params);
 		this.prev = prev;
 	}
 	/// constructor
 	this (string ident, Ident* prev = null){
-		this.ident = ident;
+		this.ident = ident.IdentU;
 		this.prev = prev;
 	}
 	/// Returns: string representation
 	string toString() const pure {
-		string ret = ident;
 		if (prev)
-			ret = format!"%s.%s"(prev.toString, ret);
-		if (params.length)
-			ret = format!"%s(%s)"(ret, params.map!(p => p.toString).join(","));
-		return ret;
+			return format!"%s.%s"(prev.toString, ident.toString);
+		return ident.toString;
 	}
-
 	bool opEquals()(auto ref const Ident rhs) const pure {
 		return this is rhs || toString == rhs.toString;
 	}
-
 	size_t toHash() const pure {
 		return *cast(ulong*)toString.crc32Of.ptr;
 	}
