@@ -145,8 +145,9 @@ package template ASTIter(N...) if (allSatisfy!(IsASTNode, N)){
 					static if (is (ReturnType!(Pre[0]) : bool)){
 						if (!Pre[0](node, state))
 							return;
+					} else {
+						Pre[0](node, state);
 					}
-					Pre[0](node, state);
 				}
 				static if (Pre.length == 0 || !hasUDA!(Pre[0], ItTerm))
 					_descend(node, state);
