@@ -51,5 +51,5 @@ void doTheStuff(Module node){
 	STState state;
 	STIter.iterate(node, state);
 	state.writeln;
-	(*state.ctx).writeln;
+	(state.ctx).writeln;
 }

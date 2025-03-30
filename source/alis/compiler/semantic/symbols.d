@@ -36,7 +36,7 @@ private struct STFns{
 private static:
 	/// Returns: true if a symbol name exists
 	bool identExists(Ident i, ref STState state){
-		if (i.ident == "_")
+		if (i.ident.toString == "_")
 			return false;
 		return i in state.sti || i in state.st;
 	}
