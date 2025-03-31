@@ -9,12 +9,20 @@ import alis.common;
 struct STab1L(T){
 private:
 	struct Node{
-		/// if this is a Symbol Table (true) or value (false)
-		bool isST = false;
+		/// possible node types
+		enum Type{
+			End, /// End node
+			Alias, /// Jump to another point (used for imports)
+			STab, /// nested STab
+		}
+		/// this node's type
+		Type type;
 		union{
-			/// value
+			/// value (`Type.End`)
 			T val;
-			/// symbol table
+			/// alias to
+			Ident aliasTo;
+			/// symbol table (`Type.STab`)
 			STab1L!T st;
 		}
 		/// visibility limited to this head IdentU, if not `"_"`
@@ -22,13 +30,18 @@ private:
 		IdentU vis;
 		@disable this();
 		this (IdentU id, T val, IdentU vis){
-			this.isST = false;
+			this.type = Type.End;
 			this.val = val;
 			this.vis = vis;
 		}
 		this (IdentU id, STab1L!T st, IdentU vis){
-			this.isST = true;
+			this.type = Type.STab;
 			this.st = st;
+			this.vis = vis;
+		}
+		this (IdentU id, Ident aliasTo, IdentU vis){
+			this.type = Type.Alias;
+			this.aliasTo = aliasTo;
 			this.vis = vis;
 		}
 	}
@@ -42,7 +55,11 @@ public:
 		return false;
 	}
 
-	/// finds all candidates
+	/// finds all candidates that match an Ident, given a scope ctx
+	/// Returns: range of candidates
+	auto find(Ident id, Ident ctx){
+		return null; // TODO implement find
+	}
 
 	/// Add a new value. Will overwrite existing.
 	void add(IdentU id, T val, IdentU vis) pure {
