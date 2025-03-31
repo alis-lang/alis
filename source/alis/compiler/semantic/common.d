@@ -9,24 +9,26 @@ import alis.common;
 struct STab1L(T){
 private:
 	struct Node{
-		bool isST = false; /// if this is a Symbol Table (true) or value (false)
+		/// if this is a Symbol Table (true) or value (false)
+		bool isST = false;
 		union{
-			T val; /// value
+			/// value
+			T val;
+			/// symbol table
 			STab1L!T st;
 		}
-		IdentU id; /// identifier
-		Ident vis; /// visibility limited to this ident, if not null
+		/// visibility limited to this head IdentU, if not `"_"`
+		/// the actual limited visibility will be stored in symbol itself
+		IdentU vis;
 		@disable this();
-		this (IdentU id, T val, Ident vis){
+		this (IdentU id, T val, IdentU vis){
 			this.isST = false;
 			this.val = val;
-			this.id = id;
 			this.vis = vis;
 		}
-		this (IdentU id, STab1L!T st, Ident vis){
+		this (IdentU id, STab1L!T st, IdentU vis){
 			this.isST = true;
 			this.st = st;
-			this.id = id;
 			this.vis = vis;
 		}
 	}
@@ -34,27 +36,27 @@ private:
 	Node[IdentU] _map;
 
 public:
-	/// Returns: true if an identifier exists
-	bool exists(IdentU id) const pure {
-		return (id in _map) !is null;
-	}
-	/// ditto
-	bool exists(Ident id) const pure {
-		/// TODO: implement
+	/// Returns: true if an identifier can be resolved from within a scope `s`
+	bool canFind(Ident subject, Ident s) const pure {
+		// TODO: implement STab1L.canFind
 		return false;
 	}
+
+	/// finds all candidates
+
 	/// Add a new value. Will overwrite existing.
-	void add(IdentU id, T val, Ident vis) pure {
+	void add(IdentU id, T val, IdentU vis) pure {
 		_map[id] = Node(id, val, vis);
 	}
 	/// Add a new Symbol Table. Will overwrite existing.
-	void add(IdentU id, STab1L!T st, Ident vis) pure {
+	void add(IdentU id, STab1L!T st, IdentU vis) pure {
 		_map[id] = Node(id, st, vis);
 	}
-	/// remove a value
+
+	/// remove all symbols with an id
 	/// Returns: true if done, false if does not exist
-	bool remove(IdentU id) pure {
-		if (!exists(id))
+	bool removeAll(IdentU id) pure {
+		if (id !in _map)
 			return false;
 		_map.remove(id);
 		return true;
