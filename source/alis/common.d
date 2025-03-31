@@ -105,7 +105,7 @@ public struct Ident{
 public:
 	/// identifier
 	IdentU ident;
-	/// previous, if any
+	/// previous, if any, otherwise `null`
 	Ident* prev;
 	/// constructor
 	this (string ident, AValCT[] params, Ident* prev = null){
