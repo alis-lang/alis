@@ -13,6 +13,8 @@ import std.string,
 			 std.algorithm,
 			 std.digest.crc;
 
+public import alis.compiler.common : Visibility; // TODO move it here
+
 /// an Alis CompileTime Value
 public struct AValCT{
 	/// possible types
@@ -138,8 +140,8 @@ public:
 
 /// a symbol
 public struct ASymbol{
-	/// identifier, `_` if anonymous
-	@property auto inout ident() pure {
+	/// Returns: identifier, `_` if anonymous
+	@property inout(Ident) ident() pure inout {
 		final switch (type){
 			case Type.Struct:
 				return structS.ident;
@@ -156,16 +158,42 @@ public struct ASymbol{
 			case Type.Var:
 				return varS.ident;
 			case Type.Alias:
-				//return aliasS.ident;
-				return varS.ident; // HACK: just to get it to compile
+				return aliasS.ident;
 			case Type.Import:
 				return importS.ident;
 			case Type.Template:
-				//return templateS.ident;
-				return varS.ident; // HACK: just to get it to compile
+				return templateS.ident;
 		}
 		assert(false);
 	}
+
+	/// Returns: Visibility, or `Visibility.Pub` if not applicable
+	@property Visibility vis() pure {
+		final switch (type){
+			case Type.Struct:
+				return structS.vis;
+			case Type.Union:
+				return unionS.vis;
+			case Type.Enum:
+				return enumS.vis;
+			case Type.EnumMember:
+				return Visibility.Pub;
+			case Type.EnumConst:
+				return enumCS.vis;
+			case Type.Fn:
+				return fnS.vis;
+			case Type.Var:
+				return varS.vis;
+			case Type.Alias:
+				return aliasS.vis;
+			case Type.Import:
+				return importS.vis;
+			case Type.Template:
+				return templateS.vis;
+		}
+		assert(false);
+	}
+
 	/// possible Symbol types
 	enum Type{
 		Struct,
@@ -346,7 +374,7 @@ public struct AModule{
 	/// globals
 	ADT globals;
 	/// symbols (globals will be repeated in this)
-	ASymbol[Ident] st;
+	ASymbol[IdentU] st;
 }
 
 /// Alis Data Type
@@ -746,6 +774,8 @@ public struct AStruct{
 	/// whether this has an `alias this = X`. the member being aliased to `this`
 	/// will be at index 0 in `types` and `offsets`
 	bool hasBase = false;
+	/// Visibility outside its parent module
+	Visibility vis;
 	/// Returns: size of this struct
 	@property size_t sizeOf() const pure {
 		return dt.sizeOf + (vt.tb.length > 0);
@@ -772,6 +802,8 @@ public struct AUnion{
 	/// whether this has an `alias this = X`. the member being aliased to `this`
 	/// will be at index 0 in `types` and `offsets`
 	bool hasBase = false;
+	/// Visibility outside its parent module
+	Visibility vis;
 	/// Returns: true if this is an unnamed union
 	@property bool isUnnamed() const pure {
 		return names.length == 0;
@@ -801,6 +833,8 @@ public struct AEnum{
 	ADataType type;
 	/// members
 	AEnumMember[] members;
+	/// Visibility outside its parent module
+	Visibility vis;
 
 	string toString() const pure {
 		string ret = format!"enum %s %s{\n#\tname\tval\n"(type, ident);
@@ -831,6 +865,8 @@ public struct AEnumConst{
 	ADataType type;
 	/// value bytes
 	ubyte[] data;
+	/// Visibility outside its parent module
+	Visibility vis;
 
 	string toString() const pure {
 		return format!"enum %s %s = %s;"(type.toString, ident,
@@ -850,6 +886,8 @@ public struct AFn{
 	string labN;
 	/// whether this is an alis function (true) or an external (false)
 	bool isAlisFn;
+	/// Visibility outside its parent module
+	Visibility vis;
 
 	string toString() const pure {
 		return format!
@@ -869,6 +907,8 @@ public struct AVar{
 	size_t offset;
 	/// whether is global or local
 	bool isGlobal;
+	/// Visibility outside its parent module
+	Visibility vis;
 
 	string toString() const pure {
 		return format!"var %s%s %s ,off=%d"(isGlobal ? "global" : null, type,
@@ -878,7 +918,11 @@ public struct AVar{
 
 /// Alis Alias
 public struct AAlias{
-	// TODO: what to store in AAlias
+	/// identifier
+	Ident ident;
+	/// Visibility outside its parent module
+	Visibility vis;
+	/// TODO: store resolved expression
 
 	string toString() const pure {
 		return format!"alias";
@@ -891,6 +935,8 @@ public struct AImport{
 	string[] modIdent;
 	/// aliased name, if any
 	Ident ident;
+	/// Visibility outside its parent module
+	Visibility vis;
 
 	string toString() const pure {
 		return format!"import %s as %s"(modIdent.join("."), ident);
@@ -899,6 +945,10 @@ public struct AImport{
 
 /// Alis Template
 public struct ATemplate{
+	/// identifier
+	Ident ident;
+	/// Visibility outside its parent module
+	Visibility vis;
 	// TODO: what to store in ATemplate
 
 	string toString() const pure {
