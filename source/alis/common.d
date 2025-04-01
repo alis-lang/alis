@@ -136,6 +136,25 @@ public:
 	size_t toHash() const pure {
 		return *cast(ulong*)toString.crc32Of.ptr;
 	}
+
+	/// Returns: IdentU[] representation
+	IdentU[] array() pure {
+		// count length
+		size_t len;
+		Ident* c = &this;
+		while (c)
+			len++, c = c.prev;
+		IdentU[] ret = new IdentU[len];
+		c = &this;
+		while (len)
+			ret[--len] = c.ident, c = c.prev;
+		return ret;
+	}
+}
+///
+unittest{
+	Ident id = Ident("foo".IdentU, new Ident("main".IdentU));
+	assert(id.array.map!(e => e.toString).array == ["main", "foo"]);
 }
 
 /// a symbol
