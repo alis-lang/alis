@@ -14,8 +14,7 @@ private:
 	struct EndNode{
 		/// value
 		T val;
-		/// visibility limited to this head IdentU, if not `"_"`
-		/// the actual limited visibility will be stored in symbol itself
+		/// only visible to contexts that begin with this IdentU
 		IdentU vis;
 		this (T val, IdentU vis){
 			this.val = val;
@@ -25,8 +24,7 @@ private:
 	struct STNode{
 		/// value
 		STab1L!T st;
-		/// visibility limited to this head IdentU, if not `"_"`
-		/// the actual limited visibility will be stored in symbol itself
+		/// only visible to contexts that begin with this IdentU
 		IdentU vis;
 		this (STab1L!T st, IdentU vis){
 			this.st = st;
@@ -45,22 +43,21 @@ public:
 		IdentU _head;
 		IdentU _id;
 		EndNode[][IdentU][] _maps;
-		STab1L!T _st;
 
 		this(IdentU id, Ident ctx, ref STab1L!T st) pure {
 			this._id = id;
-			this._st = st;
 			IdentU[] scopes = ctx.array;
 			this._head = scopes.length ? scopes[0] : IdentU.init;
 			_maps ~= st._map;
+			STab1L!T* s = &st;
 			foreach (IdentU i; scopes){
-				if (i !in st._next)
+				if (i !in s._next)
 					break;
-				STNode nextNode = st._next[i];
+				STNode nextNode = s._next[i];
 				if (nextNode.vis != IdentU.init && nextNode.vis != _head)
 					break;
 				_maps ~= nextNode.st._map;
-				st = nextNode.st;
+				s = &nextNode.st;
 			}
 			_maps ~= [];
 			popFront;
@@ -99,16 +96,43 @@ public:
 	}
 
 	/// Add a new value.
-	void add(IdentU id, T val, IdentU vis) pure {
+	void valAdd(IdentU id, T val, IdentU vis) pure {
 		if (auto ptr = id in _map){
 			*ptr ~= EndNode(val, vis);
 			return;
 		}
 		_map[id] = [EndNode(val, vis)];
 	}
+	/// ditto
+	void valAdd(Ident id, T val, IdentU vis) pure {
+		STab1L!T* st = &this;
+		IdentU[] ids = id.array;
+		foreach (IdentU i; ids[0 .. $ - 1]){
+			if (auto next = i in st._next){
+				st = &next.st;
+			} else {
+				assert(false);
+			}
+		}
+		st.valAdd(ids[$ - 1], val, vis);
+	}
+
 	/// Add a new Symbol Table. **Will overwrite existing, if any.**
-	void add(IdentU id, STab1L!T st, IdentU vis) pure {
+	void stAdd(IdentU id, STab1L!T st, IdentU vis) pure {
 		_next[id] = STNode(st, vis);
+	}
+	/// ditto
+	void stAdd(Ident id, STab1L!T stab, IdentU vis) pure {
+		STab1L!T* st = &this;
+		IdentU[] ids = id.array;
+		foreach (IdentU i; ids[0 .. $ - 1]){
+			if (auto next = i in st._next){
+				st = &next.st;
+			} else {
+				assert(false);
+			}
+		}
+		st.stAdd(ids[$ - 1], stab, vis);
 	}
 
 	/// remove all symbols with an id
