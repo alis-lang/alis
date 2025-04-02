@@ -8,8 +8,8 @@ import alis.common;
 import std.algorithm,
 			 std.range;
 
-/// Symbol Table single level
-struct STab1L(T){
+/// Symbol Table
+final class STab(T){
 private:
 	struct EndNode{
 		/// value
@@ -23,10 +23,10 @@ private:
 	}
 	struct STNode{
 		/// value
-		STab1L!T st;
+		STab!T st;
 		/// only visible to contexts that begin with this IdentU
 		IdentU vis;
-		this (STab1L!T st, IdentU vis){
+		this (STab!T st, IdentU vis){
 			this.st = st;
 			this.vis = vis;
 		}
@@ -44,20 +44,19 @@ public:
 		IdentU _id;
 		EndNode[][IdentU][] _maps;
 
-		this(IdentU id, Ident ctx, ref STab1L!T st) pure {
+		this(IdentU id, Ident ctx, STab!T st) pure {
 			this._id = id;
 			IdentU[] scopes = ctx.array;
 			this._head = scopes.length ? scopes[0] : IdentU.init;
 			_maps ~= st._map;
-			STab1L!T* s = &st;
 			foreach (IdentU i; scopes){
-				if (i !in s._next)
+				if (i !in st._next)
 					break;
-				STNode nextNode = s._next[i];
+				STNode nextNode = st._next[i];
 				if (nextNode.vis != IdentU.init && nextNode.vis != _head)
 					break;
 				_maps ~= nextNode.st._map;
-				s = &nextNode.st;
+				st = nextNode.st;
 			}
 			_maps ~= [];
 			popFront;
@@ -105,11 +104,11 @@ public:
 	}
 	/// ditto
 	void valAdd(Ident id, T val, IdentU vis) pure {
-		STab1L!T* st = &this;
+		STab!T st = this;
 		IdentU[] ids = id.array;
 		foreach (IdentU i; ids[0 .. $ - 1]){
 			if (auto next = i in st._next){
-				st = &next.st;
+				st = next.st;
 			} else {
 				assert(false);
 			}
@@ -118,30 +117,21 @@ public:
 	}
 
 	/// Add a new Symbol Table. **Will overwrite existing, if any.**
-	void stAdd(IdentU id, STab1L!T st, IdentU vis) pure {
+	void stAdd(IdentU id, STab!T st, IdentU vis) pure {
 		_next[id] = STNode(st, vis);
 	}
 	/// ditto
-	void stAdd(Ident id, STab1L!T stab, IdentU vis) pure {
-		STab1L!T* st = &this;
+	void stAdd(Ident id, STab!T stab, IdentU vis) pure {
+		STab!T st = this;
 		IdentU[] ids = id.array;
 		foreach (IdentU i; ids[0 .. $ - 1]){
 			if (auto next = i in st._next){
-				st = &next.st;
+				st = next.st;
 			} else {
 				assert(false);
 			}
 		}
 		st.stAdd(ids[$ - 1], stab, vis);
-	}
-
-	/// remove all symbols with an id
-	/// Returns: true if done, false if does not exist
-	bool removeAll(IdentU id) pure {
-		if (id !in _map)
-			return false;
-		_map.remove(id);
-		return true;
 	}
 }
 
