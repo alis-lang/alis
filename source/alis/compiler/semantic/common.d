@@ -5,69 +5,110 @@ module alis.compiler.semantic.common;
 
 import alis.common;
 
+import std.algorithm,
+			 std.range;
+
 /// Symbol Table single level
 struct STab1L(T){
 private:
-	struct Node{
-		/// possible node types
-		enum Type{
-			End, /// End node
-			Alias, /// Jump to another point (used for imports)
-			STab, /// nested STab
-		}
-		/// this node's type
-		Type type;
-		union{
-			/// value (`Type.End`)
-			T val;
-			/// alias to
-			Ident aliasTo;
-			/// symbol table (`Type.STab`)
-			STab1L!T st;
-		}
+	struct EndNode{
+		/// value
+		T val;
 		/// visibility limited to this head IdentU, if not `"_"`
 		/// the actual limited visibility will be stored in symbol itself
 		IdentU vis;
-		@disable this();
-		this (IdentU id, T val, IdentU vis){
-			this.type = Type.End;
+		this (T val, IdentU vis){
 			this.val = val;
 			this.vis = vis;
 		}
-		this (IdentU id, STab1L!T st, IdentU vis){
-			this.type = Type.STab;
+	}
+	struct STNode{
+		/// value
+		STab1L!T st;
+		/// visibility limited to this head IdentU, if not `"_"`
+		/// the actual limited visibility will be stored in symbol itself
+		IdentU vis;
+		this (STab1L!T st, IdentU vis){
 			this.st = st;
 			this.vis = vis;
 		}
-		this (IdentU id, Ident aliasTo, IdentU vis){
-			this.type = Type.Alias;
-			this.aliasTo = aliasTo;
-			this.vis = vis;
+	}
+
+	/// the symbol table
+	EndNode[][IdentU] _map;
+	/// sub-tables
+	STNode[IdentU] _next;
+public:
+
+	static struct ResRange{
+	private:
+		IdentU _head;
+		IdentU _id;
+		EndNode[][IdentU][] _maps;
+		STab1L!T _st;
+
+		this(IdentU id, Ident ctx, ref STab1L!T st) pure {
+			this._id = id;
+			this._st = st;
+			IdentU[] scopes = ctx.array;
+			this._head = scopes.length ? scopes[0] : IdentU.init;
+			_maps ~= st._map;
+			foreach (IdentU i; scopes){
+				if (i !in st._next)
+					break;
+				STNode nextNode = st._next[i];
+				if (nextNode.vis != IdentU.init && nextNode.vis != _head)
+					break;
+				_maps ~= nextNode.st._map;
+				st = nextNode.st;
+			}
+			_maps ~= [];
+			popFront;
+		}
+
+	public:
+		@disable this();
+		this(this){}
+		bool empty() pure {
+			return _maps.length == 0;
+		}
+		void popFront() pure {
+			if (empty)
+				return;
+			_maps = _maps[0 .. $ - 1];
+			while (_maps.length && front.empty)
+				_maps = _maps[0 .. $ - 1];
+		}
+		auto front() pure {
+			EndNode[] arr;
+			if (_maps.length && (_id in _maps[$ - 1]) !is null)
+				arr = _maps[$ - 1][_id];
+			return arr.filter!(node => node.vis == IdentU.init || node.vis == _head);
 		}
 	}
-	/// the symbol table
-	Node[IdentU] _map;
 
-public:
-	/// Returns: true if an identifier can be resolved from within a scope `s`
-	bool canFind(Ident subject, Ident s) const pure {
-		// TODO: implement STab1L.canFind
-		return false;
-	}
-
-	/// finds all candidates that match an Ident, given a scope ctx
+	/// finds all candidates that match an IdentU, given a scope ctx
 	/// Returns: range of candidates
-	auto find(Ident id, Ident ctx){
-		return null; // TODO implement find
+	ResRange find(IdentU id, Ident ctx) pure {
+		return ResRange(id, ctx, this);
 	}
 
-	/// Add a new value. Will overwrite existing.
-	void add(IdentU id, T val, IdentU vis) pure {
-		_map[id] = Node(id, val, vis);
+	/// Returns: true if id can be found from ctx scope
+	bool canFind(IdentU id, Ident ctx) pure {
+		return !find(id, ctx).empty;
 	}
-	/// Add a new Symbol Table. Will overwrite existing.
+
+	/// Add a new value.
+	void add(IdentU id, T val, IdentU vis) pure {
+		if (auto ptr = id in _map){
+			*ptr ~= EndNode(val, vis);
+			return;
+		}
+		_map[id] = [EndNode(val, vis)];
+	}
+	/// Add a new Symbol Table. **Will overwrite existing, if any.**
 	void add(IdentU id, STab1L!T st, IdentU vis) pure {
-		_map[id] = Node(id, st, vis);
+		_next[id] = STNode(st, vis);
 	}
 
 	/// remove all symbols with an id
