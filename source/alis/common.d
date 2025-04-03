@@ -103,49 +103,46 @@ public:
 }
 
 /// complete identifier
-public struct Ident{
+public final class Ident{
 public:
 	/// identifier
 	IdentU ident;
 	/// previous, if any, otherwise `null`
-	Ident* prev;
+	Ident prev;
 	/// constructor
-	this (string ident, AValCT[] params, Ident* prev = null){
+	this (string ident, AValCT[] params, Ident prev = null){
 		this.ident = IdentU(ident, params);
 		this.prev = prev;
 	}
 	/// ditto
-	this (string ident, Ident* prev = null){
+	this (string ident, Ident prev = null){
 		this.ident = ident.IdentU;
 		this.prev = prev;
 	}
 	/// ditto
-	this (IdentU ident, Ident* prev = null){
+	this (IdentU ident, Ident prev = null){
 		this.ident = ident;
 		this.prev = prev;
 	}
 	/// Returns: string representation
-	string toString() const pure {
+	override string toString() const pure {
 		if (prev)
 			return format!"%s.%s"(prev.toString, ident.toString);
 		return ident.toString;
 	}
-	bool opEquals()(auto ref const Ident rhs) const pure {
+	bool opEquals()(const Ident rhs) const pure {
 		return this is rhs || toString == rhs.toString;
-	}
-	size_t toHash() const pure {
-		return *cast(ulong*)toString.crc32Of.ptr;
 	}
 
 	/// Returns: IdentU[] representation
 	IdentU[] array() pure {
 		// count length
 		size_t len;
-		Ident* c = &this;
-		while (c)
+		Ident c = this;
+		while (c !is null)
 			len++, c = c.prev;
 		IdentU[] ret = new IdentU[len];
-		c = &this;
+		c = this;
 		while (len)
 			ret[--len] = c.ident, c = c.prev;
 		return ret;
@@ -153,7 +150,7 @@ public:
 }
 ///
 unittest{
-	Ident id = Ident("foo".IdentU, new Ident("main".IdentU));
+	Ident id = new Ident("foo".IdentU, new Ident("main".IdentU));
 	assert(id.array.map!(e => e.toString).array == ["main", "foo"]);
 }
 
@@ -330,10 +327,6 @@ public struct ASymbol{
 				return this == this.templateS;
 		}
 		assert (false);
-	}
-
-	size_t toHash() const pure {
-		return ident().toHash;
 	}
 
 	/// constructor
