@@ -25,6 +25,10 @@ public:
 	JSONValue toJson() const pure {
 		return this.jsonOf;
 	}
+
+	override string toString() const {
+		return toJson().toPrettyString;
+	}
 }
 
 /// Whether a class is inherited from `ASTNode`
