@@ -6,7 +6,8 @@ module alis.compiler.semantic.common;
 import alis.common;
 
 import std.algorithm,
-			 std.range;
+			 std.range,
+			 std.json;
 
 /// Symbol Table
 final class STab(T){
@@ -16,7 +17,7 @@ private:
 		T val;
 		/// only visible to contexts that begin with this IdentU
 		IdentU vis;
-		this (T val, IdentU vis){
+		this (T val, IdentU vis) pure {
 			this.val = val;
 			this.vis = vis;
 		}
@@ -26,7 +27,7 @@ private:
 		STab!T st;
 		/// only visible to contexts that begin with this IdentU
 		IdentU vis;
-		this (STab!T st, IdentU vis){
+		this (STab!T st, IdentU vis) pure {
 			this.st = st;
 			this.vis = vis;
 		}
@@ -132,6 +133,36 @@ public:
 			}
 		}
 		st.stAdd(ids[$ - 1], stab, vis);
+	}
+
+	JSONValue toJson() const {
+		JSONValue ret;
+		foreach (IdentU key; _map.byKey){
+			ret[key.toString] = _map[key]
+				.map!((const EndNode n){
+						JSONValue obj;
+						obj["val"] = n.val.toString;
+						obj["vis"] = n.vis.toString;
+						return obj;
+						})
+				.array;
+		}
+		foreach (IdentU key; _next.byKey){
+			immutable string s = key.toString;
+			const STNode n = _next[key];
+			JSONValue obj;
+			obj["val"] = n.st.toJson;
+			obj["vis"] = n.vis.toString;
+			if (s in ret)
+				ret[s] ~= obj;
+			else
+				ret[s] = [obj];
+		}
+		return ret;
+	}
+
+	override string toString() const {
+		return toJson().toPrettyString;
 	}
 }
 
