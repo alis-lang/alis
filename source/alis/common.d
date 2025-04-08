@@ -46,7 +46,7 @@ public struct AValCT{
 		return null;
 	}
 
-	bool opEquals()(const auto ref AValCT rhs) const {
+	bool opEquals()(const auto ref AValCT rhs) const pure {
 		final switch (type){
 			case Type.Literal:
 				return typeL == rhs.typeL && dataL == rhs.dataL;
@@ -95,15 +95,21 @@ public:
 		return ident;
 	}
 	bool opEquals()(auto const ref IdentU rhs) const pure {
-		return rhs.toString == toString;
+		if (ident != rhs.ident || params.length != rhs.params.length)
+			return false;
+		foreach (i, param; params){
+			if (param != rhs.params[i])
+				return false;
+		}
+		return true;
 	}
-	size_t toHash() const pure {
-		return *(cast(ulong*)toString.crc32Of.ptr);
+	size_t toHash() const {
+		return tuple(ident, params).toHash;
 	}
 }
 
 /// complete identifier
-public final class Ident{
+/*public final class Ident{
 public:
 	/// identifier
 	IdentU ident;
@@ -147,7 +153,7 @@ public:
 			ret[--len] = c.ident, c = c.prev;
 		return ret;
 	}
-}
+}*/
 ///
 unittest{
 	Ident id = new Ident("foo".IdentU, new Ident("main".IdentU));
@@ -157,7 +163,7 @@ unittest{
 /// a symbol
 public struct ASymbol{
 	/// Returns: identifier, `_` if anonymous
-	@property inout(Ident) ident() pure inout {
+	@property inout(IdentU[]) ident() pure inout {
 		final switch (type){
 			case Type.Struct:
 				return structS.ident;
@@ -701,7 +707,7 @@ public struct ADataType{
 		return ADataType;
 	}
 
-	bool opEquals(const ADataType rhs) const {
+	bool opEquals()(auto const ref ADataType rhs) const pure {
 		if (type != rhs.type)
 			return false;
 		final switch (type){
@@ -778,7 +784,7 @@ public struct ADT{
 /// Alis struct
 public struct AStruct{
 	/// identifier, `_` if anonymous
-	Ident ident;
+	IdentU[] ident;
 	/// structure
 	ADT dt;
 	/// Virtual Table, if any
@@ -802,7 +808,7 @@ public struct AStruct{
 /// Alis union
 public struct AUnion{
 	/// identifier, `_` if anonymous
-	Ident ident;
+	IdentU[] ident;
 	/// types of members
 	ADataType[] types;
 	/// member names
@@ -840,7 +846,7 @@ public struct AUnion{
 /// Alis Enum
 public struct AEnum{
 	/// identifier
-	Ident ident;
+	IdentU[] ident;
 	/// Data Type. This will be `struct{}` in case of empty emum
 	ADataType type;
 	/// members
@@ -861,7 +867,7 @@ public struct AEnum{
 /// Alis Enum Members
 public struct AEnumMember{
 	/// identifier
-	Ident ident;
+	IdentU[] ident;
 	/// value
 	ubyte[] val;
 	string toString() const pure {
@@ -872,7 +878,7 @@ public struct AEnumMember{
 /// Alis Enum Constant
 public struct AEnumConst{
 	/// identifier
-	Ident ident;
+	IdentU[] ident;
 	/// type
 	ADataType type;
 	/// value bytes
@@ -889,7 +895,7 @@ public struct AEnumConst{
 /// Alis Function Information
 public struct AFn{
 	/// identifier, `_` if anonymous
-	Ident ident;
+	IdentU[] ident;
 	/// return type
 	ADataType retT;
 	/// locals, including parameters
@@ -912,7 +918,7 @@ public struct AFn{
 /// Alis Variable
 public struct AVar{
 	/// identifier
-	Ident ident;
+	IdentU[] ident;
 	/// data type
 	ADataType type;
 	/// offset
@@ -931,7 +937,7 @@ public struct AVar{
 /// Alis Alias
 public struct AAlias{
 	/// identifier
-	Ident ident;
+	IdentU[] ident;
 	/// Visibility outside its parent module
 	Visibility vis;
 	/// TODO: store resolved expression
@@ -946,7 +952,7 @@ public struct AImport{
 	/// module being imported
 	string[] modIdent;
 	/// aliased name, if any
-	Ident ident;
+	IdentU[] ident;
 	/// Visibility outside its parent module
 	Visibility vis;
 
@@ -958,7 +964,7 @@ public struct AImport{
 /// Alis Template
 public struct ATemplate{
 	/// identifier
-	Ident ident;
+	IdentU[] ident;
 	/// Visibility outside its parent module
 	Visibility vis;
 	// TODO: what to store in ATemplate
