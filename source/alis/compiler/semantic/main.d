@@ -11,6 +11,7 @@ import alis.compiler.error,
 			 alis.compiler.lexer,
 			 alis.compiler.parser,
 			 alis.compiler.semantic,
+			 alis.compiler.semantic.common,
 			 alis.compiler.ast;
 
 import core.stdc.stdlib;
@@ -50,6 +51,6 @@ void doTheStuff(Module node){
 	import alis.compiler.semantic.symbols;
 	STState state;
 	STIter.iterate(node, state);
-	state.writeln;
-	(state.ctx).writeln;
+	STab!DefNode stab = state.st;
+	stab.writeln;
 }
