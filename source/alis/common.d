@@ -58,6 +58,18 @@ public struct AValCT{
 		assert(false);
 	}
 
+	size_t toHash() const {
+		final switch (type){
+			case Type.Literal:
+				return tuple(Type.Literal, dataL, typeL).toHash;
+			case Type.Symbol:
+				return tuple(Type.Symbol, symS).toHash;
+			case Type.Type:
+				return tuple(Type.Type, typeT).toHash;
+		}
+		assert(false);
+	}
+
 	/// constructor
 	this (ADataType type, ubyte[] data){
 		this.type = Type.Literal;
