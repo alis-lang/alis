@@ -9,9 +9,29 @@ import std.algorithm,
 			 std.range,
 			 std.json;
 
+debug import std.stdio;
+
+/// Symbol Tree Node
+private struct STNode(T){
+	T val;
+	STNode!T[IdentU] next;
+}
+
+/// Symbol Tree
+public alias STree(T) = STNode!T[IdentU];
+
+/// whether a path exists in STree
+public bool canFind(T)(auto const ref STree!T, IdentU[] path){
+	assert(false, "canFind on STree not implemented");
+}
+
 /// Symbol Table
 final class STab(T){
 private:
+	struct Node(E){
+		E val;
+		IdentU vis;
+	}
 	struct EndNode{
 		/// value
 		T val;
@@ -45,7 +65,7 @@ public:
 		IdentU _id;
 		EndNode[][IdentU][] _maps;
 
-		this(IdentU id, Ident ctx, STab!T st) pure {
+		this(IdentU id, IdentU[] ctx, STab!T st) pure {
 			this._id = id;
 			IdentU[] scopes = ctx.array;
 			this._head = scopes.length ? scopes[0] : IdentU.init;
@@ -86,12 +106,12 @@ public:
 
 	/// finds all candidates that match an IdentU, given a scope ctx
 	/// Returns: range of candidates
-	ResRange find(IdentU id, Ident ctx) pure {
+	ResRange find(IdentU id, IdentU[] ctx) pure {
 		return ResRange(id, ctx, this);
 	}
 
 	/// Returns: true if id can be found from ctx scope
-	bool canFind(IdentU id, Ident ctx) pure {
+	bool canFind(IdentU id, IdentU[] ctx) pure {
 		return !find(id, ctx).empty;
 	}
 
@@ -104,7 +124,7 @@ public:
 		_map[id] = [EndNode(val, vis)];
 	}
 	/// ditto
-	void valAdd(Ident id, T val, IdentU vis) pure {
+	void valAdd(IdentU[] id, T val, IdentU vis) pure {
 		STab!T st = this;
 		IdentU[] ids = id.array;
 		foreach (IdentU i; ids[0 .. $ - 1]){
@@ -122,7 +142,7 @@ public:
 		_next[id] = STNode(st, vis);
 	}
 	/// ditto
-	void stAdd(Ident id, STab!T stab, IdentU vis) pure {
+	void stAdd(IdentU[] id, STab!T stab, IdentU vis) pure {
 		STab!T st = this;
 		IdentU[] ids = id.array;
 		foreach (IdentU i; ids[0 .. $ - 1]){
@@ -135,13 +155,22 @@ public:
 		st.stAdd(ids[$ - 1], stab, vis);
 	}
 
+	/// Returns: count of end nodes with unique IdentU at this level
+	size_t endKeyCount() const pure {
+		return _map.length;
+	}
+
 	JSONValue toJson() const {
 		JSONValue ret;
 		foreach (IdentU key; _map.byKey){
 			ret[key.toString] = _map[key]
 				.map!((const EndNode n){
 						JSONValue obj;
-						obj["val"] = n.val.toString;
+						static if (__traits(compiles, n.val.toJson)){
+							obj["val"] = n.val.toJson;
+						} else {
+							obj["val"] = n.val.toString;
+						}
 						obj["vis"] = n.vis.toString;
 						return obj;
 						})
@@ -153,6 +182,7 @@ public:
 			JSONValue obj;
 			obj["val"] = n.st.toJson;
 			obj["vis"] = n.vis.toString;
+			continue;
 			if (s in ret)
 				ret[s] ~= obj;
 			else
@@ -176,7 +206,7 @@ private:
 
 public:
 	/// what is being resolved
-	Ident subject;
+	IdentU[] subject;
 	/// result from resolution
 	ASymbol sym;
 
