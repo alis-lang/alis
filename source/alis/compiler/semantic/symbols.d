@@ -7,6 +7,8 @@ import std.algorithm,
 			 std.range,
 			 std.traits;
 
+import utils.ds;
+
 debug import std.stdio;
 
 import alis.common,
@@ -21,12 +23,14 @@ package alias STIter = ASTIter!(ItFnsOf!STFns);
 
 /// Iteration State for SymIter
 package struct STState{
-	/// symbol table intermediate
-	DefNode[Ident] sti;
-	/// symbol table final
-	ASymbol[Ident] st;
+	/// module id
+	//IdentU modId;
+	/// symbol table
+	STab!DefNode st;
+	/// symbol table stack
+	STab!DefNode[] stStack;
 	/// current context identifier
-	Ident* ctx;
+	IdentU[] ctx;
 	/// errors
 	SmErr[] errs;
 }
@@ -34,57 +38,34 @@ package struct STState{
 /// symbol table builder functions
 private struct STFns{
 private static:
-	/// Returns: true if a symbol name exists
-	bool identExists(Ident i, ref STState state){
-		if (i.ident.toString == "_")
-			return false;
-		return i in state.sti || i in state.st;
-	}
-	/// extracts imports into symbol table
-	void importsExtract(R)(R range, ref STState state) if (
-			is (ForeachType!R : Import)){
-		foreach (Import imp; range){
-			// TODO: how to merge imported ST?
-			Ident id = Ident(imp.name, state.ctx);
-			AImport aImp = AImport(imp.moduleIdent, id);
-			if (identExists(id, state)){
-				state.errs ~= errIdentReuse(imp.pos, imp.name);
-				continue;
-			}
-			state.st[id] = ASymbol(aImp);
-			// TODO merge imported module's symbol table
-		}
-	}
-
 	@ItPre
 	void modIter(Module node, ref STState state){
-		state.ctx = new Ident(node.ident);
-		importsExtract(node.defs
-				.map!(d => cast(Import)(d.def))
-				.filter!(d => d !is null),
-				state);
+		state.ctx ~= node.ident.IdentU;
+		state.st = new STab!DefNode;
+		state.stStack = [state.st];
+		//state.modId = node.ident.IdentU;
 	}
 
 	@ItPre @ItPost{
-		void modImportIgnore(Import, ref STState){}
 		void varDefListIgnore(VarDefList, ref STState){}
 	}
 
 	@ItPre
 	bool defIter(DefNode node, ref STState state){
-		Ident id = Ident(node.name, state.ctx);
-		if (identExists(id, state)){
-			state.errs ~= errIdentReuse(node.pos, node.name);
-			return false;
-		}
-		state.sti[id] = node;
-		state.ctx = new Ident;
-		*(state.ctx) = id;
+		IdentU id = node.name.IdentU;
+		STab!DefNode pSt = state.st;
+		state.st = new STab!DefNode;
+		pSt.stAdd(id, state.st, state.ctx[$ - 1]);
+		pSt.valAdd(id, node, state.ctx[$ - 1]);
+		state.ctx ~= id;
+		state.stStack ~= state.st;
 		return true;
 	}
 
 	@ItPost
-	void defIterPost(DefNode, ref STState state){
-		state.ctx = state.ctx.prev;
+	void defIterPost(DefNode node, ref STState state){
+		state.ctx.length --;
+		state.stStack.length --;
+		state.st = state.stStack[$ - 1];
 	}
 }
