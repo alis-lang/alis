@@ -67,10 +67,9 @@ public:
 
 		this(IdentU id, IdentU[] ctx, STab!T st) pure {
 			this._id = id;
-			IdentU[] scopes = ctx.array;
-			this._head = scopes.length ? scopes[0] : IdentU.init;
+			this._head = ctx.length ? ctx[0] : IdentU.init;
 			_maps ~= st._map;
-			foreach (IdentU i; scopes){
+			foreach (IdentU i; ctx){
 				if (i !in st._next)
 					break;
 				STNode nextNode = st._next[i];
