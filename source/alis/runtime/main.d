@@ -53,147 +53,141 @@ version (vm){
 	static assert(float.sizeof == int.sizeof);
 
 	// math instructions
-	void addI1(ref Stack _state) {
+	void addI8(ref Stack _state) {
 		_state.push!ubyte(cast(ubyte)(_state.pop!ubyte + _state.pop!ubyte));
 	}
 
-	void addI2(ref Stack _state) {
+	void addI16(ref Stack _state) {
 		_state.push!ushort(cast(ushort)(_state.pop!ushort + _state.pop!ushort));
 	}
 
-	void addI4(ref Stack _state) {
+	void addI32(ref Stack _state) {
 		_state.push!int(_state.pop!int + _state.pop!int);
 	}
 
-	void addI8(ref Stack _state) {
+	void addI64(ref Stack _state) {
 		_state.push!long(_state.pop!long + _state.pop!long);
 	}
 
-	void subI1(ref Stack _state) {
+	void subI8(ref Stack _state) {
 		immutable ubyte a = _state.pop!ubyte;
 		immutable ubyte b = _state.pop!ubyte;
 		_state.push!ubyte(cast(ubyte)(a - b));
 	}
 
-	void subI2(ref Stack _state) {
+	void subI16(ref Stack _state) {
 		immutable ushort a = _state.pop!ushort;
 		immutable ushort b = _state.pop!ushort;
 		_state.push!ushort(cast(ushort)(a - b));
 	}
 
-
-	void subI4(ref Stack _state) {
+	void subI32(ref Stack _state) {
 		immutable int a = _state.pop!int;
 		_state.push!int(a - _state.pop!int);
 	}
 
-	void subI8(ref Stack _state) {
+	void subI64(ref Stack _state) {
 		immutable long a = _state.pop!long;
 		_state.push!long(a - _state.pop!long);
 	}
 
-
-	void mulI1(ref Stack _state) {
+	void mulI8(ref Stack _state) {
 		immutable ubyte a = _state.pop!ubyte;
 		immutable ubyte b = _state.pop!ubyte;
 		_state.push!ubyte(cast(ubyte)(a * b));
 	}
 
-	void mulI2(ref Stack _state) {
+	void mulI16(ref Stack _state) {
 		immutable ushort a = _state.pop!ushort;
 		immutable ushort b = _state.pop!ushort;
 		_state.push!ushort(cast(ushort)(a * b));
 	}
 
-	void mulI4(ref Stack _state) {
+	void mulI32(ref Stack _state) {
 		_state.push!int(_state.pop!int * _state.pop!int);
 	}
 
-	void mulI8(ref Stack _state) {
+	void mulI64(ref Stack _state) {
 		_state.push!long(_state.pop!long * _state.pop!long);
 	}
 
-
-	void divI1(ref Stack _state) {
+	void divI8(ref Stack _state) {
 		immutable ubyte a = _state.pop!ubyte;
 		_state.push!ubyte(a / _state.pop!ubyte);
 	}
 
-	void divI2(ref Stack _state) {
+	void divI16(ref Stack _state) {
 		immutable ushort a = _state.pop!ushort;
 		_state.push!ushort(a / _state.pop!ushort);
 	}
 
-	void divI4(ref Stack _state) {
+	void divI32(ref Stack _state) {
 		immutable int a = _state.pop!int;
 		_state.push!int(a / _state.pop!int);
 	}
 
-	void divI8(ref Stack _state) {
+	void divI64(ref Stack _state) {
 		immutable long a = _state.pop!long;
 		_state.push!long(a / _state.pop!long);
 	}
 
-
-	void modI1(ref Stack _state) {
+	void modI8(ref Stack _state) {
 		immutable ubyte a = _state.pop!ubyte;
 		_state.push!ubyte(a % _state.pop!ubyte);
 	}
 
-	void modI2(ref Stack _state) {
+	void modI16(ref Stack _state) {
 		immutable ushort a = _state.pop!ushort;
 		_state.push!ushort(a % _state.pop!ushort);
 	}
 
-	void modI4(ref Stack _state) {
+	void modI32(ref Stack _state) {
 		immutable int a = _state.pop!int;
 		_state.push!int(a % _state.pop!int);
 	}
 
-	void modI8(ref Stack _state) {
+	void modI64(ref Stack _state) {
 		immutable long a = _state.pop!long;
 		_state.push!long(a % _state.pop!long);
 	}
 
-
-	void addF4(ref Stack _state) {
+	void addF32(ref Stack _state) {
 		_state.push!float(_state.pop!float + _state.pop!float);
 	}
 
-	void addF8(ref Stack _state) {
+	void addF64(ref Stack _state) {
 		_state.push!double(_state.pop!double + _state.pop!double);
 	}
 
-	void subF4(ref Stack _state) {
+	void subF32(ref Stack _state) {
 		immutable float a = _state.pop!float;
 		_state.push!float(a - _state.pop!float);
 	}
 
-	void subF8(ref Stack _state) {
+	void subF64(ref Stack _state) {
 		immutable double a = _state.pop!double;
 		_state.push!double(a - _state.pop!double);
 	}
 
-	void mulF4(ref Stack _state) {
+	void mulF32(ref Stack _state) {
 		_state.push!float(_state.pop!float * _state.pop!float);
 	}
 
-	void mulF8(ref Stack _state) {
+	void mulF64(ref Stack _state) {
 		_state.push!double(_state.pop!double * _state.pop!double);
 	}
 
-	void divF4(ref Stack _state) {
+	void divF32(ref Stack _state) {
 		immutable float a = _state.pop!float;
 		_state.push!float(a / _state.pop!float);
 	}
 
-	void divF8(ref Stack _state) {
+	void divF64(ref Stack _state) {
 		immutable double a = _state.pop!double;
 		_state.push!double(a / _state.pop!double);
 	}
 
-
-	void cmpI1(ref Stack _state) {
+	void cmpI8(ref Stack _state) {
 		immutable ubyte a = _state.pop!ubyte;
 		immutable ubyte b = _state.pop!ubyte;
 		if (a == b) {
@@ -205,7 +199,7 @@ version (vm){
 		}
 	}
 
-	void cmpI2(ref Stack _state) {
+	void cmpI16(ref Stack _state) {
 		immutable ushort a = _state.pop!ushort;
 		immutable ushort b = _state.pop!ushort;
 		if (a == b) {
@@ -217,7 +211,7 @@ version (vm){
 		}
 	}
 
-	void cmpI4(ref Stack _state) {
+	void cmpI32(ref Stack _state) {
 		immutable int a = _state.pop!int;
 		immutable int b = _state.pop!int;
 		if (a == b) {
@@ -229,7 +223,7 @@ version (vm){
 		}
 	}
 
-	void cmpI8(ref Stack _state) {
+	void cmpI64(ref Stack _state) {
 		immutable long a = _state.pop!long;
 		immutable long b = _state.pop!long;
 		if (a == b) {
@@ -241,7 +235,7 @@ version (vm){
 		}
 	}
 
-	void cmpF4(ref Stack _state) {
+	void cmpF32(ref Stack _state) {
 		immutable float a = _state.pop!float;
 		immutable float b = _state.pop!float;
 		if (a == b) {
@@ -253,7 +247,7 @@ version (vm){
 		}
 	}
 
-	void cmpF8(ref Stack _state) {
+	void cmpF64(ref Stack _state) {
 		immutable double a = _state.pop!double;
 		immutable double b = _state.pop!double;
 		if (a == b) {
@@ -267,161 +261,157 @@ version (vm){
 
 	// boolean
 
-	void notBI1(ref Stack _state) {
+	void notBI8(ref Stack _state) {
 		_state.push!int(_state.pop!ubyte == 0);
 	}
 
-	void notBI2(ref Stack _state) {
+	void notBI16(ref Stack _state) {
 		_state.push!int(_state.pop!ushort == 0);
 	}
 
-	void notBI4(ref Stack _state) {
+	void notBI32(ref Stack _state) {
 		_state.push!int(_state.pop!int == 0);
 	}
 
-	void notBI8(ref Stack _state) {
+	void notBI64(ref Stack _state) {
 		_state.push!int(_state.pop!long == 0);
 	}
 
-
-	void andBI1(ref Stack _state) {
+	void andBI8(ref Stack _state) {
 		ubyte a = _state.pop!ubyte;
 		ubyte b = _state.pop!ubyte;
 		_state.push!int((a != 0 && b != 0) ? 1 : 0);
 	}
 
-	void andBI2(ref Stack _state) {
+	void andBI16(ref Stack _state) {
 		ushort a = _state.pop!ushort;
 		ushort b = _state.pop!ushort;
 		_state.push!int((a != 0 && b != 0) ? 1 : 0);
 	}
 
-	void andBI4(ref Stack _state) {
+	void andBI32(ref Stack _state) {
 		int a = _state.pop!int;
 		int b = _state.pop!int;
 		_state.push!int((a != 0 && b != 0) ? 1 : 0);
 	}
 
-	void andBI8(ref Stack _state) {
+	void andBI64(ref Stack _state) {
 		long a = _state.pop!long;
 		long b = _state.pop!long;
 		_state.push!int((a != 0 && b != 0) ? 1 : 0);
 	}
 
-	void orBI1(ref Stack _state) {
+	void orBI8(ref Stack _state) {
 		ubyte a = _state.pop!ubyte;
 		ubyte b = _state.pop!ubyte;
 		_state.push!int((a != 0 || b != 0) ? 1 : 0);
 	}
 
-	void orBI2(ref Stack _state) {
+	void orBI16(ref Stack _state) {
 		ushort a = _state.pop!ushort;
 		ushort b = _state.pop!ushort;
 		_state.push!int((a != 0 || b != 0) ? 1 : 0);
 	}
 
-	void orBI4(ref Stack _state) {
+	void orBI32(ref Stack _state) {
 		int a = _state.pop!int;
 		int b = _state.pop!int;
 		_state.push!int((a != 0 || b != 0) ? 1 : 0);
 	}
 
-	void orBI8(ref Stack _state) {
+	void orBI64(ref Stack _state) {
 		long a = _state.pop!long;
 		long b = _state.pop!long;
 		_state.push!int((a != 0 || b != 0) ? 1 : 0);
 	}
 
 	// bitwise
-
-	void notI1(ref Stack _state) {
+	void notI8(ref Stack _state) {
 		_state.push!ubyte(cast(ubyte)(~_state.pop!ubyte));
 	}
 
-	void notI2(ref Stack _state) {
+	void notI16(ref Stack _state) {
 		_state.push!ushort(cast(ushort)(~_state.pop!ushort));
 	}
 
-
-	void notI4(ref Stack _state) {
+	void notI32(ref Stack _state) {
 		_state.push!int(~_state.pop!int);
 	}
 
-	void notI8(ref Stack _state) {
+	void notI64(ref Stack _state) {
 		_state.push!long(~_state.pop!long);
 	}
 
-	void andI1(ref Stack _state) {
+	void andI8(ref Stack _state) {
 		ubyte a = _state.pop!ubyte;
 		ubyte b = _state.pop!ubyte;
 		_state.push!ubyte(a & b);
 	}
 
-	void andI2(ref Stack _state) {
+	void andI16(ref Stack _state) {
 		ushort a = _state.pop!ushort;
 		ushort b = _state.pop!ushort;
 		_state.push!ushort(a & b);
 	}
 
-	void andI4(ref Stack _state) {
+	void andI32(ref Stack _state) {
 		int a = _state.pop!int;
 		int b = _state.pop!int;
 		_state.push!int(a & b);
 	}
 
-	void andI8(ref Stack _state) {
+	void andI64(ref Stack _state) {
 		long a = _state.pop!long;
 		long b = _state.pop!long;
 		_state.push!long(a & b);
 	}
 
-	void orI1(ref Stack _state) {
+	void orI8(ref Stack _state) {
 		ubyte a = _state.pop!ubyte;
 		ubyte b = _state.pop!ubyte;
 		_state.push!ubyte(a | b);
 	}
 
-	void orI2(ref Stack _state) {
+	void orI16(ref Stack _state) {
 		ushort a = _state.pop!ushort;
 		ushort b = _state.pop!ushort;
 		_state.push!ushort(a | b);
 	}
 
-	void orI4(ref Stack _state) {
+	void orI32(ref Stack _state) {
 		int a = _state.pop!int;
 		int b = _state.pop!int;
 		_state.push!int(a | b);
 	}
 
-	void orI8(ref Stack _state) {
+	void orI64(ref Stack _state) {
 		long a = _state.pop!long;
 		long b = _state.pop!long;
 		_state.push!long(a | b);
 	}
 
 	// stack manipulation
-
-	void pshI1(ref Stack _state, ubyte val) {
+	void pshI8(ref Stack _state, ubyte val) {
 		_state.push!ubyte(cast(ubyte)val);
 	}
 
-	void pshI2(ref Stack _state, ushort val) {
+	void pshI16(ref Stack _state, ushort val) {
 		_state.push!ushort(cast(ushort)val);
 	}
 
-	void pshI4(ref Stack _state, int val) {
+	void pshI32(ref Stack _state, int val) {
 		_state.push!int(cast(int)val);
 	}
 
-	void pshI8(ref Stack _state, long val) {
+	void pshI64(ref Stack _state, long val) {
 		_state.push!long(cast(long)val);
 	}
 
-	void pshF4(ref Stack _state, float val) {
+	void pshF32(ref Stack _state, float val) {
 		_state.push!float(val);
 	}
 
-	void pshF8(ref Stack _state, double val) {
+	void pshF64(ref Stack _state, double val) {
 		_state.push!double(val);
 	}
 
@@ -461,27 +451,27 @@ version (vm){
 		_state.push!int(_state.base + offset);
 	}
 
-	void putI1(ref Stack _state, int offset) {
+	void putI8(ref Stack _state, int offset) {
 		*cast(ubyte*)(_state.stack.ptr + _state.base + offset) = _state.pop!ubyte;
 	}
 
-	void putI2(ref Stack _state, int offset) {
+	void putI16(ref Stack _state, int offset) {
 		*cast(ushort*)(_state.stack.ptr + _state.base + offset) = _state.pop!ushort;
 	}
 
-	void putI4(ref Stack _state, int offset) {
+	void putI32(ref Stack _state, int offset) {
 		*cast(int*)(_state.stack.ptr + _state.base + offset) = _state.pop!int;
 	}
 
-	void putI8(ref Stack _state, int offset) {
+	void putI64(ref Stack _state, int offset) {
 		*cast(long*)(_state.stack.ptr + _state.base + offset) = _state.pop!long;
 	}
 
-	void putF4(ref Stack _state, int offset) {
+	void putF32(ref Stack _state, int offset) {
 		*cast(float*)(_state.stack.ptr + _state.base + offset) = _state.pop!float;
 	}
 
-	void putF8(ref Stack _state, int offset) {
+	void putF64(ref Stack _state, int offset) {
 		*cast(double*)(_state.stack.ptr + _state.base + offset) = _state.pop!double;
 	}
 
@@ -490,32 +480,32 @@ version (vm){
 		*cast(int*)(_state.stack.ptr + addr) = val;
 	}
 
-	void incAI1(ref Stack _state, int offset) {
+	void incAI8(ref Stack _state, int offset) {
 		ubyte* ptr = cast(ubyte*)(_state.stack.ptr + _state.base + offset);
 		*ptr += 1;
 	}
 
-	void incAI2(ref Stack _state, int offset) {
+	void incAI16(ref Stack _state, int offset) {
 		ushort* ptr = cast(ushort*)(_state.stack.ptr + _state.base + offset);
 		*ptr += 1;
 	}
 
-	void incAI4(ref Stack _state, int offset) {
+	void incAI32(ref Stack _state, int offset) {
 		int* ptr = cast(int*)(_state.stack.ptr + _state.base + offset);
 		*ptr += 1;
 	}
 
-	void incAI8(ref Stack _state, int offset) {
+	void incAI64(ref Stack _state, int offset) {
 		long* ptr = cast(long*)(_state.stack.ptr + _state.base + offset);
 		*ptr += 1;
 	}
 
-	void incAF4(ref Stack _state, int offset) {
+	void incAF32(ref Stack _state, int offset) {
 		float* ptr = cast(float*)(_state.stack.ptr + _state.base + offset);
 		*ptr += 1.0f;
 	}
 
-	void incAF8(ref Stack _state, int offset) {
+	void incAF64(ref Stack _state, int offset) {
 		double* ptr = cast(double*)(_state.stack.ptr + _state.base + offset);
 		*ptr += 1.0;
 	}
@@ -553,63 +543,62 @@ version (vm){
 		writefln!"base: %d\tseek: %d"(_state.base, _state.seek);
 	}
 
-	void printI1(ref Stack _state) {
+	void printI8(ref Stack _state) {
 		write(_state.pop!ubyte);
 	}
 
-	void printI2(ref Stack _state) {
+	void printI16(ref Stack _state) {
 		write(_state.pop!ushort);
 	}
 
-	void printI4(ref Stack _state) {
+	void printI32(ref Stack _state) {
 		write(_state.pop!int);
 	}
 
-	void printI8(ref Stack _state) {
+	void printI64(ref Stack _state) {
 		write(_state.pop!long);
 	}
 
-	void printF4(ref Stack _state) {
+	void printF32(ref Stack _state) {
 		write(_state.pop!float);
 	}
 
-	void printF8(ref Stack _state) {
+	void printF64(ref Stack _state) {
 		write(_state.pop!double);
 	}
-
 
 	void printS(string s){
 		write(s);
 	}
 
 	alias InstructionSet = AliasSeq!(
-			addI1, addI2, addI4, addI8,
-			subI1, subI2, subI4, subI8,
-			mulI1, mulI2, mulI4, mulI8,
-			divI1, divI2, divI4, divI8,
-			modI1, modI2, modI4, modI8,
-			addF4, addF8,
-			subF4, subF8,
-			mulF4, mulF8,
-			divF4, divF8,
-			cmpI1, cmpI2, cmpI4, cmpI8, cmpF4, cmpF8, 
-			notBI1, notBI2, notBI4, notBI8,
-			andBI1, andBI2, andBI4, andBI8,
-			orBI1, orBI2, orBI4, orBI8,
-			notI1, notI2, notI4, notI8,
-			andI1, andI2, andI4, andI8,
-			orI1, orI2, orI4, orI8,
-			pshI1, pshI2, pshI4, pshI8,
-			pshF4, pshF8,
+			addI8, addI16, addI32, addI64,
+			subI8, subI16, subI32, subI64,
+			mulI8, mulI16, mulI32, mulI64,
+			divI8, divI16, divI32, divI64,
+			modI8, modI16, modI32, modI64,
+			addF32, addF64,
+			subF32, subF64,
+			mulF32, mulF64,
+			divF32, divF64,
+			cmpI8, cmpI16, cmpI32, cmpI64, cmpF32, cmpF64, 
+			notBI8, notBI16, notBI32, notBI64,
+			andBI8, andBI16, andBI32, andBI64,
+			orBI8, orBI16, orBI32, orBI64,
+			notI8, notI16, notI32, notI64,
+			andI8, andI16, andI32, andI64,
+			orI8, orI16, orI32, orI64,
+			pshI8, pshI16, pshI32, pshI64,
+			pshF32, pshF64,
 			popN,
 			seek,
 			off, pshO, popO, off0, getR, putR, 
-			incAI1, incAI2, incAI4, incAI8, incAF4, incAF8,
+			incAI8, incAI16, incAI32, incAI64, incAF32, incAF64,
 			incR,
 			get,
-			putI1, putI2, putI4, putI8, putF4, putF8, 
+			putI8, putI16, putI32, putI64, putF32, putF64, 
 			jmp, jmpC, call, ret, dbg, 
-			printI1, printI2, printI4, printI8, printF4, printF8,
+			printI8, printI16, printI32, printI64, printF32, printF64,
 			printS
 			);
 

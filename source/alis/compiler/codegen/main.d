@@ -215,7 +215,7 @@ class BytecodeGenerator {
 		// 	// Convert the byte array to the appropriate FloatX type
 
 		// 	size_t size = literalExpr.type.x;
-		// 	instruction = "\tpshF" ~ to!string(size/8);
+		// 	instruction = "\tpshF" ~ to!string(size);
 			
 		// 	if (size == 4) {
 		// 		float value = as!float(literalExpr.value);
@@ -242,13 +242,13 @@ class BytecodeGenerator {
 	/// Params:
 	///    blockExpr = The block expression to generate bytecode for.
 	private void generateBlockExprBytecode(RBlockExpr blockExpr){
-		size_t returnAddressSize = blockExpr.type.sizeOf/8;
+		size_t returnAddressSize = blockExpr.type.sizeOf;
 		string instruction = returnAddressSize.format!"\tpshN %d";
 		addInstruction(instruction); // Instruction for Return Address 
 		RBlock block = blockExpr.block;
 
 		foreach (localT ; block.localsT){
-			instruction = (localT.sizeOf/8).format!"\tpshN %d";
+			instruction = (localT.sizeOf).format!"\tpshN %d";
 			addInstruction(instruction); //Instruction for Parameters and Local Vars
 		}
 
@@ -272,17 +272,16 @@ class BytecodeGenerator {
 			addInstruction("intrinsic_" ~ name ~ ":", []);
 
 			// Extract the number X from cmpIX
-			string numStr = name[4 .. $]; // Get the number after "cmpI"
+			string numStr = name[4 .. $];
 			int X;
 			try {
-				X = numStr.to!int/8; 
+				X = numStr.to!int;
 			} catch (ConvException) {
 				throw new FormatException("Invalid intrinsic name: " ~ name);
 			}
 
 			assert(intrinsicCallExpr.params.length == 2, name ~ " expects 2 parameters.");
-			// Push space return address
-			addInstruction("\tpshN", [X.to!string]);
+			addInstruction("\tpshN", [(X).to!string]);
 
 			RExpr leftOperand = intrinsicCallExpr.params[0]; 
 			RExpr rightOperand = intrinsicCallExpr.params[1];
@@ -290,18 +289,16 @@ class BytecodeGenerator {
 
 			if (auto lit = cast(RLiteralExpr) leftOperand) {
 				generateLiteralBytecode(lit);
-				offsetLeft = lit.type.sizeOf/8 * size_t(1);
+				offsetLeft = lit.type.sizeOf * size_t(1);
 			} else {
-				// TODO: generate identifier bytecode
-				offsetLeft = 0; // TODO: Calculate Offset
+				offsetLeft = 0;
 			}
 
 			if (auto lit = cast(RLiteralExpr) rightOperand) {
 				generateLiteralBytecode(lit);
-				offsetRight = lit.type.sizeOf/8 * size_t(2);
+				offsetRight = lit.type.sizeOf * size_t(2);
 			} else {
-				// TODO: generate identifier bytecode
-				offsetRight = 0; // TODO: Calculate Offset
+				offsetRight = 0;
 			}
 
 			addInstruction("\tgetR", [offsetLeft.to!string]);
@@ -310,44 +307,36 @@ class BytecodeGenerator {
 			addInstruction("\tret");
 		} 
 		else if (name.startsWith("isI")) {
-
-			// Extract the number X from isIX
-			string numStr = name[3 .. $]; // Get the number after "isI"
+			string numStr = name[3 .. $];
 			int X;
 			try {
-				X = numStr.to!int/8; 
+				X = numStr.to!int;
 			} catch (ConvException) {
 				throw new FormatException("Invalid intrinsic name: " ~ name);
 			}
 			
 			assert(intrinsicCallExpr.params.length == 2, name ~ " expects 2 parameters.");
-			addInstruction("\tjmp", ["@intrinsic_isI" ~ ((X*8).to!string)]);
+			addInstruction("\tjmp", ["@intrinsic_isI" ~ (X.to!string)]);
 
-			// Left Param will be $cmp. Its output will be on top of the stack
 			RIntrinsicCallExpr cmpIntrinsic = cast(RIntrinsicCallExpr)intrinsicCallExpr.params[0];
 			generateIntrinsicCallExprBytecode(cmpIntrinsic);
 				
-			// Create return address space. Then Jump to $cmp
-			//addInstruction("\tjmp", ["@intrinsic_isI" ~ ((X*8).to!string)]); 
-			addInstruction(intrinsicLabel ~ ":");  //  Generate $cmp bytecode first. Then $isI.
-			addInstruction("\tpshN", [X.to!string]); // Push space return address
-			addInstruction("\tjmp", ["@intrinsic_cmp" ~ ((X*8).to!string)]);
+			addInstruction(intrinsicLabel ~ ":");
+			addInstruction("\tpshN", [(X).to!string]);
+			addInstruction("\tjmp", ["@intrinsic_cmp" ~ (X.to!string)]);
 
-			// Right param will be a literal expression
 			auto expectedValue = cast(RLiteralExpr)intrinsicCallExpr.params[1];
 			generateLiteralBytecode(expectedValue);
 
 			RExpr cmpLeftOperand = cmpIntrinsic.params[0];
 			size_t offsetCmp, offsetVal;
-			// cmpLeftOperand can be an identifier or a LiteralExpr
 			if (auto lit = cast(RLiteralExpr) cmpLeftOperand) {
-				offsetCmp = lit.type.sizeOf/8 * size_t(1); 
+				offsetCmp = lit.type.sizeOf * size_t(1); 
 			} else {
-				// TODO: generate identifier bytecode
 				offsetCmp = 0; 
 			}
 
-			offsetVal = expectedValue.type.sizeOf/8 * size_t(2);
+			offsetVal = expectedValue.type.sizeOf * size_t(2);
 
 			addInstruction("\tgetR", [offsetCmp.to!string]);
 			addInstruction("\tgetR", [offsetVal.to!string]);
@@ -355,11 +344,10 @@ class BytecodeGenerator {
 			addInstruction("\tret");
 		} 
 		else if (name.startsWith("incI")) {
-			// Extract the number X from incIX
-			string numStr = name[4 .. $]; // Get the number after "incI"
+			string numStr = name[4 .. $];
 			int X;
 			try {
-				X = numStr.to!int/8;
+				X = numStr.to!int;
 			} catch (ConvException) {
 				throw new FormatException("Invalid intrinsic name: " ~ name);
 			}
@@ -369,10 +357,10 @@ class BytecodeGenerator {
 			addInstruction(intrinsicLabel ~ ":", []);
 
 			auto operand = cast(RLiteralExpr)intrinsicCallExpr.params[0];
-			size_t offset = operand.type.sizeOf/8 * size_t(1);
+			size_t offset = operand.type.sizeOf * size_t(1);
 
 			addInstruction("\tgetR", [offset.to!string]);
-			addInstruction("\tpshN", [X.to!string]);
+			addInstruction("\tpshN", [(X).to!string]);
 			addInstruction("\taddI" ~ X.to!string);
 			addInstruction("\tput", [offset.to!string]);
 		} 
@@ -380,7 +368,7 @@ class BytecodeGenerator {
 			assert(intrinsicCallExpr.params.length == 1, "writeln expects 1 parameter.");
 
 			auto argument = cast(RLiteralExpr)intrinsicCallExpr.params[0];
-			size_t offset = argument.type.sizeOf/8 * size_t(1);
+			size_t offset = argument.type.sizeOf * size_t(1);
 
 			addInstruction("\tgetR", [offset.to!string]);
 			addInstruction("writeS");
@@ -474,27 +462,27 @@ unittest{
 
 	// Integer literal
 	auto intLiteral = new RLiteralExpr;
-	intLiteral.type = ADataType.ofInt(4);
+	intLiteral.type = ADataType.ofInt(32);
 	intLiteral.value = asBytes!int(1);
 
 	// Float literal
 	auto floatLiteral = new RLiteralExpr;
-	floatLiteral.type = ADataType.ofFloat(4);
+	floatLiteral.type = ADataType.ofFloat(32);
 	floatLiteral.value = asBytes!float(1.0f);
 
 	// Double literal
 	auto doubleLiteral = new RLiteralExpr;
-	doubleLiteral.type = ADataType.ofInt(8);
+	doubleLiteral.type = ADataType.ofInt(64);
 	doubleLiteral.value = asBytes!double(3.14159);
 
 	// Short literal
 	auto shortLiteral = new RLiteralExpr;
-	shortLiteral.type = ADataType.ofInt(2);
+	shortLiteral.type = ADataType.ofInt(16);
 	shortLiteral.value = asBytes!short(42);
 
 	// Long literal
 	auto longLiteral = new RLiteralExpr;
-	longLiteral.type = ADataType.ofInt(8);
+	longLiteral.type = ADataType.ofInt(64);
 	longLiteral.value = asBytes!long(123456789);
 
 	// Print converted values
@@ -549,25 +537,25 @@ unittest {
 
 	// Test for 4-byte int literal
 	auto intLiteral = new RLiteralExpr;
-	intLiteral.type = ADataType.ofInt(4);
+	intLiteral.type = ADataType.ofInt(32);
 	intLiteral.value = asBytes!int(42);
 	generator.generateLiteralBytecode(intLiteral);
 
 	// Test for 8-byte long literal
 	auto longLiteral = new RLiteralExpr;
-	longLiteral.type = ADataType.ofInt(8);
+	longLiteral.type = ADataType.ofInt(64);
 	longLiteral.value = asBytes!long(123456789L);	
 	generator.generateLiteralBytecode(longLiteral);
 
 	// Test for 32-bit float literal
 	auto floatLiteral = new RLiteralExpr;
-	floatLiteral.type = ADataType.ofFloat(4);
+	floatLiteral.type = ADataType.ofFloat(32);
 	floatLiteral.value = asBytes!float(3.14f);	
 	generator.generateLiteralBytecode(floatLiteral);
 
-	// // Test for 64-bit double literal
+	// Test for 64-bit double literal
 	auto doubleLiteral = new RLiteralExpr;
-	doubleLiteral.type = ADataType.ofInt(8);
+	doubleLiteral.type = ADataType.ofInt(64);
 	doubleLiteral.value = asBytes!double(2.717);	
 	generator.generateLiteralBytecode(doubleLiteral);
 
