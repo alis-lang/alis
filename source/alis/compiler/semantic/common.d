@@ -21,7 +21,7 @@ private struct STNode(T){
 public alias STree(T) = STNode!T[IdentU];
 
 /// whether a path exists in STree
-public bool canFind(T)(auto const ref STree!T, IdentU[] path){
+public bool canFind(T)(auto ref const STree!T, IdentU[]){
 	assert(false, "canFind on STree not implemented");
 }
 
