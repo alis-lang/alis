@@ -9,12 +9,8 @@ import meta,
 import std.meta,
 			 std.traits;
 
-/// UDA for tagging as pre-order iteration
-package enum ItPre;
-/// UDA for tagging as post-order iteration
-package enum ItPost;
-/// UDA for tagging as iteration terminator
-package enum ItTerm;
+/// UDA for tagging as iterator function
+package enum ItFn;
 
 /// Sequence of Iterator Functions in a container (module etc)
 /// Template Params:
@@ -31,7 +27,7 @@ package template ItFnsOf(alias M){
 /// Whether something is a ItFn, for state type `S`
 template IsItFn(alias F){
 	static if (isCallable!F &&
-			(hasUDA!(F, ItPre) || hasUDA!(F, ItPost)) &&
+			(hasUDA!(F, ItFn)) &&
 			Parameters!F.length == 2 &&
 			is (Parameters!F[0] : ASTNode) &&
 			is (Parameters!F[1] == struct)){
@@ -93,14 +89,13 @@ private template FieldTypesRel(N) if (is (N : ASTNode)){
 /// `F...` - Iterator Functions
 package template ASTIter(N...) if (allSatisfy!(IsASTNode, N)){
 	struct ASTIter(Fns...) if (allSatisfy!(IsItFn, Fns)){
-		/// types being handles
+		/// types being handled
 		private alias RelT = NoDuplicates!(FirstParamsOf!Fns);
 		/// least derived children, where children are only relevant ones
 		alias LDC = LeastDerivedChildren!RelT;
 		/// least derived children
 		alias LDC_all = LeastDerivedChildren!N;
 
-		/// iterates over array
 		pragma(inline, true)
 		private static void _arrayHandle(N, S)(N nodes, auto ref S state){
 			static if (isArray!N){
@@ -108,11 +103,10 @@ package template ASTIter(N...) if (allSatisfy!(IsASTNode, N)){
 					_arrayHandle(n, state);
 				}
 			} else static if (!isArray!N){
-				return iterate(nodes, state);
+				return exec(nodes, state);
 			}
 		}
 
-		/// Descends down on node
 		pragma(inline, true)
 		private static void _descend(N, S)(N node, auto ref S state){
 			static foreach (C; LDC_all!N){
@@ -125,8 +119,14 @@ package template ASTIter(N...) if (allSatisfy!(IsASTNode, N)){
 			}
 		}
 
-		/// Default iterator for any non-array type `N` with state of type `S`
-		public static void iterate(N, S)(N node, auto ref S state){
+		/// calls exec on data members of a node
+		public static void descend(N, S)(N node, auto ref S state){
+			_descend(node, state);
+		}
+
+		/// executes appropriate iterator function
+		/// if none exists, `descend` is called
+		public static void exec(N, S)(N node, auto ref S state){
 			if (node is null)
 				return;
 			static if (RelT.length == 0){
@@ -134,25 +134,13 @@ package template ASTIter(N...) if (allSatisfy!(IsASTNode, N)){
 			}
 			static foreach (C; LDC!N){
 				if (auto sub = cast(C)node){
-					return iterate(sub, state);
+					return exec(sub, state);
 				}
 			}
 
-			alias Pre = ItFnsFor!(N, Filter!(HasAnyUDA!ItPre, Fns));
-			alias Post = ItFnsFor!(N, Filter!(HasAnyUDA!ItPost, Fns));
-			static if (Pre.length || Post.length){
-				static if (Pre.length){
-					static if (is (ReturnType!(Pre[0]) : bool)){
-						if (!Pre[0](node, state))
-							return;
-					} else {
-						Pre[0](node, state);
-					}
-				}
-				static if (Pre.length == 0 || !hasUDA!(Pre[0], ItTerm))
-					_descend(node, state);
-				static if (Post.length)
-					Post[0](node, state);
+			alias F = ItFnsFor!(N, Fns);
+			static if (F.length){
+				F[0](node, state);
 				return;
 			}
 			return _descend(node, state);
