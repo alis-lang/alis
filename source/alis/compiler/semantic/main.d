@@ -49,8 +49,6 @@ void main(){
 void doTheStuff(Module node){
 	node.ident = "alis-main";
 	import alis.compiler.semantic.symbols;
-	STState state;
-	STIter.iterate(node, state);
-	STab!DefNode stab = state.st;
+	STab!DefNode stab = sTabBuild(node);
 	stab.writeln;
 }
