@@ -5,7 +5,8 @@ module alis.compiler.semantic.symbols;
 
 import std.algorithm,
 			 std.range,
-			 std.traits;
+			 std.traits,
+			 std.meta;
 
 import utils.ds;
 
@@ -18,11 +19,18 @@ import alis.common,
 			 alis.compiler.ast,
 			 alis.compiler.ast.iter;
 
-/// symbol table builder iterator
-package alias STIter = ASTIter!(ItFnsOf!STFns);
+import meta;
+
+/// Builds symbol table
+/// Returns: symbol table
+package STab!DefNode sTabBuild(Module mod){
+	STab!DefNode ret = new STab!DefNode;
+
+	return ret;
+}
 
 /// Iteration State for SymIter
-package struct STState{
+private struct STState{
 	/// module id
 	IdentU modId;
 	/// visibility for next def node
@@ -37,55 +45,36 @@ package struct STState{
 	SmErr[] errs;
 }
 
-/// symbol table builder functions
-private struct STFns{
-static:
-	@ItPre
-	void modIter(Module node, ref STState state){
-		state.ctx ~= node.ident.IdentU;
-		state.st = new STab!DefNode;
-		state.stStack = [state.st];
-		state.modId = node.ident.IdentU;
-	}
+/// symbol table builder iterator
+private alias It0 = ItL!(mixin(__MODULE__), 0);
 
-	@ItPre @ItPost{
-		void varDefListIgnore(VarDefList, ref STState){}
-	}
+@ITL(0) @ItFn
+void modIter(Module node, ref STState state){
+	state.ctx ~= node.ident.IdentU;
+	state.st = new STab!DefNode;
+	state.stStack = [state.st];
+	state.modId = node.ident.IdentU;
+	It0.descend(node, state);
+}
 
-	@ItPre
-	bool defIter(DefNode node, ref STState state){
-		IdentU id = node.name.IdentU;
-		STab!DefNode pSt = state.st;
-		state.st = new STab!DefNode;
-		IdentU visIdent = state.visStack[$ - 1] == Visibility.Pub
-				? state.modId : state.ctx[$ - 1];
-		pSt.stAdd(id, state.st, visIdent);
-		pSt.valAdd(id, node, visIdent);
-		state.ctx ~= id;
-		state.stStack ~= state.st;
-		return true;
-	}
+@ITL(0) @ItFn
+void varDefListIter(VarDefList varDefList, ref STState state){
+	It0.descend(varDefList, state);
+}
 
-	@ItPre globDefPre(GlobDef def, ref STState state){
-		state.visStack ~= def.visibility;
-	}
+@ITL(0) @ItFn
+void defIter(DefNode node, ref STState state){
+	IdentU id = node.name.IdentU;
+	state.st.valAdd(id, node,
+			state.visStack[$ - 1] != Visibility.Default
+			? IdentU.init
+			: state.modId);
+	It0.descend(node, state);
+}
 
-	@ItPost globDefPost(GlobDef, ref STState state){
-		state.visStack.length --;
-	}
-
-	@ItPre defFn(FnDef fn, ref STState state){
-		STab!DefNode pSt = state.st;
-		IdentU visIdent = state.visStack[$ - 1] == Visibility.Pub
-				? state.modId : state.ctx[$ - 1];
-		state.st = new STab!DefNode;
-		pSt.stAdd(fn.name.IdentU, state.st, visIdent);
-	}
-
-	@ItPost
-	void defIterPost(DefNode, ref STState state){
-		state.ctx.length --;
-		state.stStack.length --;
-		state.st = state.stStack[$ - 1];
-	}
+@ITL(0) @ItFn
+void globDefIter(GlobDef node, ref STState state){
+	state.visStack ~= node.visibility;
+	It0.descend(node, state);
+	state.visStack.length --;
 }
