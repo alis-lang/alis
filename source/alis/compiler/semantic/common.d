@@ -26,6 +26,7 @@ public struct ITL{
 
 /// AST Iterator, using ItFns from module `M`, that are tagged with `ITL(L)`
 public template ItL(alias M, size_t L){
+	// yes, I know Fns not used. go ahead, remove it, I dare you.
 	alias Fns = AliasSeq!();
 	static foreach (F; ItFnsOf!M){
 		static if (hasUDA!(F, ITL(L))){
