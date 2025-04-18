@@ -3,13 +3,37 @@ Semantic Analysis common stuff
 +/
 module alis.compiler.semantic.common;
 
-import alis.common;
+import alis.common,
+			 alis.compiler.ast,
+			 meta;
 
 import std.algorithm,
 			 std.range,
-			 std.json;
+			 std.json,
+			 std.meta,
+			 std.traits;
 
 debug import std.stdio;
+
+/// Iterator Function Level
+public struct ITL{
+	size_t level;
+	@disable this();
+	this(size_t level){
+		this.level = level;
+	}
+}
+
+/// AST Iterator, using ItFns from module `M`, that are tagged with `ITL(L)`
+public template ItL(alias M, size_t L){
+	alias Fns = AliasSeq!();
+	static foreach (F; ItFnsOf!M){
+		static if (hasUDA!(F, ITL(L))){
+			Fns = AliasSeq!(Fns, F);
+		}
+	}
+	alias ItL = ASTIter!(Filter!(HasAnyUDA!(ITL(L)), ItFnsOf!M));
+}
 
 /// Symbol Tree Node
 private struct STNode(T){
@@ -27,7 +51,7 @@ public bool canFind(T)(auto ref const STree!T, IdentU[]){
 
 /// Symbol Table
 final class STab(T){
-private:
+public:
 	struct Node(E){
 		E val;
 		IdentU vis;
@@ -54,10 +78,9 @@ private:
 	}
 
 	/// the symbol table
-	EndNode[][IdentU] _map;
+	EndNode[][IdentU] map;
 	/// sub-tables
-	STNode[IdentU] _next;
-public:
+	STNode[IdentU] next;
 
 	static struct ResRange{
 	private:
@@ -68,14 +91,14 @@ public:
 		this(IdentU id, IdentU[] ctx, STab!T st) pure {
 			this._id = id;
 			this._head = ctx.length ? ctx[0] : IdentU.init;
-			_maps ~= st._map;
+			_maps ~= st.map;
 			foreach (IdentU i; ctx){
-				if (i !in st._next)
+				if (i !in st.next)
 					break;
-				STNode nextNode = st._next[i];
+				STNode nextNode = st.next[i];
 				if (nextNode.vis != IdentU.init && nextNode.vis != _head)
 					break;
-				_maps ~= nextNode.st._map;
+				_maps ~= nextNode.st.map;
 				st = nextNode.st;
 			}
 			_maps ~= [];
@@ -116,18 +139,18 @@ public:
 
 	/// Add a new value.
 	void valAdd(IdentU id, T val, IdentU vis) pure {
-		if (auto ptr = id in _map){
+		if (auto ptr = id in map){
 			*ptr ~= EndNode(val, vis);
 			return;
 		}
-		_map[id] = [EndNode(val, vis)];
+		map[id] = [EndNode(val, vis)];
 	}
 	/// ditto
 	void valAdd(IdentU[] id, T val, IdentU vis) pure {
 		STab!T st = this;
 		IdentU[] ids = id.array;
 		foreach (IdentU i; ids[0 .. $ - 1]){
-			if (auto next = i in st._next){
+			if (auto next = i in st.next){
 				st = next.st;
 			} else {
 				assert(false);
@@ -138,14 +161,14 @@ public:
 
 	/// Add a new Symbol Table. **Will overwrite existing, if any.**
 	void stAdd(IdentU id, STab!T st, IdentU vis) pure {
-		_next[id] = STNode(st, vis);
+		next[id] = STNode(st, vis);
 	}
 	/// ditto
 	void stAdd(IdentU[] id, STab!T stab, IdentU vis) pure {
 		STab!T st = this;
 		IdentU[] ids = id.array;
 		foreach (IdentU i; ids[0 .. $ - 1]){
-			if (auto next = i in st._next){
+			if (auto next = i in st.next){
 				st = next.st;
 			} else {
 				assert(false);
@@ -156,13 +179,13 @@ public:
 
 	/// Returns: count of end nodes with unique IdentU at this level
 	size_t endKeyCount() const pure {
-		return _map.length;
+		return map.length;
 	}
 
 	JSONValue toJson() const {
 		JSONValue ret;
-		foreach (IdentU key; _map.byKey){
-			ret[key.toString] = _map[key]
+		foreach (IdentU key; map.byKey){
+			ret[key.toString] = map[key]
 				.map!((const EndNode n){
 						JSONValue obj;
 						static if (__traits(compiles, n.val.toJson)){
@@ -175,9 +198,9 @@ public:
 						})
 				.array;
 		}
-		foreach (IdentU key; _next.byKey){
+		foreach (IdentU key; next.byKey){
 			immutable string s = key.toString;
-			const STNode n = _next[key];
+			const STNode n = next[key];
 			JSONValue obj;
 			obj["val"] = n.st.toJson;
 			obj["vis"] = n.vis.toString;
