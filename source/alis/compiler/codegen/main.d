@@ -16,6 +16,7 @@ class BytecodeGenerator {
 	private string[][] bytecodeInstructions;
 	private int labelCounter = 0;
 	private int stackOffset = 0;
+	private int[string] variableOffsets; // Map of variable names to their stack offsets
 
 
 	/// Generates bytecode of a statement
@@ -27,6 +28,7 @@ class BytecodeGenerator {
 		bytecodeInstructions.length = 0;
 		labelCounter = 0;
 		stackOffset = 0;
+		variableOffsets = null; // Clear variable offsets map
 
 		generateStatementBytecode(statement);
 		return bytecodeInstructions;
@@ -53,6 +55,36 @@ class BytecodeGenerator {
 
 	private string generateLabel(string prefix = "label") {
 		return format!"%s_%d"(prefix, labelCounter++);
+	}
+	
+	/// Updates the variable offsets map with the variables in the given block
+	/// 
+	/// Params:
+	///   block = Block containing local variables
+	///   startOffset = The starting offset for the variables
+	/// Returns: The new offset after all variables
+	private int updateBlockVariableOffsets(RBlock block, int startOffset) {
+		int offset = startOffset;
+		
+		// Map local variables to their offsets
+		foreach (i, name; block.localsN) {
+			variableOffsets[name] = offset;
+			offset += cast(int)block.localsT[i].sizeOf;
+		}
+		
+		return offset;
+	}
+
+	/// Gets the offset for a variable name
+	/// 
+	/// Params:
+	///   name = Variable name to look up
+	/// Returns: The offset or -1 if not found
+	private int getVariableOffset(string name) {
+		if (name in variableOffsets) {
+			return variableOffsets[name];
+		}
+		return -1; // Variable not found
 	}
 
 
@@ -90,6 +122,9 @@ class BytecodeGenerator {
 	/// Params:
 	/// 	expr = The expression to generate bytecode for.
 	private void generateExpressionBytecode(RExpr expr) {
+		// Save current state
+		int savedStackOffset = stackOffset;
+
 		if (auto literal = cast(RLiteralExpr) expr) {
 			generateLiteralBytecode(literal);
 		} else if (auto identExpr = cast(RIdentExpr) expr) {
@@ -103,6 +138,9 @@ class BytecodeGenerator {
 		} else {
 			throw new Exception("Unsupported expression type: " ~ typeid(expr).toString);
 		}
+
+		// Restore stack offset only
+		stackOffset = savedStackOffset;
 	}
 
 	/// Generates bytecode for a function definition.
@@ -110,18 +148,60 @@ class BytecodeGenerator {
 	/// Params:
 	///    fn = The function to generate bytecode for.
 	private void generateFunctionBytecode(RFn fn) {
+		// Save previous variable offsets and create a new map for this function scope
+		int[string] oldVariableOffsets = variableOffsets.dup;
+		int oldStackOffset = stackOffset;
+		variableOffsets = null;
+
 		// Add function label
 		addInstruction(fn.ident ~ ":");
+		
+		// Allocate space for return address
+		size_t returnAddressSize = (cast(RBlockExpr)fn.body).type.sizeOf;
+		addInstruction("\tpshN", [returnAddressSize.to!string]);
+		variableOffsets[fn.ident] = stackOffset;
+		stackOffset += cast(int)returnAddressSize;
+		
+		// Register parameters in the offset map, starting after return address
+		int paramOffset = stackOffset;
+		foreach (i, name; fn.paramsN) {	
+			variableOffsets[name] = paramOffset;
+			paramOffset += cast(int)fn.paramsT[i].sizeOf;
+		}
+		
+		// Set stack offset to after parameters
+		stackOffset = paramOffset;
+		writeln("Parameter offsets: ", variableOffsets);
 
 		// Generate bytecode for the function's block expression
 		RBlockExpr fnBlockExpr = cast(RBlockExpr)fn.body;
 		generateBlockExprBytecode(fnBlockExpr);
+		
+		// Restore previous variable offsets
+		variableOffsets = oldVariableOffsets;
+		stackOffset = oldStackOffset;
 	}
 
 
 	private void generateBlockBytecode(RBlock block) {
-		writeln("Mock: generateBlockBytecode called") ;
+		// Save current offsets before entering the block
+		int[string] previousOffsets = variableOffsets.dup;
+		int previousStackOffset = stackOffset;
 		
+		// Update offsets with block's local variables
+		stackOffset = updateBlockVariableOffsets(block, stackOffset);
+		
+		// Allocate space for local variables
+		foreach (localType; block.localsT) {
+			addInstruction("\tpshN", [localType.sizeOf.to!string]);
+		}
+		
+		// Generate code for statements in the block
+		generateStatementsBytecode(block.statements);
+		
+		// Restore previous offsets when exiting the block
+		variableOffsets = previousOffsets;
+		stackOffset = previousStackOffset;
 	}
 
 	private void generateReturnBytecode(RReturn returnStmt) {
@@ -140,20 +220,20 @@ class BytecodeGenerator {
 		
 		// Jump to else branch if condition is false
 		if (ifStmt.onFalse) {
-			addInstruction("\tjmpC", "@" ~ [elseLabel]);
+			addInstruction("\tjmpC", ["@" ~ elseLabel]);
 			
 			// Generate true branch code
 			generateStatementBytecode(ifStmt.onTrue);
 			
 			// Skip over else branch
-			addInstruction("\tjmp", "@" ~[endLabel]);
+			addInstruction("\tjmp", ["@" ~ endLabel]);
 			
 			// Else branch
 			addInstruction(elseLabel ~ ":");
 			generateStatementBytecode(ifStmt.onFalse);
 		} else {
 			// If there's no else branch and condition is false, just skip the true branch
-			addInstruction("\tjmpC", "@" ~ [endLabel]);
+			addInstruction("\tjmpC", ["@" ~ endLabel]);
 			
 			// Generate true branch code
 			generateStatementBytecode(ifStmt.onTrue);
@@ -184,54 +264,25 @@ class BytecodeGenerator {
 	/// Params:
 	///    literalExpr = The literal expression to generate bytecode for.
 	private void generateLiteralBytecode(RLiteralExpr literalExpr) {
-		
 		size_t size = literalExpr.type.sizeOf;
 		addInstruction("\tpshN", [size.to!string]);
-
-		// Commenting out the part ahead which was pushing values. 
-		// TODO: Probably delete this becuase we need to push space, not values
-
-		// ADataType.Type type = (literalExpr.type).type;
-
-		// if (type == ADataType.Type.IntX) {
-		// 	// Convert the byte array to the appropriate IntX type
-			
-		// 	instruction = "\tpshI" ~ to!string(size);			
-			
-		// 	if (size == 1) {
-		// 		byte value = as!byte(literalExpr.value);
-		// 		params = [to!string(value)];
-		// 	} else if (size == 2) {
-		// 		short value = as!short(literalExpr.value);
-		// 		params = [to!string(value)];
-		// 	} else if (size == 4) {
-		// 		int value = as!int(literalExpr.value);
-		// 		params = [to!string(value)];
-		// 	} else if (size == 8) {
-		// 		long value = as!long(literalExpr.value);
-		// 		params = [to!string(value)];
-		// 	}
-		// } else if (type == ADataType.Type.FloatX) {
-		// 	// Convert the byte array to the appropriate FloatX type
-
-		// 	size_t size = literalExpr.type.x;
-		// 	instruction = "\tpshF" ~ to!string(size);
-			
-		// 	if (size == 4) {
-		// 		float value = as!float(literalExpr.value);
-		// 		params = [to!string(value)];
-		// 	} else if (size == 8) {
-		// 		double value = as!double(literalExpr.value);
-		// 		params = [to!string(value)];
-		// 	}
-		// }
 		
-		// addInstruction(instruction, params);
+		// Update stack offset
+		stackOffset += cast(int)size;
 	}
 
 	
-	private void generateIdentExprBytecode(RIdentExpr identExpr){
+	private void generateIdentExprBytecode(RIdentExpr identExpr) {
+		string varName = identExpr.ident;
+		int offset = getVariableOffset(varName);
 		
+		if (offset >= 0) {
+			// Variable found, load its value
+			addInstruction("\tgetR", [offset.to!string]);
+		} else {
+			writeln("Variable offsets map: ", variableOffsets);
+			throw new Exception("Variable not found: " ~ varName);
+		}
 	}
 
 	/// Generates bytecode for a block expression.
@@ -241,19 +292,36 @@ class BytecodeGenerator {
 	///
 	/// Params:
 	///    blockExpr = The block expression to generate bytecode for.
-	private void generateBlockExprBytecode(RBlockExpr blockExpr){
-		size_t returnAddressSize = blockExpr.type.sizeOf;
-		string instruction = returnAddressSize.format!"\tpshN %d";
-		addInstruction(instruction); // Instruction for Return Address 
-		RBlock block = blockExpr.block;
-
-		foreach (localT ; block.localsT){
-			instruction = (localT.sizeOf).format!"\tpshN %d";
-			addInstruction(instruction); //Instruction for Parameters and Local Vars
+	private void generateBlockExprBytecode(RBlockExpr blockExpr) {
+		// Save current variable offsets
+		int[string] oldVariableOffsets = variableOffsets.dup;
+		int oldStackOffset = stackOffset;
+		
+		// Only allocate return address if we're not in a function context
+		// (indicated by stackOffset being 0)
+		if (stackOffset == 0) {
+			size_t returnAddressSize = blockExpr.type.sizeOf;
+			addInstruction("\tpshN", [returnAddressSize.to!string]);
+			stackOffset += cast(int)returnAddressSize;
 		}
-
+		
+		RBlock block = blockExpr.block;
+		
+		// Update variable offsets for this block's local variables
+		// Start local variables after parameters and return address
+		stackOffset = updateBlockVariableOffsets(block, stackOffset);
+		writeln("Block variable offsets: ", variableOffsets);
+		
+		// Allocate space for block's local variables
+		foreach (localT; block.localsT) {
+			addInstruction("\tpshN", [localT.sizeOf.to!string]);
+		}
+		
 		generateStatementsBytecode(block.statements);
 		
+		// Restore previous offsets
+		variableOffsets = oldVariableOffsets;
+		stackOffset = oldStackOffset;
 	}
 
 	/// Generates bytecode for an intrinsic function call.
@@ -287,18 +355,26 @@ class BytecodeGenerator {
 			RExpr rightOperand = intrinsicCallExpr.params[1];
 			size_t offsetLeft, offsetRight;
 
-			if (auto lit = cast(RLiteralExpr) leftOperand) {
-				generateLiteralBytecode(lit);
-				offsetLeft = lit.type.sizeOf * size_t(1);
+			// Save current stack offset and generate left operand
+			int savedStackOffset = stackOffset;
+			generateExpressionBytecode(leftOperand);
+			
+			// Calculate left operand offset based on stack change
+			if (auto identExpr = cast(RIdentExpr)leftOperand) {
+				offsetLeft = getVariableOffset(identExpr.ident);
 			} else {
-				offsetLeft = 0;
+				offsetLeft = savedStackOffset;
+				savedStackOffset = stackOffset;
 			}
-
-			if (auto lit = cast(RLiteralExpr) rightOperand) {
-				generateLiteralBytecode(lit);
-				offsetRight = lit.type.sizeOf * size_t(2);
+			
+			// Generate right operand
+			generateExpressionBytecode(rightOperand);
+			
+			// Calculate right operand offset
+			if (auto identExpr = cast(RIdentExpr)rightOperand) {
+				offsetRight = getVariableOffset(identExpr.ident);
 			} else {
-				offsetRight = 0;
+				offsetRight = savedStackOffset;
 			}
 
 			addInstruction("\tgetR", [offsetLeft.to!string]);
@@ -318,6 +394,10 @@ class BytecodeGenerator {
 			assert(intrinsicCallExpr.params.length == 2, name ~ " expects 2 parameters.");
 			addInstruction("\tjmp", ["@intrinsic_isI" ~ (X.to!string)]);
 
+			// Save current state
+			int[string] savedVariableOffsets = variableOffsets.dup;
+			int savedStackOffset = stackOffset;
+
 			RIntrinsicCallExpr cmpIntrinsic = cast(RIntrinsicCallExpr)intrinsicCallExpr.params[0];
 			generateIntrinsicCallExprBytecode(cmpIntrinsic);
 				
@@ -326,22 +406,32 @@ class BytecodeGenerator {
 			addInstruction("\tjmp", ["@intrinsic_cmp" ~ (X.to!string)]);
 
 			auto expectedValue = cast(RLiteralExpr)intrinsicCallExpr.params[1];
+			
+			// Restore state after first param
+			int[string] midVariableOffsets = variableOffsets.dup;
+			int midStackOffset = stackOffset;
+			
+			// Process second param
 			generateLiteralBytecode(expectedValue);
-
+			
 			RExpr cmpLeftOperand = cmpIntrinsic.params[0];
 			size_t offsetCmp, offsetVal;
-			if (auto lit = cast(RLiteralExpr) cmpLeftOperand) {
-				offsetCmp = lit.type.sizeOf * size_t(1); 
+			
+			if (auto identExpr = cast(RIdentExpr)cmpLeftOperand) {
+				offsetCmp = getVariableOffset(identExpr.ident);
 			} else {
-				offsetCmp = 0; 
+				offsetCmp = savedStackOffset;
 			}
 
-			offsetVal = expectedValue.type.sizeOf * size_t(2);
+			offsetVal = midStackOffset;
 
 			addInstruction("\tgetR", [offsetCmp.to!string]);
 			addInstruction("\tgetR", [offsetVal.to!string]);
 			addInstruction("\tcmpI" ~ X.to!string);
 			addInstruction("\tret");
+			
+			// Restore state
+			variableOffsets = savedVariableOffsets;
 		} 
 		else if (name.startsWith("incI")) {
 			string numStr = name[4 .. $];
@@ -356,8 +446,20 @@ class BytecodeGenerator {
 
 			addInstruction(intrinsicLabel ~ ":", []);
 
-			auto operand = cast(RLiteralExpr)intrinsicCallExpr.params[0];
-			size_t offset = operand.type.sizeOf * size_t(1);
+			RExpr operand = intrinsicCallExpr.params[0];
+			int offset;
+			
+			if (auto identExpr = cast(RIdentExpr)operand) {
+				offset = getVariableOffset(identExpr.ident);
+				if (offset < 0) {
+					throw new Exception("Variable not found: " ~ identExpr.ident);
+				}
+			} else {
+				// Process the operand to get its offset
+				int savedStackOffset = stackOffset;
+				generateExpressionBytecode(operand);
+				offset = savedStackOffset;
+			}
 
 			addInstruction("\tgetR", [offset.to!string]);
 			addInstruction("\tpshN", [(X).to!string]);
@@ -367,8 +469,20 @@ class BytecodeGenerator {
 		else if (name == "writeln") {
 			assert(intrinsicCallExpr.params.length == 1, "writeln expects 1 parameter.");
 
-			auto argument = cast(RLiteralExpr)intrinsicCallExpr.params[0];
-			size_t offset = argument.type.sizeOf * size_t(1);
+			RExpr argument = intrinsicCallExpr.params[0];
+			int offset;
+			
+			if (auto identExpr = cast(RIdentExpr)argument) {
+				offset = getVariableOffset(identExpr.ident);
+				if (offset < 0) {
+					throw new Exception("Variable not found: " ~ identExpr.ident);
+				}
+			} else {
+				// Process the argument to get its offset
+				int savedStackOffset = stackOffset;
+				generateExpressionBytecode(argument);
+				offset = savedStackOffset;
+			}
 
 			addInstruction("\tgetR", [offset.to!string]);
 			addInstruction("writeS");
@@ -378,41 +492,44 @@ class BytecodeGenerator {
 		}
 	}
 
-	private void generateAssignExprBytecode(RAssignExpr assignExpr){
+	private void generateAssignExprBytecode(RAssignExpr assignExpr) {
+		// Save the current state
+		int[string] savedVariableOffsets = variableOffsets.dup;
+		int savedStackOffset = stackOffset;
 
 		// Generate the right-hand side expression first
 		// This will push the value onto the stack
 		generateExpressionBytecode(assignExpr.rhs);	
 
-		// Calculate the offset for storing the value
-		size_t offset = 0;
-
 		// Handle the left-hand side
 		if (auto identExpr = cast(RIdentExpr)assignExpr.lhs) {
-
 			// Find the variable in the current scope
 			string varName = identExpr.ident;
-			bool found = false;
-
-			// TODO: Find variable offset
+			int offset = getVariableOffset(varName);
+			
+			if (offset < 0) {
+				// Variable not found, create a new one
+				offset = stackOffset;
+				variableOffsets[varName] = offset;
+				// Note: Space for the variable should already be allocated
+			}
 
 			// Store the value from stack to the variable location
 			addInstruction("\tput", [offset.to!string]);
 		}
-
-		
-
 		else if (auto memberGetExpr = cast(RMemberGetExpr)assignExpr.lhs) {
-			// TODO
-
+			// TODO: Handle member assignment
+			writeln("TODO: Handle member assignment");
 		} else if (auto derefExpr = cast(RDerefExpr)assignExpr.lhs) {
-			// TODO
+			// TODO: Handle dereference assignment
+			writeln("TODO: Handle dereference assignment");
 		} else {
-			// TODO
+			throw new Exception("Unsupported left-hand side in assignment: " ~ typeid(assignExpr.lhs).toString);
 		}
 
+		// Restore previous state
+		variableOffsets = savedVariableOffsets;
 	}
-
 }
 
 
@@ -455,6 +572,7 @@ void printBytecodeToFile(string filename, string[][] bytecodeInstructions) {
 
 }
 
+/*
 // Tesing conversion of literals to bytes and then back to values 
 unittest{
 	
@@ -563,6 +681,7 @@ unittest {
 	//printBytecode(generator.bytecodeInstructions);
 
 } 
+*/
 
 // Testing Function Bytecode Generator
 unittest{
@@ -575,19 +694,27 @@ unittest{
 	blockExpr.block = new RBlock;
 	fn.body = blockExpr;
 
-	// Define function parameters and local variables
-	blockExpr.block.localsN = ["param1", "param2", "local1", "local2"];
+	// Initialize function parameters
+	fn.paramsN = ["param1", "param2"];  // Parameter names
+	fn.paramsT = [
+		ADataType.ofInt,  // param1 type
+		ADataType.ofInt   // param2 type
+	];
+	fn.paramCount = fn.paramsN.length;  // Set number of parameters
+
+	// Initialize block's local variables
+	blockExpr.block.localsN = ["local1", "local2"];
 	blockExpr.block.localsT = [
-		ADataType.ofInt,  // param1
-		ADataType.ofInt,  // param2
-		ADataType.ofFloat, // local1
-		ADataType.ofInt    // local2
+		ADataType.ofFloat, // local1 type
+		ADataType.ofInt    // local2 type
 	];
 
 	auto generator = new BytecodeGenerator;
 	generator.generateFunctionBytecode(fn);
+	fn.ident = "testFunction2";
+	generator.generateFunctionBytecode(fn);
+			
 	printBytecodeToFile(testFolder ~  "fnbytecode_code.txt", generator.bytecodeInstructions);
-
 }
 
 // Testing Intrinsic Call Expr Bytecode Generator

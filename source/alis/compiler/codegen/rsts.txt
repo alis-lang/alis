@@ -1,0 +1,92 @@
+RModule inherits from ASTNode  
+RModule associations: RFn[] (functions), bool[] (isEntryFlags), RBlock[] (blocks), ADataType[] (types), string[] (names), Visibility[] (visibilities)
+
+RFn inherits from ASTNode  
+RFn associations: string (name), RExpr (body), ADataType[] (params), string[] (paramNames), size_t (location)
+
+RStatement inherits from Statement
+
+RBlock inherits from RStatement  
+RBlock associations: RStatement[] (statements), ADataType[] (locals), string[] (localNames)
+
+RReturn inherits from RStatement  
+RReturn associations: RExpr (value)
+
+RIf inherits from RStatement  
+RIf associations: RExpr (condition), RStatement (thenBranch), RStatement (elseBranch)
+
+RFor inherits from RStatement  
+RFor associations: string (varName), ADataType (type), string (label), RExpr (rangeExpr), RStatement (body)
+
+RWhile inherits from RStatement  
+RWhile associations: RExpr (condition), RStatement (body)
+
+RDoWhile inherits from RStatement  
+RDoWhile associations: RExpr (condition), RStatement (body)
+
+RCase inherits from ASTNode  
+RCase associations: RLiteralExpr (condition), RStatement (body)
+
+RCaseDef inherits from RCase
+
+RSwitch inherits from RStatement  
+RSwitch associations: RExpr (condition), RCase[] (cases)
+
+RExpr inherits from RStatement
+
+RIdentExpr inherits from RExpr  
+RIdentExpr associations: string (name)
+
+RBlockExpr inherits from RExpr  
+RBlockExpr associations: ADataType (returnType), RBlock (block)
+
+RIntrinsicExpr inherits from RExpr  
+RIntrinsicExpr associations: string (name)
+
+RIntrinsicCallExpr inherits from RExpr  
+RIntrinsicCallExpr associations: string (name), RExpr[] (args)
+
+RDTypeExpr inherits from RExpr  
+RDTypeExpr associations: ADataType (dtype)
+
+RAssignExpr inherits from RExpr  
+RAssignExpr associations: RExpr (lhs), RExpr (rhs)
+
+RRefAssignExpr inherits from RExpr  
+RRefAssignExpr associations: RExpr (lhs), RExpr (rhs)
+
+RDerefExpr inherits from RExpr  
+RDerefExpr associations: RExpr (target)
+
+RCommaExpr inherits from RExpr  
+RCommaExpr associations: RExpr[] (parts)
+
+RFnCallExpr inherits from RExpr  
+RFnCallExpr associations: RExpr (callee), RExpr[] (args)
+
+RPreIsExpr inherits from RExpr  
+RPreIsExpr associations: RExpr (expr)
+
+RPreNotIsExpr inherits from RExpr  
+RPreNotIsExpr associations: RExpr (expr)
+
+RRefExpr inherits from RExpr  
+RRefExpr associations: RExpr (target)
+
+RVTGetExpr inherits from RExpr  
+RVTGetExpr associations: RExpr (target), string (fieldName)
+
+RMemberGetExpr inherits from RExpr  
+RMemberGetExpr associations: RExpr (target), string (member)
+
+RFnExpr inherits from RExpr  
+RFnExpr associations: AFn (func)
+
+RStructLiteralExpr inherits from RExpr  
+RStructLiteralExpr associations: JSONValue (values)
+
+RArrayLiteralExpr inherits from RExpr  
+RArrayLiteralExpr associations: RExpr[] (elements)
+
+RLiteralExpr inherits from RExpr  
+RLiteralExpr associations: ubyte[] (data), ADataType (type)

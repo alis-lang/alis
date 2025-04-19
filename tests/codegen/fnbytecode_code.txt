@@ -2,6 +2,8 @@ testFunction:
 	pshN 0
 	pshN 64
 	pshN 64
+testFunction2:
+	pshN 0
 	pshN 64
 	pshN 64
 
