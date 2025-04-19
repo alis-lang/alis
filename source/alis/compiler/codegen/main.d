@@ -53,10 +53,6 @@ class BytecodeGenerator {
 		bytecodeInstructions ~= [instruction] ~ params;
 	}
 
-	private string generateLabel(string prefix = "label") {
-		return format!"%s_%d"(prefix, labelCounter++);
-	}
-	
 	/// Updates the variable offsets map with the variables in the given block
 	/// 
 	/// Params:
@@ -75,6 +71,8 @@ class BytecodeGenerator {
 		return offset;
 	}
 
+	
+
 	/// Gets the offset for a variable name
 	/// 
 	/// Params:
@@ -87,14 +85,12 @@ class BytecodeGenerator {
 		return -1; // Variable not found
 	}
 
-
 	/// Determines the type of the statement and dispatches it 
 	/// to the appropriate bytecode generation function.
 	///
 	/// Params:
 	///    statement = The statement to generate bytecode for.
 	private void generateStatementBytecode(RStatement statement) {
-	
 		if (auto block = cast(RBlock)statement) {
 			generateBlockBytecode(block);
 		} else if (auto returnStmt = cast(RReturn)statement) {
@@ -120,418 +116,183 @@ class BytecodeGenerator {
 	/// to the appropriate bytecode generation function.
 	///
 	/// Params:
-	/// 	expr = The expression to generate bytecode for.
+	///    expr = The expression to generate bytecode for.
 	private void generateExpressionBytecode(RExpr expr) {
-		// Save current state
-		int savedStackOffset = stackOffset;
-
-		if (auto literal = cast(RLiteralExpr) expr) {
-			generateLiteralBytecode(literal);
-		} else if (auto identExpr = cast(RIdentExpr) expr) {
+		if (auto identExpr = cast(RIdentExpr)expr) {
 			generateIdentExprBytecode(identExpr);
-		} else if (auto blockExpr = cast(RBlockExpr) expr) {
+		} else if (auto blockExpr = cast(RBlockExpr)expr) {
 			generateBlockExprBytecode(blockExpr);
-		} else if (auto intrinsicCallExpr = cast(RIntrinsicCallExpr) expr) {
+		} else if (auto intrinsicExpr = cast(RIntrinsicExpr)expr) {
+			generateIntrinsicExprBytecode(intrinsicExpr);
+		} else if (auto intrinsicCallExpr = cast(RIntrinsicCallExpr)expr) {
 			generateIntrinsicCallExprBytecode(intrinsicCallExpr);
-		} else if (auto assignExpr = cast(RAssignExpr) expr) {
+		} else if (auto dTypeExpr = cast(RDTypeExpr)expr) {
+			generateDTypeExprBytecode(dTypeExpr);
+		} else if (auto assignExpr = cast(RAssignExpr)expr) {
 			generateAssignExprBytecode(assignExpr);
+		} else if (auto refAssignExpr = cast(RRefAssignExpr)expr) {
+			generateRefAssignExprBytecode(refAssignExpr);
+		} else if (auto derefExpr = cast(RDerefExpr)expr) {
+			generateDerefExprBytecode(derefExpr);
+		} else if (auto commaExpr = cast(RCommaExpr)expr) {
+			generateCommaExprBytecode(commaExpr);
+		} else if (auto fnCallExpr = cast(RFnCallExpr)expr) {
+			generateFnCallExprBytecode(fnCallExpr);
+		} else if (auto preIsExpr = cast(RPreIsExpr)expr) {
+			generatePreIsExprBytecode(preIsExpr);
+		} else if (auto preNotIsExpr = cast(RPreNotIsExpr)expr) {
+			generatePreNotIsExprBytecode(preNotIsExpr);
+		} else if (auto refExpr = cast(RRefExpr)expr) {
+			generateRefExprBytecode(refExpr);
+		} else if (auto vtGetExpr = cast(RVTGetExpr)expr) {
+			generateVTGetExprBytecode(vtGetExpr);
+		} else if (auto memberGetExpr = cast(RMemberGetExpr)expr) {
+			generateMemberGetExprBytecode(memberGetExpr);
+		} else if (auto fnExpr = cast(RFnExpr)expr) {
+			generateFnExprBytecode(fnExpr);
+		} else if (auto structLiteralExpr = cast(RStructLiteralExpr)expr) {
+			generateStructLiteralExprBytecode(structLiteralExpr);
+		} else if (auto arrayLiteralExpr = cast(RArrayLiteralExpr)expr) {
+			generateArrayLiteralExprBytecode(arrayLiteralExpr);
+		} else if (auto literalExpr = cast(RLiteralExpr)expr) {
+			generateLiteralExprBytecode(literalExpr);
 		} else {
 			throw new Exception("Unsupported expression type: " ~ typeid(expr).toString);
 		}
-
-		// Restore stack offset only
-		stackOffset = savedStackOffset;
 	}
 
-	/// Generates bytecode for a function definition.
-	///
-	/// Params:
-	///    fn = The function to generate bytecode for.
-	private void generateFunctionBytecode(RFn fn) {
-		// Save previous variable offsets and create a new map for this function scope
-		int[string] oldVariableOffsets = variableOffsets.dup;
-		int oldStackOffset = stackOffset;
-		variableOffsets = null;
-
-		// Add function label
-		addInstruction(fn.ident ~ ":");
-		
-		// Allocate space for return address
-		size_t returnAddressSize = (cast(RBlockExpr)fn.body).type.sizeOf;
-		addInstruction("\tpshN", [returnAddressSize.to!string]);
-		variableOffsets[fn.ident] = stackOffset;
-		stackOffset += cast(int)returnAddressSize;
-		
-		// Register parameters in the offset map, starting after return address
-		int paramOffset = stackOffset;
-		foreach (i, name; fn.paramsN) {	
-			variableOffsets[name] = paramOffset;
-			paramOffset += cast(int)fn.paramsT[i].sizeOf;
-		}
-		
-		// Set stack offset to after parameters
-		stackOffset = paramOffset;
-		writeln("Parameter offsets: ", variableOffsets);
-
-		// Generate bytecode for the function's block expression
-		RBlockExpr fnBlockExpr = cast(RBlockExpr)fn.body;
-		generateBlockExprBytecode(fnBlockExpr);
-		
-		// Restore previous variable offsets
-		variableOffsets = oldVariableOffsets;
-		stackOffset = oldStackOffset;
-	}
-
-
+	/// Generates bytecode for a block statement
 	private void generateBlockBytecode(RBlock block) {
-		// Save current offsets before entering the block
-		int[string] previousOffsets = variableOffsets.dup;
-		int previousStackOffset = stackOffset;
-		
-		// Update offsets with block's local variables
-		stackOffset = updateBlockVariableOffsets(block, stackOffset);
-		
-		// Allocate space for local variables
-		foreach (localType; block.localsT) {
-			addInstruction("\tpshN", [localType.sizeOf.to!string]);
-		}
-		
-		// Generate code for statements in the block
-		generateStatementsBytecode(block.statements);
-		
-		// Restore previous offsets when exiting the block
-		variableOffsets = previousOffsets;
-		stackOffset = previousStackOffset;
+		// TODO: Implement block statement bytecode generation
 	}
 
+	/// Generates bytecode for a return statement
 	private void generateReturnBytecode(RReturn returnStmt) {
-		writeln("Mock: generateReturnBytecode called");
+		// TODO: Implement return statement bytecode generation
 	}
 
-
+	/// Generates bytecode for an if statement
 	private void generateIfBytecode(RIf ifStmt) {
-		writeln("Calling GenerateIfBytecode");
-
-		string endLabel = generateLabel("if_end");
-		string elseLabel = generateLabel("if_else");
-		
-		// Generate condition expression bytecode
-		generateExpressionBytecode(ifStmt.condition);
-		
-		// Jump to else branch if condition is false
-		if (ifStmt.onFalse) {
-			addInstruction("\tjmpC", ["@" ~ elseLabel]);
-			
-			// Generate true branch code
-			generateStatementBytecode(ifStmt.onTrue);
-			
-			// Skip over else branch
-			addInstruction("\tjmp", ["@" ~ endLabel]);
-			
-			// Else branch
-			addInstruction(elseLabel ~ ":");
-			generateStatementBytecode(ifStmt.onFalse);
-		} else {
-			// If there's no else branch and condition is false, just skip the true branch
-			addInstruction("\tjmpC", ["@" ~ endLabel]);
-			
-			// Generate true branch code
-			generateStatementBytecode(ifStmt.onTrue);
-		}
-		
-		// End of if statement
-		addInstruction(endLabel ~ ":");
+		// TODO: Implement if statement bytecode generation
 	}
 
+	/// Generates bytecode for a for statement
 	private void generateForBytecode(RFor forStmt) {
-		writeln("Mock: generateForBytecode called: ");
+		// TODO: Implement for statement bytecode generation
 	}
 
+	/// Generates bytecode for a while statement
 	private void generateWhileBytecode(RWhile whileStmt) {
-		writeln("Mock: generateWhileBytecode called: ");
+		// TODO: Implement while statement bytecode generation
 	}
 
+	/// Generates bytecode for a do-while statement
 	private void generateDoWhileBytecode(RDoWhile doWhileStmt) {
-		writeln("Mock: generateDoWhileBytecode called: ");
+		// TODO: Implement do-while statement bytecode generation
 	}
 
+	/// Generates bytecode for a switch statement
 	private void generateSwitchBytecode(RSwitch switchStmt) {
-		writeln("Mock: generateSwitchBytecode called: ");
+		// TODO: Implement switch statement bytecode generation
 	}
 
-	/// Generates bytecode for a literal expression.
-	///
-	/// Params:
-	///    literalExpr = The literal expression to generate bytecode for.
-	private void generateLiteralBytecode(RLiteralExpr literalExpr) {
-		size_t size = literalExpr.type.sizeOf;
-		addInstruction("\tpshN", [size.to!string]);
-		
-		// Update stack offset
-		stackOffset += cast(int)size;
+	/// Generates bytecode for an identifier expression
+	private void generateIdentExprBytecode(RIdentExpr expr) {
+		// TODO: Implement identifier expression bytecode generation
 	}
 
-	
-	private void generateIdentExprBytecode(RIdentExpr identExpr) {
-		string varName = identExpr.ident;
-		int offset = getVariableOffset(varName);
-		
-		if (offset >= 0) {
-			// Variable found, load its value
-			addInstruction("\tgetR", [offset.to!string]);
-		} else {
-			writeln("Variable offsets map: ", variableOffsets);
-			throw new Exception("Variable not found: " ~ varName);
-		}
+	/// Generates bytecode for a block expression
+	private void generateBlockExprBytecode(RBlockExpr expr) {
+		// TODO: Implement block expression bytecode generation
 	}
 
-	/// Generates bytecode for a block expression.
-	///
-	/// This function allocates space for the return address and local variables,
-	/// then generates bytecode for the statements inside the block.
-	///
-	/// Params:
-	///    blockExpr = The block expression to generate bytecode for.
-	private void generateBlockExprBytecode(RBlockExpr blockExpr) {
-		// Save current variable offsets
-		int[string] oldVariableOffsets = variableOffsets.dup;
-		int oldStackOffset = stackOffset;
-		
-		// Only allocate return address if we're not in a function context
-		// (indicated by stackOffset being 0)
-		if (stackOffset == 0) {
-			size_t returnAddressSize = blockExpr.type.sizeOf;
-			addInstruction("\tpshN", [returnAddressSize.to!string]);
-			stackOffset += cast(int)returnAddressSize;
-		}
-		
-		RBlock block = blockExpr.block;
-		
-		// Update variable offsets for this block's local variables
-		// Start local variables after parameters and return address
-		stackOffset = updateBlockVariableOffsets(block, stackOffset);
-		writeln("Block variable offsets: ", variableOffsets);
-		
-		// Allocate space for block's local variables
-		foreach (localT; block.localsT) {
-			addInstruction("\tpshN", [localT.sizeOf.to!string]);
-		}
-		
-		generateStatementsBytecode(block.statements);
-		
-		// Restore previous offsets
-		variableOffsets = oldVariableOffsets;
-		stackOffset = oldStackOffset;
+	/// Generates bytecode for an intrinsic expression
+	private void generateIntrinsicExprBytecode(RIntrinsicExpr expr) {
+		// TODO: Implement intrinsic expression bytecode generation
 	}
 
-	/// Generates bytecode for an intrinsic function call.
-	///
-	/// Supported Intrinsics:
-	///    cmpIX`  : Compares two integer values of size X (e.g., `cmpI8`, `cmpI16`).
-	///    isIX`   : Checks if a comparison result matches an expected value.
-	///
-	/// Params:
-	///    intrinsicCallExpr = The intrinsic call expression to generate bytecode for.
-	private void generateIntrinsicCallExprBytecode(RIntrinsicCallExpr intrinsicCallExpr) {
-		const string name = intrinsicCallExpr.name;
-		const string intrinsicLabel = "intrinsic_" ~ name;
-		if (name.startsWith("cmpI")) {
-
-			addInstruction("intrinsic_" ~ name ~ ":", []);
-
-			// Extract the number X from cmpIX
-			string numStr = name[4 .. $];
-			int X;
-			try {
-				X = numStr.to!int;
-			} catch (ConvException) {
-				throw new FormatException("Invalid intrinsic name: " ~ name);
-			}
-
-			assert(intrinsicCallExpr.params.length == 2, name ~ " expects 2 parameters.");
-			addInstruction("\tpshN", [(X).to!string]);
-
-			RExpr leftOperand = intrinsicCallExpr.params[0]; 
-			RExpr rightOperand = intrinsicCallExpr.params[1];
-			size_t offsetLeft, offsetRight;
-
-			// Save current stack offset and generate left operand
-			int savedStackOffset = stackOffset;
-			generateExpressionBytecode(leftOperand);
-			
-			// Calculate left operand offset based on stack change
-			if (auto identExpr = cast(RIdentExpr)leftOperand) {
-				offsetLeft = getVariableOffset(identExpr.ident);
-			} else {
-				offsetLeft = savedStackOffset;
-				savedStackOffset = stackOffset;
-			}
-			
-			// Generate right operand
-			generateExpressionBytecode(rightOperand);
-			
-			// Calculate right operand offset
-			if (auto identExpr = cast(RIdentExpr)rightOperand) {
-				offsetRight = getVariableOffset(identExpr.ident);
-			} else {
-				offsetRight = savedStackOffset;
-			}
-
-			addInstruction("\tgetR", [offsetLeft.to!string]);
-			addInstruction("\tgetR", [offsetRight.to!string]);
-			addInstruction("\tcmpI" ~ X.to!string);
-			addInstruction("\tret");
-		} 
-		else if (name.startsWith("isI")) {
-			string numStr = name[3 .. $];
-			int X;
-			try {
-				X = numStr.to!int;
-			} catch (ConvException) {
-				throw new FormatException("Invalid intrinsic name: " ~ name);
-			}
-			
-			assert(intrinsicCallExpr.params.length == 2, name ~ " expects 2 parameters.");
-			addInstruction("\tjmp", ["@intrinsic_isI" ~ (X.to!string)]);
-
-			// Save current state
-			int[string] savedVariableOffsets = variableOffsets.dup;
-			int savedStackOffset = stackOffset;
-
-			RIntrinsicCallExpr cmpIntrinsic = cast(RIntrinsicCallExpr)intrinsicCallExpr.params[0];
-			generateIntrinsicCallExprBytecode(cmpIntrinsic);
-				
-			addInstruction(intrinsicLabel ~ ":");
-			addInstruction("\tpshN", [(X).to!string]);
-			addInstruction("\tjmp", ["@intrinsic_cmp" ~ (X.to!string)]);
-
-			auto expectedValue = cast(RLiteralExpr)intrinsicCallExpr.params[1];
-			
-			// Restore state after first param
-			int[string] midVariableOffsets = variableOffsets.dup;
-			int midStackOffset = stackOffset;
-			
-			// Process second param
-			generateLiteralBytecode(expectedValue);
-			
-			RExpr cmpLeftOperand = cmpIntrinsic.params[0];
-			size_t offsetCmp, offsetVal;
-			
-			if (auto identExpr = cast(RIdentExpr)cmpLeftOperand) {
-				offsetCmp = getVariableOffset(identExpr.ident);
-			} else {
-				offsetCmp = savedStackOffset;
-			}
-
-			offsetVal = midStackOffset;
-
-			addInstruction("\tgetR", [offsetCmp.to!string]);
-			addInstruction("\tgetR", [offsetVal.to!string]);
-			addInstruction("\tcmpI" ~ X.to!string);
-			addInstruction("\tret");
-			
-			// Restore state
-			variableOffsets = savedVariableOffsets;
-		} 
-		else if (name.startsWith("incI")) {
-			string numStr = name[4 .. $];
-			int X;
-			try {
-				X = numStr.to!int;
-			} catch (ConvException) {
-				throw new FormatException("Invalid intrinsic name: " ~ name);
-			}
-
-			assert(intrinsicCallExpr.params.length == 1, name ~ " expects 1 parameter.");
-
-			addInstruction(intrinsicLabel ~ ":", []);
-
-			RExpr operand = intrinsicCallExpr.params[0];
-			int offset;
-			
-			if (auto identExpr = cast(RIdentExpr)operand) {
-				offset = getVariableOffset(identExpr.ident);
-				if (offset < 0) {
-					throw new Exception("Variable not found: " ~ identExpr.ident);
-				}
-			} else {
-				// Process the operand to get its offset
-				int savedStackOffset = stackOffset;
-				generateExpressionBytecode(operand);
-				offset = savedStackOffset;
-			}
-
-			addInstruction("\tgetR", [offset.to!string]);
-			addInstruction("\tpshN", [(X).to!string]);
-			addInstruction("\taddI" ~ X.to!string);
-			addInstruction("\tput", [offset.to!string]);
-		} 
-		else if (name == "writeln") {
-			assert(intrinsicCallExpr.params.length == 1, "writeln expects 1 parameter.");
-
-			RExpr argument = intrinsicCallExpr.params[0];
-			int offset;
-			
-			if (auto identExpr = cast(RIdentExpr)argument) {
-				offset = getVariableOffset(identExpr.ident);
-				if (offset < 0) {
-					throw new Exception("Variable not found: " ~ identExpr.ident);
-				}
-			} else {
-				// Process the argument to get its offset
-				int savedStackOffset = stackOffset;
-				generateExpressionBytecode(argument);
-				offset = savedStackOffset;
-			}
-
-			addInstruction("\tgetR", [offset.to!string]);
-			addInstruction("writeS");
-		} 
-		else {
-			throw new Exception("Unsupported intrinsic: " ~ name);
-		}
+	/// Generates bytecode for an intrinsic call expression
+	private void generateIntrinsicCallExprBytecode(RIntrinsicCallExpr expr) {
+		// TODO: Implement intrinsic call expression bytecode generation
 	}
 
-	private void generateAssignExprBytecode(RAssignExpr assignExpr) {
-		// Save the current state
-		int[string] savedVariableOffsets = variableOffsets.dup;
-		int savedStackOffset = stackOffset;
-
-		// Generate the right-hand side expression first
-		// This will push the value onto the stack
-		generateExpressionBytecode(assignExpr.rhs);	
-
-		// Handle the left-hand side
-		if (auto identExpr = cast(RIdentExpr)assignExpr.lhs) {
-			// Find the variable in the current scope
-			string varName = identExpr.ident;
-			int offset = getVariableOffset(varName);
-			
-			if (offset < 0) {
-				// Variable not found, create a new one
-				offset = stackOffset;
-				variableOffsets[varName] = offset;
-				// Note: Space for the variable should already be allocated
-			}
-
-			// Store the value from stack to the variable location
-			addInstruction("\tput", [offset.to!string]);
-		}
-		else if (auto memberGetExpr = cast(RMemberGetExpr)assignExpr.lhs) {
-			// TODO: Handle member assignment
-			writeln("TODO: Handle member assignment");
-		} else if (auto derefExpr = cast(RDerefExpr)assignExpr.lhs) {
-			// TODO: Handle dereference assignment
-			writeln("TODO: Handle dereference assignment");
-		} else {
-			throw new Exception("Unsupported left-hand side in assignment: " ~ typeid(assignExpr.lhs).toString);
-		}
-
-		// Restore previous state
-		variableOffsets = savedVariableOffsets;
+	/// Generates bytecode for a data type expression
+	private void generateDTypeExprBytecode(RDTypeExpr expr) {
+		// TODO: Implement data type expression bytecode generation
 	}
+
+	/// Generates bytecode for an assignment expression
+	private void generateAssignExprBytecode(RAssignExpr expr) {
+		// TODO: Implement assignment expression bytecode generation
+	}
+
+	/// Generates bytecode for a reference assignment expression
+	private void generateRefAssignExprBytecode(RRefAssignExpr expr) {
+		// TODO: Implement reference assignment expression bytecode generation
+	}
+
+	/// Generates bytecode for a dereference expression
+	private void generateDerefExprBytecode(RDerefExpr expr) {
+		// TODO: Implement dereference expression bytecode generation
+	}
+
+	/// Generates bytecode for a comma expression
+	private void generateCommaExprBytecode(RCommaExpr expr) {
+		// TODO: Implement comma expression bytecode generation
+	}
+
+	/// Generates bytecode for a function call expression
+	private void generateFnCallExprBytecode(RFnCallExpr expr) {
+		// TODO: Implement function call expression bytecode generation
+	}
+
+	/// Generates bytecode for a pre-is expression
+	private void generatePreIsExprBytecode(RPreIsExpr expr) {
+		// TODO: Implement pre-is expression bytecode generation
+	}
+
+	/// Generates bytecode for a pre-not-is expression
+	private void generatePreNotIsExprBytecode(RPreNotIsExpr expr) {
+		// TODO: Implement pre-not-is expression bytecode generation
+	}
+
+	/// Generates bytecode for a reference expression
+	private void generateRefExprBytecode(RRefExpr expr) {
+		// TODO: Implement reference expression bytecode generation
+	}
+
+	/// Generates bytecode for a VT get expression
+	private void generateVTGetExprBytecode(RVTGetExpr expr) {
+		// TODO: Implement VT get expression bytecode generation
+	}
+
+	/// Generates bytecode for a member get expression
+	private void generateMemberGetExprBytecode(RMemberGetExpr expr) {
+		// TODO: Implement member get expression bytecode generation
+	}
+
+	/// Generates bytecode for a function expression
+	private void generateFnExprBytecode(RFnExpr expr) {
+		// TODO: Implement function expression bytecode generation
+	}
+
+	/// Generates bytecode for a struct literal expression
+	private void generateStructLiteralExprBytecode(RStructLiteralExpr expr) {
+		// TODO: Implement struct literal expression bytecode generation
+	}
+
+	/// Generates bytecode for an array literal expression
+	private void generateArrayLiteralExprBytecode(RArrayLiteralExpr expr) {
+		// TODO: Implement array literal expression bytecode generation
+	}
+
+	/// Generates bytecode for a literal expression
+	private void generateLiteralExprBytecode(RLiteralExpr expr) {
+		// TODO: Implement literal expression bytecode generation
+	}
+
+
 }
-
 
 
 void printBytecode(string[][] bytecodeInstructions) {
@@ -572,7 +333,7 @@ void printBytecodeToFile(string filename, string[][] bytecodeInstructions) {
 
 }
 
-/*
+
 // Tesing conversion of literals to bytes and then back to values 
 unittest{
 	
@@ -681,7 +442,7 @@ unittest {
 	//printBytecode(generator.bytecodeInstructions);
 
 } 
-*/
+
 
 // Testing Function Bytecode Generator
 unittest{
