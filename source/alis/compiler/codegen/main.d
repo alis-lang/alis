@@ -65,8 +65,12 @@ class BytecodeGenerator {
 		// Map local variables to their offsets
 		foreach (i, name; block.localsN) {
 			variableOffsets[name] = offset;
-			offset += cast(int)block.localsT[i].sizeOf;
+			int localSize = cast(int)block.localsT[i].sizeOf;
+			offset += localSize;
+			addInstruction("\tpshN", [localSize.to!string]);
 		}
+
+		writeln(variableOffsets);
 		
 		return offset;
 	}
@@ -161,9 +165,30 @@ class BytecodeGenerator {
 		}
 	}
 
+	/// Generates bytecode for a block expression
+	private void generateBlockExprBytecode(RBlockExpr expr, string functionName = "returnAddress") {
+		
+		// Allocate space for the return address
+		size_t returnAddressSize = ADataType.ofInt.sizeOf; 
+		variableOffsets[functionName] = stackOffset;
+		stackOffset += cast(int)returnAddressSize;
+		addInstruction("\tpshN", [returnAddressSize.to!string]); 
+
+		// Generate bytecode for the block
+		generateBlockBytecode(expr.block); 
+	}
+
 	/// Generates bytecode for a block statement
 	private void generateBlockBytecode(RBlock block) {
-		// TODO: Implement block statement bytecode generation
+		// Update variable offsets for local variables in this block
+		int startOffset = stackOffset; 
+		updateBlockVariableOffsets(block, startOffset);
+
+		// Update the stack offset for the next block
+		stackOffset = startOffset;
+
+		// Generate bytecode for each statement in the block
+		generateStatementsBytecode(block.statements); 
 	}
 
 	/// Generates bytecode for a return statement
@@ -201,11 +226,6 @@ class BytecodeGenerator {
 		// TODO: Implement identifier expression bytecode generation
 	}
 
-	/// Generates bytecode for a block expression
-	private void generateBlockExprBytecode(RBlockExpr expr) {
-		// TODO: Implement block expression bytecode generation
-	}
-
 	/// Generates bytecode for an intrinsic expression
 	private void generateIntrinsicExprBytecode(RIntrinsicExpr expr) {
 		// TODO: Implement intrinsic expression bytecode generation
@@ -213,6 +233,10 @@ class BytecodeGenerator {
 
 	/// Generates bytecode for an intrinsic call expression
 	private void generateIntrinsicCallExprBytecode(RIntrinsicCallExpr expr) {
+		// Handle each parameter expression
+		foreach (param; expr.params) {
+			generateExpressionBytecode(param);
+		}
 		// TODO: Implement intrinsic call expression bytecode generation
 	}
 
@@ -223,52 +247,92 @@ class BytecodeGenerator {
 
 	/// Generates bytecode for an assignment expression
 	private void generateAssignExprBytecode(RAssignExpr expr) {
-		// TODO: Implement assignment expression bytecode generation
+		// Handle rhs expression first
+		generateExpressionBytecode(expr.rhs); 
+
+		// Handle lhs expression
+		if (auto identExpr = cast(RIdentExpr)expr.lhs) {
+			int lhsOffset = getVariableOffset(identExpr.ident);
+			if (lhsOffset == -1) {
+				throw new Exception("Left-hand side variable not found in variableOffsets");
+			}
+			// Generate the bytecode for the assignment
+			addInstruction("\tput", [lhsOffset.to!string]); 
+		} else if (auto memberGetExpr = cast(RMemberGetExpr)expr.lhs) {
+			// Handle member assignment
+			generateExpressionBytecode(memberGetExpr.val); 
+			addInstruction("put", [memberGetExpr.member]); 
+		} else if (auto vtGetExpr = cast(RVTGetExpr)expr.lhs) {
+			// Handle VT get assignment
+			generateExpressionBytecode(vtGetExpr.val);
+			addInstruction("put", [vtGetExpr.member]); 
+		} else {
+			throw new Exception("Unsupported left-hand side expression type: " ~ typeid(expr.lhs).toString);
+		}
 	}
 
 	/// Generates bytecode for a reference assignment expression
 	private void generateRefAssignExprBytecode(RRefAssignExpr expr) {
+		// Handle lhs expression
+		generateExpressionBytecode(expr.lhs);
+		// Handle rhs expression
+		generateExpressionBytecode(expr.rhs);
 		// TODO: Implement reference assignment expression bytecode generation
 	}
 
 	/// Generates bytecode for a dereference expression
 	private void generateDerefExprBytecode(RDerefExpr expr) {
+		// Handle target expression
+		generateExpressionBytecode(expr.val); 
 		// TODO: Implement dereference expression bytecode generation
 	}
 
 	/// Generates bytecode for a comma expression
 	private void generateCommaExprBytecode(RCommaExpr expr) {
-		// TODO: Implement comma expression bytecode generation
+		// Handle each part expression
+		foreach (part; expr.exprs) { 
+			generateExpressionBytecode(part); // Pass the current map
+		}
 	}
 
 	/// Generates bytecode for a function call expression
 	private void generateFnCallExprBytecode(RFnCallExpr expr) {
-		// TODO: Implement function call expression bytecode generation
+		// Handle callee expression
+		generateExpressionBytecode(expr.callee); 
+		// Handle each argument expression
+		foreach (arg; expr.params) {
+			generateExpressionBytecode(arg); // Pass the current map
+		}
 	}
 
 	/// Generates bytecode for a pre-is expression
 	private void generatePreIsExprBytecode(RPreIsExpr expr) {
-		// TODO: Implement pre-is expression bytecode generation
+		// Handle inner expression
+		generateExpressionBytecode(expr.val); 
 	}
 
 	/// Generates bytecode for a pre-not-is expression
 	private void generatePreNotIsExprBytecode(RPreNotIsExpr expr) {
-		// TODO: Implement pre-not-is expression bytecode generation
+		// Handle inner expression
+		generateExpressionBytecode(expr.val); 
 	}
 
 	/// Generates bytecode for a reference expression
 	private void generateRefExprBytecode(RRefExpr expr) {
-		// TODO: Implement reference expression bytecode generation
+		// Handle target expression
+		generateExpressionBytecode(expr.val); 
 	}
 
 	/// Generates bytecode for a VT get expression
 	private void generateVTGetExprBytecode(RVTGetExpr expr) {
-		// TODO: Implement VT get expression bytecode generation
+		// Handle target expression
+		generateExpressionBytecode(expr.val); 
 	}
 
 	/// Generates bytecode for a member get expression
 	private void generateMemberGetExprBytecode(RMemberGetExpr expr) {
-		// TODO: Implement member get expression bytecode generation
+		// Handle target expression
+		generateExpressionBytecode(expr.val); 
 	}
 
 	/// Generates bytecode for a function expression
@@ -283,12 +347,23 @@ class BytecodeGenerator {
 
 	/// Generates bytecode for an array literal expression
 	private void generateArrayLiteralExprBytecode(RArrayLiteralExpr expr) {
+		// Handle each element expression
+		foreach (element; expr.elements) {
+			generateExpressionBytecode(element);
+		}
 		// TODO: Implement array literal expression bytecode generation
 	}
 
-	/// Generates bytecode for a literal expression
-	private void generateLiteralExprBytecode(RLiteralExpr expr) {
-		// TODO: Implement literal expression bytecode generation
+	/// Generates bytecode for a literal expression.
+	///
+	/// Params:
+	///    literalExpr = The literal expression to generate bytecode for.
+	private void generateLiteralExprBytecode(RLiteralExpr literalExpr) {
+		size_t size = literalExpr.type.sizeOf;
+		//addInstruction("\tpshN", [size.to!string]);
+		
+		// Update stack offset
+		stackOffset += cast(int)size;
 	}
 
 
@@ -334,269 +409,57 @@ void printBytecodeToFile(string filename, string[][] bytecodeInstructions) {
 }
 
 
-// Tesing conversion of literals to bytes and then back to values 
-unittest{
-	
-	auto generator = new BytecodeGenerator;
-
-	// Integer literal
-	auto intLiteral = new RLiteralExpr;
-	intLiteral.type = ADataType.ofInt(32);
-	intLiteral.value = asBytes!int(1);
-
-	// Float literal
-	auto floatLiteral = new RLiteralExpr;
-	floatLiteral.type = ADataType.ofFloat(32);
-	floatLiteral.value = asBytes!float(1.0f);
-
-	// Double literal
-	auto doubleLiteral = new RLiteralExpr;
-	doubleLiteral.type = ADataType.ofInt(64);
-	doubleLiteral.value = asBytes!double(3.14159);
-
-	// Short literal
-	auto shortLiteral = new RLiteralExpr;
-	shortLiteral.type = ADataType.ofInt(16);
-	shortLiteral.value = asBytes!short(42);
-
-	// Long literal
-	auto longLiteral = new RLiteralExpr;
-	longLiteral.type = ADataType.ofInt(64);
-	longLiteral.value = asBytes!long(123456789);
-
-	// Print converted values
-	assert(as!int(intLiteral.value) ==  1);
-	assert(as!float(floatLiteral.value) ==  1.0f);
-	assert(as!double(doubleLiteral.value) ==  3.14159);
-	assert(as!short(shortLiteral.value) ==  42);
-	assert(as!long(longLiteral.value) ==  123456789);
-
-	bool exceptionThrown = false;
-	try {
-		auto invalidLiteral = new RLiteralExpr;
-		invalidLiteral.type = ADataType.ofString();
-	} catch (Exception e) {
-		exceptionThrown = true;
-	}
-
-	RReturn intReturnStmt = new RReturn;
-	intReturnStmt.val = intLiteral;
-
-	RReturn floatReturnStmt = new RReturn;
-	floatReturnStmt.val = floatLiteral;
-	
-	auto intBytecode = generator.generateBytecode(intReturnStmt);
-	printBytecodeToFile(testFolder ~ "generated_int_code.txt", intBytecode);
-
-	auto floatBytecode = generator.generateBytecode(floatReturnStmt);
-	printBytecodeToFile(testFolder ~ "generated_float_code.txt", floatBytecode);
-
-	RBlock block = new RBlock;
-	block.statements ~= intReturnStmt;
-	block.statements ~= floatReturnStmt;
-
-	RIf ifStmt = new RIf;
-	ifStmt.condition = intLiteral;
-	ifStmt.onTrue = block;
-
-	RFor forStmt = new RFor;
-	forStmt.countIdent = "i"; // TODO check why these are strings
-	forStmt.valIdent = "j"; // TODO check why these are strings
-	forStmt.body = block;
-
-	auto complexBytecode = generator.generateBytecode(forStmt);
-	printBytecodeToFile(testFolder ~  "complex_code.txt", complexBytecode);
-
-}
-
-// Testing literal expressions
-unittest {
-
-	auto generator = new BytecodeGenerator;
-
-	// Test for 4-byte int literal
-	auto intLiteral = new RLiteralExpr;
-	intLiteral.type = ADataType.ofInt(32);
-	intLiteral.value = asBytes!int(42);
-	generator.generateLiteralBytecode(intLiteral);
-
-	// Test for 8-byte long literal
-	auto longLiteral = new RLiteralExpr;
-	longLiteral.type = ADataType.ofInt(64);
-	longLiteral.value = asBytes!long(123456789L);	
-	generator.generateLiteralBytecode(longLiteral);
-
-	// Test for 32-bit float literal
-	auto floatLiteral = new RLiteralExpr;
-	floatLiteral.type = ADataType.ofFloat(32);
-	floatLiteral.value = asBytes!float(3.14f);	
-	generator.generateLiteralBytecode(floatLiteral);
-
-	// Test for 64-bit double literal
-	auto doubleLiteral = new RLiteralExpr;
-	doubleLiteral.type = ADataType.ofInt(64);
-	doubleLiteral.value = asBytes!double(2.717);	
-	generator.generateLiteralBytecode(doubleLiteral);
-
-	printBytecodeToFile(testFolder ~  "literal_code.txt", generator.bytecodeInstructions);
-	//printBytecode(generator.bytecodeInstructions);
-
-} 
-
-
-// Testing Function Bytecode Generator
-unittest{
-	RFn fn = new RFn;
-	fn.ident = "testFunction";
-
-	// Create function body as a block expression
-	RBlockExpr blockExpr = new RBlockExpr;
-	blockExpr.type.type = ADataType.Type.Struct; // Assume void return type
-	blockExpr.block = new RBlock;
-	fn.body = blockExpr;
-
-	// Initialize function parameters
-	fn.paramsN = ["param1", "param2"];  // Parameter names
-	fn.paramsT = [
-		ADataType.ofInt,  // param1 type
-		ADataType.ofInt   // param2 type
-	];
-	fn.paramCount = fn.paramsN.length;  // Set number of parameters
-
-	// Initialize block's local variables
-	blockExpr.block.localsN = ["local1", "local2"];
-	blockExpr.block.localsT = [
-		ADataType.ofFloat, // local1 type
-		ADataType.ofInt    // local2 type
-	];
-
-	auto generator = new BytecodeGenerator;
-	generator.generateFunctionBytecode(fn);
-	fn.ident = "testFunction2";
-	generator.generateFunctionBytecode(fn);
-			
-	printBytecodeToFile(testFolder ~  "fnbytecode_code.txt", generator.bytecodeInstructions);
-}
-
-// Testing Intrinsic Call Expr Bytecode Generator
-unittest{
-	auto generator = new BytecodeGenerator;
-
-	RIdentExpr iExpr = new RIdentExpr;
-	iExpr.ident = "iExpr";
-
-	RLiteralExpr litNegOne = new RLiteralExpr;
-	litNegOne.type = ADataType.ofInt;
-	litNegOne.value = (-1L).asBytes;
-
-	RLiteralExpr litTen = new RLiteralExpr;
-	litTen.type = ADataType.ofInt;
-	litTen.value = (10L).asBytes;
-
-	// cmpI64 = cmpI64(iExpr, 10)
-	RIntrinsicCallExpr cmpI64 = new RIntrinsicCallExpr;
-	cmpI64.name = "cmpI64";
-	cmpI64.params = [iExpr, litTen];
-
-	// isI8 = isI8(cmpI64, -1)
-	RIntrinsicCallExpr isI8 = new RIntrinsicCallExpr;
-	isI8.name = "isI8";
-	isI8.params = [cmpI64, litNegOne];
-
-	// incI32 = incI32(iExpr)
-	RIntrinsicCallExpr incI32 = new RIntrinsicCallExpr;
-	incI32.name = "incI32";
-	incI32.params = [iExpr];
-
-	// Run test cases
-	//writeln("Testing isI8:");
-	generator.generateIntrinsicCallExprBytecode(isI8);
-
-	//writeln("Testing incI32:");
-	//generator.generateIntrinsicCallExprBytecode(incI32);
-
-	printBytecodeToFile(testFolder ~  "intrinsic_code.txt", generator.bytecodeInstructions);
-}
-
-// Testing if conditions
-unittest {
-	/*
-	var int x = 0;
-
-	if $isI8($cmpI64(x, 10), -1) {
-		x = 1;
-	} else {
-		x = 2;
-	}
-	*/
-
-	auto generator = new BytecodeGenerator();
-
-	// Define variable x
-	RIdentExpr xIdent = new RIdentExpr;
-	xIdent.ident = "x";
-
-	RLiteralExpr litZero = new RLiteralExpr;
-	litZero.type = ADataType.ofInt;
-	litZero.value = (0L).asBytes;
-
-	RAssignExpr initX = new RAssignExpr;
-	initX.lhs = xIdent;
-	initX.rhs = litZero;
-
-	// Define condition: isI8(cmpI64(x, 10), -1)
-	RLiteralExpr litTen = new RLiteralExpr;
-	litTen.type = ADataType.ofInt;
-	litTen.value = (10L).asBytes;
-
-	RLiteralExpr litNegOne = new RLiteralExpr;
-	litNegOne.type = ADataType.ofInt;
-	litNegOne.value = (-1L).asBytes;
-
-	RIntrinsicCallExpr cmpI64 = new RIntrinsicCallExpr;
-	cmpI64.name = "cmpI64";
-	cmpI64.params = [xIdent, litTen];
-
-	RIntrinsicCallExpr isI8 = new RIntrinsicCallExpr;
-	isI8.name = "isI8";
-	isI8.params = [cmpI64, litNegOne];
-
-	// Define if-true block: x = 1
-	RLiteralExpr litOne = new RLiteralExpr;
-	litOne.type = ADataType.ofInt;
-	litOne.value = (1L).asBytes;
-
-	RAssignExpr assignTrue = new RAssignExpr;
-	assignTrue.lhs = xIdent;
-	assignTrue.rhs = litOne;
-
-	// Define if-false block: x = 2
-	RLiteralExpr litTwo = new RLiteralExpr;
-	litTwo.type = ADataType.ofInt;
-	litTwo.value = (2L).asBytes;
-
-	RAssignExpr assignFalse = new RAssignExpr;
-	assignFalse.lhs = xIdent;
-	assignFalse.rhs = litTwo;
-
-	// Define if statement
-	RIf ifStmt = new RIf;
-	ifStmt.condition = isI8;
-	ifStmt.onTrue = assignTrue;
-	ifStmt.onFalse = assignFalse;
-
-	// Generate bytecode
-	generator.generateStatementBytecode(initX);
-	generator.generateStatementBytecode(ifStmt);
-
-	printBytecodeToFile(testFolder ~ "rif_intrinsic_code.txt", generator.bytecodeInstructions);
-}
-
 
 version (codegen) {
 	void main() {
 		writeln("Testing Bytecode Generator...");
 	}
+}
+
+unittest {
+	auto generator = new BytecodeGenerator;
+
+	// Create a block expression with local variables and statements
+	RBlockExpr blockExpr = new RBlockExpr;
+	blockExpr.block = new RBlock;
+
+	// Define local variables
+	blockExpr.block.localsN = ["local1", "local2"];
+	blockExpr.block.localsT = [ADataType.ofInt, ADataType.ofFloat]; 
+
+	// Create statements for the block
+	RIdentExpr local1Ident = new RIdentExpr;
+	local1Ident.ident = "local1";
+
+	RIdentExpr local2Ident = new RIdentExpr;
+	local2Ident.ident = "local2";
+
+	RLiteralExpr literal1 = new RLiteralExpr;
+	literal1.type = ADataType.ofInt;
+	literal1.value = asBytes!int(10);
+
+	RLiteralExpr literal2 = new RLiteralExpr;
+	literal2.type = ADataType.ofFloat;
+	literal2.value = asBytes!float(20.0f);
+
+	// Create assignment statements
+	RAssignExpr assignLocal1 = new RAssignExpr;
+	assignLocal1.lhs = local1Ident;
+	assignLocal1.rhs = literal1;
+
+	RAssignExpr assignLocal2 = new RAssignExpr;
+	assignLocal2.lhs = local2Ident;
+	assignLocal2.rhs = literal2;
+
+	// Add statements to the block
+	blockExpr.block.statements ~= assignLocal2;
+	blockExpr.block.statements ~= assignLocal1;
+
+	// Generate bytecode for the block expression
+	generator.generateBlockExprBytecode(blockExpr);
+
+
+	printBytecode(generator.bytecodeInstructions);
 }
 
 

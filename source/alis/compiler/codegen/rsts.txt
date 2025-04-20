@@ -1,22 +1,22 @@
 RModule inherits from ASTNode  
-RModule associations: RFn[] (functions), bool[] (isEntryFlags), RBlock[] (blocks), ADataType[] (types), string[] (names), Visibility[] (visibilities)
+RModule associations: RFn[] (fns), bool[] (fnIsPublic), RBlock[] (initers), ADataType[] (globalsT), string[] (globalsN), Visibility[] (globalsV)
 
 RFn inherits from ASTNode  
-RFn associations: string (name), RExpr (body), ADataType[] (params), string[] (paramNames), size_t (location)
+RFn associations: string (ident), RExpr (body), ADataType[] (paramsT), string[] (paramsN), size_t (paramCount)
 
 RStatement inherits from Statement
 
 RBlock inherits from RStatement  
-RBlock associations: RStatement[] (statements), ADataType[] (locals), string[] (localNames)
+RBlock associations: RStatement[] (statements), ADataType[] (localsT), string[] (localsN)
 
 RReturn inherits from RStatement  
-RReturn associations: RExpr (value)
+RReturn associations: RExpr (val)
 
 RIf inherits from RStatement  
-RIf associations: RExpr (condition), RStatement (thenBranch), RStatement (elseBranch)
+RIf associations: RExpr (condition), RStatement (onTrue), RStatement (onFalse)
 
 RFor inherits from RStatement  
-RFor associations: string (varName), ADataType (type), string (label), RExpr (rangeExpr), RStatement (body)
+RFor associations: string (countIdent), ADataType (valType), string (valIdent), RExpr (range), RStatement (body)
 
 RWhile inherits from RStatement  
 RWhile associations: RExpr (condition), RStatement (body)
@@ -25,29 +25,29 @@ RDoWhile inherits from RStatement
 RDoWhile associations: RExpr (condition), RStatement (body)
 
 RCase inherits from ASTNode  
-RCase associations: RLiteralExpr (condition), RStatement (body)
+RCase associations: RLiteralExpr (val), RStatement (body)
 
 RCaseDef inherits from RCase
 
 RSwitch inherits from RStatement  
-RSwitch associations: RExpr (condition), RCase[] (cases)
+RSwitch associations: RExpr (val), RCase[] (cases)
 
 RExpr inherits from RStatement
 
 RIdentExpr inherits from RExpr  
-RIdentExpr associations: string (name)
+RIdentExpr associations: string (ident)
 
 RBlockExpr inherits from RExpr  
-RBlockExpr associations: ADataType (returnType), RBlock (block)
+RBlockExpr associations: ADataType (type), RBlock (block)
 
 RIntrinsicExpr inherits from RExpr  
 RIntrinsicExpr associations: string (name)
 
 RIntrinsicCallExpr inherits from RExpr  
-RIntrinsicCallExpr associations: string (name), RExpr[] (args)
+RIntrinsicCallExpr associations: string (name), RExpr[] (params)
 
 RDTypeExpr inherits from RExpr  
-RDTypeExpr associations: ADataType (dtype)
+RDTypeExpr associations: ADataType (type)
 
 RAssignExpr inherits from RExpr  
 RAssignExpr associations: RExpr (lhs), RExpr (rhs)
@@ -56,37 +56,37 @@ RRefAssignExpr inherits from RExpr
 RRefAssignExpr associations: RExpr (lhs), RExpr (rhs)
 
 RDerefExpr inherits from RExpr  
-RDerefExpr associations: RExpr (target)
+RDerefExpr associations: RExpr (val)
 
 RCommaExpr inherits from RExpr  
-RCommaExpr associations: RExpr[] (parts)
+RCommaExpr associations: RExpr[] (exprs)
 
 RFnCallExpr inherits from RExpr  
-RFnCallExpr associations: RExpr (callee), RExpr[] (args)
+RFnCallExpr associations: RExpr (callee), RExpr[] (params)
 
 RPreIsExpr inherits from RExpr  
-RPreIsExpr associations: RExpr (expr)
+RPreIsExpr associations: RExpr (val)
 
 RPreNotIsExpr inherits from RExpr  
-RPreNotIsExpr associations: RExpr (expr)
+RPreNotIsExpr associations: RExpr (val)
 
 RRefExpr inherits from RExpr  
-RRefExpr associations: RExpr (target)
+RRefExpr associations: RExpr (val)
 
 RVTGetExpr inherits from RExpr  
-RVTGetExpr associations: RExpr (target), string (fieldName)
+RVTGetExpr associations: RExpr (val), string (member)
 
 RMemberGetExpr inherits from RExpr  
-RMemberGetExpr associations: RExpr (target), string (member)
+RMemberGetExpr associations: RExpr (val), string (member)
 
 RFnExpr inherits from RExpr  
-RFnExpr associations: AFn (func)
+RFnExpr associations: AFn (fn)
 
 RStructLiteralExpr inherits from RExpr  
-RStructLiteralExpr associations: JSONValue (values)
+RStructLiteralExpr associations: RExpr[string] (members)
 
 RArrayLiteralExpr inherits from RExpr  
 RArrayLiteralExpr associations: RExpr[] (elements)
 
 RLiteralExpr inherits from RExpr  
-RLiteralExpr associations: ubyte[] (data), ADataType (type)
+RLiteralExpr associations: ubyte[] (value), ADataType (type)
