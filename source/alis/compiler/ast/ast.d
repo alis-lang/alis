@@ -560,6 +560,8 @@ protected:
 		ret["type"] = type.toJson;
 		if (value)
 			ret["value"] = value.toJson;
+		if (isRO)
+			ret["ipub"] = true;
 		ret["_name"] = "VarDef";
 		return ret;
 	}
@@ -568,6 +570,8 @@ public:
 	Expression type;
 	/// optional default value, can be null
 	Expression value;
+	/// if this is read-only outside parent module
+	bool isRO;
 }
 
 /// static variable definition
