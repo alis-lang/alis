@@ -106,7 +106,7 @@ public:
 					params.map!(p => p.toString).join(","));
 		return ident;
 	}
-	bool opEquals()(auto const ref IdentU rhs) const pure {
+	bool opEquals()(auto ref const IdentU rhs) const pure {
 		if (ident != rhs.ident || params.length != rhs.params.length)
 			return false;
 		foreach (i, param; params){
@@ -286,40 +286,40 @@ public struct ASymbol{
 		assert(false);
 	}
 
-	bool opEquals()(auto const ref AStruct structS) const {
+	bool opEquals()(auto ref const AStruct structS) const {
 		return this.type == Type.Struct && this.structS == structS;
 	}
-	bool opEquals()(auto const ref AUnion unionS) const {
+	bool opEquals()(auto ref const AUnion unionS) const {
 		return this.type == Type.Union && this.unionS == unionS;
 	}
-	bool opEquals()(auto const ref AEnum enumS) const {
+	bool opEquals()(auto ref const AEnum enumS) const {
 		return (this.type == Type.Enum || this.type == Type.EnumMember) &&
 			this.enumS == enumS;
 	}
-	bool opEquals()(auto const ref AEnumMember enumS) const {
+	bool opEquals()(auto ref const AEnumMember enumS) const {
 		return (this.type == Type.Enum || this.type == Type.EnumMember) &&
 			this.enumS == enumS;
 	}
-	bool opEquals()(auto const ref AEnumConst enumCS) const {
+	bool opEquals()(auto ref const AEnumConst enumCS) const {
 		return this.type == Type.EnumConst && this.enumCS == enumCS;
 	}
-	bool opEquals()(auto const ref AFn fnS) const {
+	bool opEquals()(auto ref const AFn fnS) const {
 		return this.type == Type.Fn && this.fnS == fnS;
 	}
-	bool opEquals()(auto const ref AVar varS) const {
+	bool opEquals()(auto ref const AVar varS) const {
 		return this.type == Type.Var && this.varS == varS;
 	}
-	bool opEquals()(auto const ref AAlias aliasS) const {
+	bool opEquals()(auto ref const AAlias aliasS) const {
 		return this.type == Type.Alias && this.aliasS == aliasS;
 	}
-	bool opEquals()(auto const ref AImport importS) const {
+	bool opEquals()(auto ref const AImport importS) const {
 		return this.type == Type.Import && this.importS == importS;
 	}
-	bool opEquals()(auto const ref ATemplate templateS) const {
+	bool opEquals()(auto ref const ATemplate templateS) const {
 		return this.type == Type.Template && this.templateS == templateS;
 	}
 
-	bool opEquals()(auto const ref ASymbol rhs) const {
+	bool opEquals()(auto ref const ASymbol rhs) const {
 		if (rhs.type != this.type || this.ident != ident)
 			return false;
 		final switch (type){
@@ -719,7 +719,7 @@ public struct ADataType{
 		return ADataType;
 	}
 
-	bool opEquals()(auto const ref ADataType rhs) const pure {
+	bool opEquals()(auto ref const ADataType rhs) const pure {
 		if (type != rhs.type)
 			return false;
 		final switch (type){
