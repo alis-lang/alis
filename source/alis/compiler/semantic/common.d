@@ -259,3 +259,10 @@ public:
 		leaf._next = r;
 	}
 }
+
+/// Gets symbol table of a module, for importing
+/// Returns: symbol table of a module
+package STab!ASymbol modSTab(string[] modId) pure {
+	/// TODO: implement modSTab
+	return new STab!ASymbol;
+}

@@ -11,6 +11,7 @@ import alis.compiler.error,
 			 alis.compiler.lexer,
 			 alis.compiler.parser,
 			 alis.compiler.semantic,
+			 alis.compiler.semantic.error,
 			 alis.compiler.semantic.common,
 			 alis.compiler.ast;
 
@@ -49,6 +50,9 @@ void main(){
 void doTheStuff(Module node){
 	node.ident = "alis-main";
 	import alis.compiler.semantic.symbols;
-	STab!DefNode stab = sTabBuild(node);
-	stab.writeln;
+	auto stabVal = sTabBuild(node);
+	if (stabVal.isErr)
+		stabVal.err.writeln;
+	else
+		stabVal.val.writeln;
 }
