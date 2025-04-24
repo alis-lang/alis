@@ -69,10 +69,13 @@ public static:
 /// Returns: AModule
 package struct aModOf{
 private:
-	alias It = ASTIter!(globDefIter);
+	alias It = ASTIter!(globDefIter, mixinInitDefIter, templateIter, cCompIter,
+			mixinInitIter, globDefIter, enumConstIter, enumSmIter, structIter,
+			varIter, aliasIter, unionIter, utestIter);
 static:
 	static struct St{
 		SmErr[] errs;
+		AModule mod;
 	}
 	@ItFn mixinInitDefIter(MixinInitDef node, ref St st){
 		st.errs ~= errUnsup(node);
@@ -88,7 +91,7 @@ static:
 	}
 
 	@ItFn void globDefIter(GlobDef node, ref St st){
-		It.exec(node, st);
+		It.exec(node.def, st);
 	}
 	@ItFn void enumConstIter(EnumConstDef node, ref St state){}
 	@ItFn void enumSmIter(EnumSmDef node, ref St state){}
@@ -100,7 +103,10 @@ static:
 
 public static:
 	SmErrsVal!AModule opCall(Module mod){
-		AModule ret;
-		return SmErrsVal!AModule(ret);
+		St st;
+		It.exec(mod, st);
+		if (st.errs)
+			return SmErrsVal!AModule(st.errs);
+		return SmErrsVal!AModule(st.mod);
 	}
 }
