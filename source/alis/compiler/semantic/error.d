@@ -5,7 +5,8 @@ module alis.compiler.semantic.error;
 
 import alis.compiler.common;
 
-import std.format;
+import std.format,
+			 std.conv;
 
 /// Value or SmErr
 alias SmErrVal(T) = ErrVal!(T, SmErr);
@@ -17,6 +18,7 @@ public struct SmErr{
 	/// Possible Error Types
 	enum Type{
 		IdentReuse, /// Same identifier used across definitions
+		UnsupFeat, /// Unsupported Feature used
 	}
 	/// where error happen
 	Location pos;
@@ -40,4 +42,11 @@ public struct SmErr{
 package SmErr errIdentReuse(Location pos, string ident){
 	return SmErr(pos, format!"Identifier `%s` conflicts"(ident),
 			SmErr.Type.IdentReuse);
+}
+
+/// Unsupported AST node
+package SmErr errUnsup(ASTNode node){
+	return SmErr(node.pos,
+			typeid(node).to!string.format!"Unsupported node `%s`",
+			SmErr.Type.UnsupFeat);
 }
