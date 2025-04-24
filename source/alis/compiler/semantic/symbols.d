@@ -105,116 +105,38 @@ public static:
 struct aModOf{
 	@disable this();
 private:
-
+	alias It = ASTIter!(globDefIter);
 static:
+	static struct St{
+		SmErr[] errs;
+	}
+	@ItFn mixinInitDefIter(MixinInitDef node, ref St st){
+		st.errs ~= errUnsup(node);
+	}
+	@ItFn templateIter(TemplateDef node, ref St st){
+		st.errs ~= errUnsup(node);
+	}
+	@ItFn cCompIter(CCNode node, ref St st){
+		st.errs ~= errUnsup(node);
+	}
+	@ItFn mixinInitIter(MixinInit node, ref St st){
+		st.errs ~= errUnsup(node);
+	}
+
+	@ItFn void globDefIter(GlobDef node, ref St st){
+		It.exec(node, st);
+	}
+	@ItFn void enumConstIter(EnumConstDef node, ref St1 state){}
+	@ItFn void enumSmIter(EnumSmDef node, ref St1 state){}
+	@ItFn void structIter(StructDef node, ref St1 state){}
+	@ItFn void varIter(VarDef node, ref St1 state){}
+	@ItFn void aliasIter(AliasDef node, ref St1 state){}
+	@ItFn void unionIter(UnionDef node, ref St1 state){}
+	@ItFn void utestIter(UTest node, ref St1 state){}
 
 public static:
 	SmErrsVal!AModule opCall(Module mod){
 		AModule ret;
 		return SmErrsVal!AModule(ret);
 	}
-}
-
-/// iteration levels
-private enum Lv : size_t{
-	Mod, /// module level ST building
-	Defs, /// converting module level definitions to ASymbols
-}
-
-//private alias It(Lv l) = ItL!(mixin(__MODULE__), l);
-
-/// Iteration state for L.Mod
-private struct St0{
-	/// module id
-	IdentU modId;
-	/// visibility for next def node
-	Visibility vis;
-	/// symbol table
-	STab!DefNode st;
-	/// errors
-	SmErr[] errs;
-}
-
-/*private @ITL(Lv.Mod) @ItFn {
-	void modIter(Module node, ref St0 state){
-		state.st = new STab!DefNode;
-		state.modId = node.ident.IdentU;
-		It!(Lv.Mod).descend(node, state);
-	}
-
-	void varDefListIter(VarDefList varDefList, ref St0 state){
-		It!(Lv.Mod).descend(varDefList, state);
-	}
-
-	void defIter(DefNode node, ref St0 state){
-		IdentU id = node.name.IdentU;
-		state.st.valAdd(id, node,
-				state.vis != Visibility.Default ? IdentU.init : state.modId);
-	}
-
-	void globDefIter(GlobDef node, ref St0 state){
-		state.vis = node.visibility;
-		It!(Lv.Mod).descend(node, state);
-		state.vis = Visibility.Default;
-	}
-
-	void mixinInitDefIter(MixinInitDef def, ref St0){
-		def.unsupported;
-	}
-
-	void templateDefIter(TemplateDef def, ref St0){
-		// kinda sad tbh
-		def.unsupported;
-	}
-}*/
-
-/// Iteration state for Lv.Defs
-private struct St1{
-	STab!DefNode st0;
-	STab!ASymbol st;
-	RFn[] fns;
-	void[0][DefNode] visited;
-	IdentU visId;
-	IdentU[] ctx;
-}
-
-private @ITL(Lv.Defs) @ItFn {
-	void mixinInitDefConv(MixinInitDef node, ref St1){
-		node.unsupported;
-	}
-	void templateConv(TemplateDef node, ref St1){
-		node.unsupported;
-	}
-	void cCompConv(CCNode node, ref St1){
-		node.unsupported;
-	}
-	void mixinInitConv(MixinInit node, ref St1){
-		node.unsupported;
-	}
-
-	void importConv(Import node, ref St1 state){
-		// TODO: merge imported stab
-	}
-
-	void fnConv(FnDef node, ref St1 state){
-		RFn fn = new RFn;
-		fn.ident = state.ctx.map!(i => i.toString).join(".")
-			.format!"%s.%s"(node.name);
-		fn.paramsN = node.params.params.map!(p => p.name).array;
-		fn.paramCount = fn.paramsN.length;
-		fn.pos = node.pos;
-		// TODO: figure out fn.body & fn.paramsT
-	}
-	void enumConstConv(EnumConstDef node, ref St1 state){}
-	void enumSmConv(EnumSmDef node, ref St1 state){}
-	void structConv(StructDef node, ref St1 state){}
-	void varConv(VarDef node, ref St1 state){}
-	void aliasConv(AliasDef node, ref St1 state){}
-	void unionConv(UnionDef node, ref St1 state){}
-	void utestConv(UTest node, ref St1 state){}
-}
-
-private void unsupported(ASTNode node){
-	import std.conv : to;
-	assert(false, typeid(node).to!string ~ " not yet supported");
 }
