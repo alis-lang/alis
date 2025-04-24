@@ -24,46 +24,11 @@ import alis.common,
 
 import meta;
 
-/// Builds symbol table
-/// Returns: symbol table
-package SmErrsVal!(STab!ASymbol) sTabBuild(Module mod){
-	SmErrsVal!(STab!DefNode) std = mod.sTab0Build;
-	if (std.isErr)
-		return SmErrsVal!(STab!ASymbol)(std.err);
-	return std.val.sTab1Build;
-}
-
-/// Builds initial symbol table
-/// Returns: symbol initial symbol table
-private SmErrsVal!(STab!DefNode) sTab0Build(Module mod){
-	St0 st0;
-	//It!(Lv.Mod).exec(mod, st0); // TODO: FIX THIS!
-	if (st0.errs.length)
-		return SmErrsVal!(STab!DefNode)(st0.errs);
-	return SmErrsVal!(STab!DefNode)(st0.st);
-}
-
-/// Builds final symbol table from intial symbol table
-private SmErrsVal!(STab!ASymbol) sTab1Build(STab!DefNode stab){
-	STab!ASymbol ret = new STab!ASymbol;
-	foreach (IdentU id, STab!DefNode.EndNode[] nodes; stab.map){
-		foreach (DefNode def, IdentU visId; nodes.map!(n => tuple(n.val, n.vis))){
-			St1 state;
-			state.st = ret;
-			state.st0 = stab;
-			state.visId = visId;
-			//It!(Lv.Defs).exec(def, state);
-		}
-	}
-	return SmErrsVal!(STab!ASymbol)(ret);
-}
-
 /// Gets imports at any node in the AST (yes I know it's a struct, it has an
 /// opCall override)
 ///
 /// Returns: Imports
-struct importsOf{
-	@disable this();
+private struct importsOf{
 private:
 	alias It = ASTIter!(globDefIter, localDefIter, importIter);
 static:
@@ -102,8 +67,7 @@ public static:
 
 /// Builds AModule from Module
 /// Returns: AModule
-struct aModOf{
-	@disable this();
+package struct aModOf{
 private:
 	alias It = ASTIter!(globDefIter);
 static:
@@ -126,13 +90,13 @@ static:
 	@ItFn void globDefIter(GlobDef node, ref St st){
 		It.exec(node, st);
 	}
-	@ItFn void enumConstIter(EnumConstDef node, ref St1 state){}
-	@ItFn void enumSmIter(EnumSmDef node, ref St1 state){}
-	@ItFn void structIter(StructDef node, ref St1 state){}
-	@ItFn void varIter(VarDef node, ref St1 state){}
-	@ItFn void aliasIter(AliasDef node, ref St1 state){}
-	@ItFn void unionIter(UnionDef node, ref St1 state){}
-	@ItFn void utestIter(UTest node, ref St1 state){}
+	@ItFn void enumConstIter(EnumConstDef node, ref St state){}
+	@ItFn void enumSmIter(EnumSmDef node, ref St state){}
+	@ItFn void structIter(StructDef node, ref St state){}
+	@ItFn void varIter(VarDef node, ref St state){}
+	@ItFn void aliasIter(AliasDef node, ref St state){}
+	@ItFn void unionIter(UnionDef node, ref St state){}
+	@ItFn void utestIter(UTest node, ref St state){}
 
 public static:
 	SmErrsVal!AModule opCall(Module mod){

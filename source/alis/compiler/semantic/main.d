@@ -50,9 +50,9 @@ void main(){
 void doTheStuff(Module node){
 	node.ident = "alis-main";
 	import alis.compiler.semantic.symbols;
-	auto stabVal = sTabBuild(node);
-	if (stabVal.isErr)
-		stabVal.err.writeln;
+	auto modVal = aModOf(node);
+	if (modVal.isErr)
+		modVal.err.writeln;
 	else
-		stabVal.val.writeln;
+		modVal.val.writeln;
 }
