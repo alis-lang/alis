@@ -260,9 +260,15 @@ public:
 	}
 }
 
-/// Gets symbol table of a module, for importing
+/// Imports
+package struct Imports{
+	AModule[] imports; /// unnamed imports
+	AModule[string] importsN; /// named imports
+}
+
+/// Gets a module, for importing
 /// Returns: symbol table of a module
-package STab!ASymbol modSTab(string[] modId) pure {
+package AModule mod(string[] modId) pure {
 	/// TODO: implement modSTab
-	return new STab!ASymbol;
+	return AModule();
 }
