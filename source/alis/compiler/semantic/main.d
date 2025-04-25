@@ -7,7 +7,8 @@ import std.stdio,
 			 std.algorithm,
 			 std.datetime.stopwatch;
 
-import alis.compiler.error,
+import alis.common,
+			 alis.compiler.error,
 			 alis.compiler.lexer,
 			 alis.compiler.parser,
 			 alis.compiler.semantic,
@@ -32,27 +33,11 @@ void main(){
 		exit(1);
 	}
 	sw.start;
-	CmpErr[] errs;
-	// TODO: do the semantic analysis. HOW??? HOW????
+	SmErrsVal!AModule modVal = node.val.aModOf;
 	sw.stop;
-	stderr.writefln!"semantic analysis in: %d msecs"(sw.peek.total!"msecs");
-	doTheStuff(node.val);
-	/*if (errs){
-		JSONValue err;
-		err["_error"] = errs.map!(e => e.toString).array;
-		writeln(err.toPrettyString);
-		exit(1);
-	} else {
-		stdout.writeln(node.val.toJson.toPrettyString);
-	}*/
-}
-
-void doTheStuff(Module node){
-	node.ident = "alis-main";
-	import alis.compiler.semantic.symbols;
-	auto modVal = aModOf(node);
 	if (modVal.isErr)
 		modVal.err.writeln;
 	else
 		modVal.val.writeln;
+	stderr.writefln!"done in: %d msecs"(sw.peek.total!"msecs");
 }

@@ -73,7 +73,7 @@ private:
 			mixinInitIter, globDefIter, enumConstIter, enumSmIter, structIter,
 			varIter, aliasIter, unionIter, utestIter);
 static:
-	static struct St{
+	struct St{
 		SmErr[] errs;
 		AModule mod;
 	}
