@@ -56,38 +56,22 @@ public:
 	struct Node(E){
 		E val;
 		IdentU vis;
-	}
-	struct EndNode{
-		/// value
-		T val;
-		/// only visible to contexts that begin with this IdentU
-		IdentU vis;
-		this (T val, IdentU vis) pure {
+		this (E val, IdentU vis) pure {
 			this.val = val;
-			this.vis = vis;
-		}
-	}
-	struct STNode{
-		/// value
-		STab!T st;
-		/// only visible to contexts that begin with this IdentU
-		IdentU vis;
-		this (STab!T st, IdentU vis) pure {
-			this.st = st;
 			this.vis = vis;
 		}
 	}
 
 	/// the symbol table
-	EndNode[][IdentU] map;
+	Node!T[][IdentU] map;
 	/// sub-tables
-	STNode[IdentU] next;
+	Node!(STab!T)[IdentU] next;
 
 	static struct ResRange{
 	private:
 		IdentU _head;
 		IdentU _id;
-		EndNode[][IdentU][] _maps;
+		Node!T[][IdentU][] _maps;
 
 		this(IdentU id, IdentU[] ctx, STab!T st) pure {
 			this._id = id;
@@ -96,7 +80,7 @@ public:
 			foreach (IdentU i; ctx){
 				if (i !in st.next)
 					break;
-				STNode nextNode = st.next[i];
+				Node!(STab!T) nextNode = st.next[i];
 				if (nextNode.vis != IdentU.init && nextNode.vis != _head)
 					break;
 				_maps ~= nextNode.st.map;
@@ -120,7 +104,7 @@ public:
 				_maps = _maps[0 .. $ - 1];
 		}
 		auto front() pure {
-			EndNode[] arr;
+			Node!T[] arr;
 			if (_maps.length && (_id in _maps[$ - 1]) !is null)
 				arr = _maps[$ - 1][_id];
 			return arr.filter!(node => node.vis == IdentU.init || node.vis == _head);
@@ -141,10 +125,10 @@ public:
 	/// Add a new value.
 	void valAdd(IdentU id, T val, IdentU vis) pure {
 		if (auto ptr = id in map){
-			*ptr ~= EndNode(val, vis);
+			*ptr ~= Node!T(val, vis);
 			return;
 		}
-		map[id] = [EndNode(val, vis)];
+		map[id] = [Node!T(val, vis)];
 	}
 	/// ditto
 	void valAdd(IdentU[] id, T val, IdentU vis) pure {
@@ -162,7 +146,7 @@ public:
 
 	/// Add a new Symbol Table. **Will overwrite existing, if any.**
 	void stAdd(IdentU id, STab!T st, IdentU vis) pure {
-		next[id] = STNode(st, vis);
+		next[id] = Node!(STab!T)(st, vis);
 	}
 	/// ditto
 	void stAdd(IdentU[] id, STab!T stab, IdentU vis) pure {
@@ -187,7 +171,7 @@ public:
 		JSONValue ret;
 		foreach (IdentU key; map.byKey){
 			ret[key.toString] = map[key]
-				.map!((const EndNode n){
+				.map!((const Node!T n){
 						JSONValue obj;
 						static if (__traits(compiles, n.val.toJson)){
 							obj["val"] = n.val.toJson;
@@ -201,7 +185,7 @@ public:
 		}
 		foreach (IdentU key; next.byKey){
 			immutable string s = key.toString;
-			const STNode n = next[key];
+			const Node!(STab!T) n = next[key];
 			JSONValue obj;
 			obj["val"] = n.st.toJson;
 			obj["vis"] = n.vis.toString;
