@@ -8,6 +8,7 @@ import alis.utils;
 import std.string,
 			 std.traits,
 			 std.range,
+			 std.conv,
 			 std.format,
 			 std.typecons,
 			 std.algorithm,
@@ -111,7 +112,8 @@ public:
 					params.map!(p => p.toString).join(","));
 		return ident;
 	}
-	bool opEquals()(auto ref const IdentU rhs) const pure {
+	//bool opEquals()(auto ref const IdentU rhs) const pure {
+	bool opEquals(ref const IdentU rhs) const pure { // TODO: remove this fuckery
 		if (ident != rhs.ident || params.length != rhs.params.length)
 			return false;
 		foreach (i, param; params){
@@ -183,6 +185,9 @@ public:
 	/// identifier for symbol
 	IdentU[] ident;
 	alias ident this;
+	string toString() const pure {
+		return ident.to!string;
+	}
 }
 
 /// a symbol
@@ -437,7 +442,6 @@ public struct ADataType{
 		Struct, /// a struct
 		Union, /// a union
 		Enum, /// an enum
-		EnumConst, /// an enumConst
 		NoInit, /// `$noinit`
 	}
 	/// whether it is a const
@@ -456,20 +460,8 @@ public struct ADataType{
 		}
 		/// type sequence, for `Seq`
 		ADataType[] seqT;
-		struct{
-			/// whether it is a unique type, for `Struct` or `Union`
-			bool isUnique;
-			union{
-				/// struct type, for `Struct`
-				AStruct structT;
-				/// union type, for `Union`
-				AUnion unionT;
-			}
-		}
-		/// enum type, for `Enum`
-		AEnum* enumT;
-		/// EnumConst type, for `EnumConst`
-		AEnumConst* enumConstT;
+		/// symbol reference, for `Struct`, `Union`, or `Enum`
+		ASymRef sym;
 		struct{
 			/// return type, for `Fn`
 			ADataType* retT;
@@ -484,7 +476,7 @@ public struct ADataType{
 			case Type.IntX, Type.UIntX, Type.FloatX, Type.CharX, Type.Bool:
 				return true;
 			case Type.Slice:
-				return this == ofString;
+				return this == ADataType.ofString;
 			default:
 				return false;
 		}
@@ -515,13 +507,11 @@ public struct ADataType{
 			case Type.Ref:
 				return ret ~ (*refT).toString.format!"@%s";
 			case Type.Struct:
-				return structT.toString;
+				return sym.toString.format!"struct %s";
 			case Type.Union:
-				return unionT.toString;
+				return sym.toString.format!"union %s";
 			case Type.Enum:
-				return enumT.toString;
-			case Type.EnumConst:
-				return enumConstT.toString;
+				return sym.toString.format!"enum %s";
 			case Type.NoInit:
 				return "$noinit";
 		}
@@ -550,12 +540,11 @@ public struct ADataType{
 			case Type.Ref:
 				return null.sizeof;
 			case Type.Struct:
-				return structT.sizeOf;
+				assert (false, "thou shall not call ADataType.sizeOf on Struct!");
 			case Type.Union:
-				return unionT.sizeOf;
+				assert (false, "thou shall not call ADataType.sizeOf on Union!");
 			case Type.Enum:
-				return enumT.type.sizeOf;
-			case Type.EnumConst:
+				assert (false, "thou shall not call ADataType.sizeOf on Enum!");
 			case Type.NoInit:
 				return 0;
 		}
@@ -660,34 +649,47 @@ public struct ADataType{
 	}
 
 	/// Returns: struct type
-	static ADataType of(AStruct structT) pure {
+	static ADataType of()(auto ref const AStruct structT) pure {
 		ADataType ret;
 		ret.type = Type.Struct;
-		ret.structT = structT;
+		ret.sym = structT.ident.ASymRef;
+		return ret;
+	}
+	/// ditto
+	static ADataType ofStruct(ASymRef symR) pure {
+		ADataType ret;
+		ret.type = Type.Struct;
+		ret.sym = symR;
 		return ret;
 	}
 
 	/// Returns: union type
-	static ADataType of(AUnion unionT) pure {
+	static ADataType of()(auto ref const AUnion unionT) pure {
 		ADataType ret;
 		ret.type = Type.Union;
-		ret.unionT = unionT;
+		ret.sym = unionT.ident.ASymRef;
+		return ret;
+	}
+	/// ditto
+	static ADataType ofUnion(ASymRef symR) pure {
+		ADataType ret;
+		ret.type = Type.Union;
+		ret.sym = symR;
 		return ret;
 	}
 
 	/// Returns: enum type
-	static ADataType of(AEnum enumT) pure {
+	static ADataType of()(auto ref const AEnum enumT) pure {
 		ADataType ret;
 		ret.type = Type.Enum;
-		ret.enumT = [enumT].ptr;
+		ret.sym = enumT.ident.ASymRef;
 		return ret;
 	}
-
-	/// Returns: enum const type
-	static ADataType of(AEnumConst enumConstT) pure {
+	/// ditto
+	static ADataType ofEnum(ASymRef symR) pure {
 		ADataType ret;
-		ret.type = Type.EnumConst;
-		ret.enumConstT = [enumConstT].ptr;
+		ret.type = Type.Enum;
+		ret.sym = symR;
 		return ret;
 	}
 
@@ -764,13 +766,11 @@ public struct ADataType{
 				}
 				return true;
 			case Type.Struct:
-				return structT == rhs.structT;
+				return sym == rhs.sym;
 			case Type.Union:
-				return unionT == rhs.unionT;
+				return sym == rhs.sym;
 			case Type.Enum:
-				return enumT == rhs.enumT;
-			case Type.EnumConst:
-				return enumConstT == rhs.enumConstT;
+				return sym == rhs.sym;
 			case Type.NoInit:
 				return true;
 		}
@@ -808,8 +808,13 @@ public struct ADT{
 
 /// Alis struct
 public struct AStruct{
-	/// identifier, `_` if anonymous
+	/// identifier, `_` if anonymous, which also implies not unique
 	IdentU[] ident;
+	/// if this is unique
+	@property bool isUnique() const pure {
+		return ident.length &&
+			ident[$ - 1].ident == "_" && !ident[$ - 1].params.length;
+	}
 	/// structure
 	ADT dt;
 	/// Virtual Table, if any
@@ -832,8 +837,13 @@ public struct AStruct{
 
 /// Alis union
 public struct AUnion{
-	/// identifier, `_` if anonymous
+	/// identifier, `_` if anonymous, which also implies not unique
 	IdentU[] ident;
+	/// if this is unique
+	@property bool isUnique() const pure {
+		return ident.length &&
+			ident[$ - 1].ident == "_" && !ident[$ - 1].params.length;
+	}
 	/// types of members
 	ADataType[] types;
 	/// member names
