@@ -30,7 +30,7 @@ public struct AValCT{
 			ubyte[] dataL; /// data for `Literal`
 			ADataType typeL; /// data type for `Literal`
 		}
-		ASymbol symS; /// symbol for `Symbol`
+		ASymRef symS; /// symbol ref for `Symbol`
 		ADataType typeT; /// data type for `Type`
 	}
 
@@ -78,6 +78,11 @@ public struct AValCT{
 	}
 	/// ditto
 	this (ASymbol sym){
+		this.type = Type.Symbol;
+		this.symS = sym.ident.ASymRef;
+	}
+	/// ditto
+	this (ASymRef sym){
 		this.type = Type.Symbol;
 		this.symS = sym;
 	}
@@ -170,6 +175,14 @@ public:
 unittest{
 	Ident id = new Ident("foo".IdentU, new Ident("main".IdentU));
 	assert(id.array.map!(e => e.toString).array == ["main", "foo"]);
+}
+
+/// a reference to a symbol (use STab to lookup)
+public struct ASymRef{
+public:
+	/// identifier for symbol
+	IdentU[] ident;
+	alias ident this;
 }
 
 /// a symbol
