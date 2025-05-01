@@ -36,7 +36,7 @@ void main(){
 	SmErrsVal!AModule modVal = node.val.aModOf;
 	sw.stop;
 	if (modVal.isErr)
-		modVal.err.writeln;
+		stderr.writefln!"Errors:\n%(%s%)"(modVal.err);
 	else
 		modVal.val.writeln;
 	stderr.writefln!"done in: %d msecs"(sw.peek.total!"msecs");
