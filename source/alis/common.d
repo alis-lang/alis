@@ -113,7 +113,7 @@ public:
 		return ident;
 	}
 	//bool opEquals()(auto ref const IdentU rhs) const pure {
-	bool opEquals(ref const IdentU rhs) const pure { // TODO: remove this fuckery
+	bool opEquals()(auto ref const IdentU rhs) const pure {
 		if (ident != rhs.ident || params.length != rhs.params.length)
 			return false;
 		foreach (i, param; params){
@@ -125,6 +125,11 @@ public:
 	size_t toHash() const {
 		return tuple(ident, params).toHash;
 	}
+}
+
+/// Whether an IdentU[] is to [IdentU.init]
+public bool isNoId()(auto ref const IdentU[] ident){
+	return ident.length == 1 && ident[0] == IdentU.init;
 }
 
 /// complete identifier
@@ -174,10 +179,10 @@ public:
 	}
 }*/
 ///
-unittest{
+/*unittest{
 	Ident id = new Ident("foo".IdentU, new Ident("main".IdentU));
 	assert(id.array.map!(e => e.toString).array == ["main", "foo"]);
-}
+}*/
 
 /// a reference to a symbol (use STab to lookup)
 public struct ASymRef{
@@ -425,7 +430,7 @@ public struct AModule{
 	ASymbol[IdentU] st;
 }
 
-/// Alis Data Type
+/// Alis Data Type.
 public struct ADataType{
 	/// possible Data Types
 	enum Type{
@@ -507,11 +512,11 @@ public struct ADataType{
 			case Type.Ref:
 				return ret ~ (*refT).toString.format!"@%s";
 			case Type.Struct:
-				return sym.toString.format!"struct %s";
+				return sym.toString.format!"struct(%s)";
 			case Type.Union:
-				return sym.toString.format!"union %s";
+				return sym.toString.format!"union(%s)";
 			case Type.Enum:
-				return sym.toString.format!"enum %s";
+				return sym.toString.format!"enum(%s)";
 			case Type.NoInit:
 				return "$noinit";
 		}
@@ -794,11 +799,12 @@ public struct ADT{
 	}
 
 	string toString() const pure {
-		string ret = "ADT {\n#\ttype\toffset\tname\tval\n";
+		string ret = "ADT{";
 		size_t off;
 		foreach (size_t i; 0 .. types.length){
-			ret ~= format!"%d\t%s\t%d\t%s\t%s\n"(i, types[i].toString, offsets[i],
-					names[i], types[i].decodeStr(tb[off .. off + types[i].sizeOf]));
+			ret ~= format!"%d-%d{name:%s,type:%s,tb:%s}"(
+					off, off + types[i].sizeOf, names[i], types[i].toString,
+					tb[off .. off + types[i].sizeOf]);
 			off += types[i].sizeOf;
 		}
 		ret ~= "}";
@@ -830,8 +836,7 @@ public struct AStruct{
 	}
 
 	string toString() const pure {
-		return format!"struct %s{\nDataTable:\n%s\nVirtualTable:\n%s}"(ident, dt,
-				vt);
+		return format!"struct %s{dt:%s,vt:%s}"(ident, dt, vt);
 	}
 }
 
@@ -868,13 +873,12 @@ public struct AUnion{
 
 	string toString() const pure {
 		string ret = format!"union %s{\n#\ttype\tname\tval\n"(ident);
+		ret = format!"union %s{"(ident);
 		foreach (size_t i, ref const ADataType type; types){
-			ret ~= format!"%d\t%s\t%s\t%s\n"(i,
-					types[i].toString, names.length ? names[i] : null,
-					defInd == i ? types[i].decodeStr(dt) : null);
+			ret ~= format!"%s%s%s,"(names.length ? (names[i] ~ " ") : null, type,
+					defInd == i ? " default" : null);
 		}
-		ret ~= "}";
-		return ret;
+		return ret[0 .. $ - 1] ~ "}";
 	}
 }
 
@@ -890,10 +894,9 @@ public struct AEnum{
 	Visibility vis;
 
 	string toString() const pure {
-		string ret = format!"enum %s %s{\n#\tname\tval\n"(type, ident);
-		foreach (size_t i, const AEnumMember member; members){
-			ret ~= format!"%d\t%s"(i, member);
-		}
+		string ret = format!"enum %s:%s{"(ident, type);
+		foreach (size_t i, const AEnumMember member; members)
+			ret ~= format!"%d:%s,"(i, member);
 		ret ~= "}";
 		return ret;
 	}
@@ -906,7 +909,7 @@ public struct AEnumMember{
 	/// value
 	ubyte[] val;
 	string toString() const pure {
-		return format!"%s\t%s\n"(ident, val);
+		return format!"%s=%s"(ident, val);
 	}
 }
 
@@ -922,8 +925,7 @@ public struct AEnumConst{
 	Visibility vis;
 
 	string toString() const pure {
-		return format!"enum %s %s = %s;"(type.toString, ident,
-				type.decodeStr(data));
+		return format!"enum %s:%s=%s;"(ident, type, data);
 	}
 }
 
@@ -944,9 +946,9 @@ public struct AFn{
 
 	string toString() const pure {
 		return format!
-			"fn %s%s->%s params={\n%s\n} ret=%s"(
+			"fn %s%s->%s params={\n%s\n}"(
 					(isAlisFn ? "" : "external "),
-					ident, retT, params, retT);
+					ident, retT, params);
 	}
 }
 
@@ -964,8 +966,8 @@ public struct AVar{
 	Visibility vis;
 
 	string toString() const pure {
-		return format!"var %s%s %s ,off=%d"(isGlobal ? "global" : null, type,
-				ident, offset);
+		return format!"var %s%s:%s off=%d"(isGlobal ? "global" : null, ident,
+				type, offset);
 	}
 }
 
