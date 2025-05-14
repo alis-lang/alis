@@ -97,7 +97,7 @@ public:
 
 package struct typeRes{
 private:
-	alias It = ASTIter!(identExprIter);
+	alias It = ASTIter!(identExprIter, noinitExpr, callExpr, dotExpr);
 static:
 	struct St{
 		SmErr[] errs;
@@ -106,7 +106,61 @@ static:
 		ADataType type;
 	}
 
-	@ItFn void identExprIter(IdentExpr node, ref St st){}
+	@ItFn void identExprIter(IdentExpr node, ref St st){
+		st.errs ~= errUnsup(node);
+	}
+
+	@ItFn void noinitExpr(IntrNoInit, ref St st){
+		st.type = ADataType.ofNoInit;
+	}
+
+	@ItFn void callExpr(OpCallExpr node, ref St st){
+		if (auto sub = cast(IntrinsicExpr)node.callee){
+			intrExpr(sub, node.params, st);
+			return;
+		}
+	}
+
+	@ItFn void dotExpr(OpDotBin node, ref St st){
+		if (auto sub = cast(IntrinsicExpr)node.rhs){
+			Expression[] params;
+			if (auto cExpr = cast(CommaExpr)node.lhs){
+				params = cExpr.exprs;
+			} else {
+				params = [node.lhs];
+			}
+			intrExpr(sub, params, st);
+		}
+	}
+
+	void intrExpr(IntrinsicExpr node, Expression[] params, ref St st){
+		switch (node.name){
+			case "noinit":
+				if (params.length != 0)
+					st.errs ~= errParamCount(node, "$noinit", 0, params.length);
+				st.type = ADataType.ofNoInit;
+				return;
+
+			case "int":
+				if (params.length != 1)
+					st.errs ~= errParamCount(node, "int", 1, params.length);
+				SmErrsVal!AValCT xVal = exprEval(params[0], st.stab);
+				if (xVal.isErr){
+					st.errs ~= xVal.err;
+					return;
+				}
+				AValCT x = xVal.val; // TODO: continue from here
+				if (x.typeL != ADataType.ofInt){
+					st.errs ~= errTypeMis(node, ADataType.ofInt, x.typeL);
+					return;
+				}
+				st.type = ADataType.ofInt(); // TODO: decode x into int
+				return;
+			default:
+				st.errs ~= errUnsup(node);
+		}
+	}
+
 	// TODO make this
 public:
 
