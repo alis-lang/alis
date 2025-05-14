@@ -3,7 +3,8 @@ Alis Semantic Errors
 +/
 module alis.compiler.semantic.error;
 
-import alis.compiler.common;
+import alis.compiler.common,
+			 alis.compiler.ast;
 
 import std.format,
 			 std.conv;
@@ -19,6 +20,7 @@ public struct SmErr{
 	enum Type{
 		IdentReuse, /// Same identifier used across definitions
 		UnsupFeat, /// Unsupported Feature used
+		ValExprExpected, /// Expression should have resolved to value
 	}
 	/// where error happen
 	Location pos;
@@ -49,4 +51,11 @@ package SmErr errUnsup(ASTNode node){
 	return SmErr(node.pos,
 			typeid(node).to!string.format!"Unsupported node `%s`",
 			SmErr.Type.UnsupFeat);
+}
+
+/// Expression should have resolved to Value
+package SmErr errExprValExpected(Expression expr){
+	return SmErr(expr.pos,
+			format!"Expression does not evaluate to value",
+			SmErr.Type.ValExprExpected);
 }
