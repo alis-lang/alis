@@ -101,8 +101,7 @@ private:
 static:
 	struct St{
 		SmErr[] errs;
-		ASymbol[IdentU] syms;
-		ASymbol[IdentU][] symStack;
+		STab!ASymbol stab;
 		IdentU modId;
 		ADataType type;
 	}
@@ -111,13 +110,9 @@ static:
 	// TODO make this
 public:
 
-	SmErrsVal!ADataType opCall(Expression expr, IdentU modId,
-			ASymbol[IdentU][] symStack = null){
+	SmErrsVal!ADataType opCall(Expression expr, STab!ASymbol stab){
 		St st;
-		st.symStack = symStack.dup;
-		if (st.symStack.length)
-			st.syms = st.symStack[$ - 1];
-		st.modId = modId;
+		st.stab = stab;
 		It.exec(expr, st);
 		if (st.errs.length)
 			return SmErrsVal!ADataType(st.errs);
@@ -125,19 +120,41 @@ public:
 	}
 }
 
+/// evaluates an Expression
+/// Returns: AVAlCT, or SmErr[]
+package SmErrsVal!AValCT exprEval(Expression expr, STab!ASymbol stab){
+	// TODO: implement expression evaluation
+	return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 1024.asBytes));
+}
+
 package struct symOf{
 private:
-	alias It = ASTIter!(globDefIter, mixinInitDefIter, templateIter, cCompIter,
+	alias It = ASTIter!(moduleIter,
+			globDefIter, mixinInitDefIter, templateIter, cCompIter,
 			mixinInitIter, globDefIter, enumConstIter, enumSmIter, structIter,
 			varIter, aliasIter, unionIter, utestIter);
 static:
 	struct St{
 		SmErr[] errs;
-		ASymbol[IdentU] syms;
-		ASymbol[IdentU][] symStack;
+		STab!ASymbol stabMain;
+		STab!ASymbol stab;
 		IdentU[] ctx;
 		Visibility[] visStack;
 		Imports imports;
+		IdentU modId;
+	}
+
+	@ItFn void moduleIter(Module mod, ref St st){
+		st.stab = new STab!ASymbol;
+		if (st.stabMain)
+			st.stabMain.stAdd(mod.ident.IdentU, st.stab, Visibility.Pub, st.ctx);
+		else
+			st.stabMain = st.stab;
+		if (st.ctx)
+			st.ctx ~= mod.ident.IdentU;
+		else
+			st.ctx = [mod.ident.IdentU];
+		It.descend(mod, st);
 	}
 
 	@ItFn void mixinInitDefIter(MixinInitDef node, ref St st){
@@ -154,12 +171,18 @@ static:
 	}
 
 	@ItFn void globDefIter(GlobDef node, ref St st){
-		It.exec(node.def, st);
+		st.visStack ~= node.visibility;
+		It.descend(node, st);
 	}
 	@ItFn void enumConstIter(EnumConstDef node, ref St st){
-		AEnumConst ret;
-		ret.ident = st.ctx ~ node.name.IdentU;
-		ret.vis = st.visStack[$ - 1];
+		SmErrsVal!AEnumConst val = conv(node, st.stabMain,
+				st.visStack[$ - 1], st.ctx);
+		if (val.isErr){
+			st.errs ~= val.err;
+			return;
+		}
+		AEnumConst ret = val.val;
+		st.stab.valAdd(ret.ident[$ - 1], ASymbol(ret), st.visStack[$ - 1], st.ctx);
 	}
 	@ItFn void enumSmIter(EnumSmDef node, ref St st){}
 	@ItFn void structIter(StructDef node, ref St st){}
@@ -169,26 +192,49 @@ static:
 	@ItFn void utestIter(UTest node, ref St st){}
 
 public static:
-	SmErrsVal!(ASymbol[IdentU]) opCall(Module mod,
-			ASymbol[IdentU][] symStack = null){
+	SmErrsVal!(STab!ASymbol) opCall(Module mod,
+			STab!ASymbol stab = null, IdentU[] ctx = null){
 		St st;
 		SmErrsVal!Imports imports = mod.importsOf;
 		if (imports.isErr)
-			return SmErrsVal!(ASymbol[IdentU])(imports.err);
+			return SmErrsVal!(STab!ASymbol)(imports.err);
 		st.imports = imports.val;
-		st.symStack = symStack.dup;
+		st.stabMain = stab;
+		st.ctx = ctx;
 		It.exec(mod, st);
 		if (st.errs)
-			return SmErrsVal!(ASymbol[IdentU])(st.errs);
-		return SmErrsVal!(ASymbol[IdentU])(st.syms);
+			return SmErrsVal!(STab!ASymbol)(st.errs);
+		return SmErrsVal!(STab!ASymbol)(st.stab);
 	}
 }
 
 /// Builds AModule from Module
 /// Returns: AModule
-package SmErrsVal!AModule aModOf(Module node){
-	SmErrsVal!(ASymbol[IdentU]) val = symOf(node);
+/*package SmErrsVal!AModule aModOf(Module node){
+	SmErrsVal!(STab!ASymbol) val = symOf(node, null);
 	if (val.isErr)
-		return SmErrsVal!AModule(val.err);
-	return SmErrsVal!AModule(AModule(ADT(), val.val));
+		return SmErrsVal!(Stack!ASymbol)(val.err);
+	return SmErrsVal!(Stack!ASymbol)(AModule(ADT(), val.val));
+}*/
+
+/// converts an EnumConstDef to AEnumConst
+/// Returns: AEnumConst, or errors
+private SmErrsVal!AEnumConst conv(EnumConstDef node,
+		STab!ASymbol stabMod,
+		Visibility vis = Visibility.Default, IdentU[] ctx = null){
+	AEnumConst ret;
+	ret.ident = ctx ~ node.name.IdentU;
+	ret.vis = vis;
+	SmErrsVal!ADataType typeVal = typeRes(node.type, stabMod);
+	if (typeVal.isErr)
+		return SmErrsVal!AEnumConst(typeVal.err);
+	ret.type = typeVal.val;
+	SmErrsVal!AValCT dataVal = exprEval(node.val, stabMod);
+	if (dataVal.isErr)
+		return SmErrsVal!AEnumConst(dataVal.err);
+	AValCT data = dataVal.val;
+	if (data.type != AValCT.Type.Literal)
+		return SmErrsVal!AEnumConst([errExprValExpected(node.val)]);
+	ret.data = data.dataL;
+	return SmErrsVal!AEnumConst(ret);
 }

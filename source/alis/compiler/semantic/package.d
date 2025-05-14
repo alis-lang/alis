@@ -10,4 +10,5 @@ import alis.common,
 			 alis.compiler.ast,
 			 alis.compiler.semantic.symbols;
 
-public import alis.compiler.semantic.symbols : aModOf;
+//public import alis.compiler.semantic.symbols : aModOf;
+public import alis.compiler.semantic.symbols : symOf;
