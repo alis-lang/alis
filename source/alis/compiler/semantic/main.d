@@ -20,7 +20,8 @@ import core.stdc.stdlib;
 
 void main(){
 	string source;
-	while (!stdin.eof) source ~= stdin.readln;
+	//while (!stdin.eof) source ~= stdin.readln;
+	source = "enum auto x = y;";
 	StopWatch sw = StopWatch(AutoStart.yes);
 	CmpErrVal!Module node = source.tokenize.parse;
 	sw.stop;
@@ -33,11 +34,12 @@ void main(){
 		exit(1);
 	}
 	sw.start;
-	SmErrsVal!AModule modVal = node.val.aModOf;
+	node.val.ident = "alis-main";
+	SmErrsVal!(STab!ASymbol) stabVal = node.val.symOf;
 	sw.stop;
-	if (modVal.isErr)
-		stderr.writefln!"Errors:\n%(%s%)"(modVal.err);
+	if (stabVal.isErr)
+		stderr.writefln!"Errors:\n%(%s%)"(stabVal.err);
 	else
-		modVal.val.writeln;
+		stabVal.val.writeln;
 	stderr.writefln!"done in: %d msecs"(sw.peek.total!"msecs");
 }
