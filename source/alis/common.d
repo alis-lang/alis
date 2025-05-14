@@ -562,6 +562,13 @@ public struct ADataType{
 		return format!"{type: %s, data: %s}"(this.toString, data);
 	}
 
+	/// Returns: `$noinit` data type
+	static ADataType ofNoInit() pure {
+		ADataType ret;
+		ret.type = ADataType.Type.NoInit;
+		return ret;
+	}
+
 	/// Returns: Sequence data type
 	static ADataType ofSeq(ADataType[] seq) pure {
 		ADataType ret;
