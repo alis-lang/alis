@@ -4,7 +4,8 @@ Alis Semantic Errors
 module alis.compiler.semantic.error;
 
 import alis.compiler.common,
-			 alis.compiler.ast;
+			 alis.compiler.ast,
+			 alis.common;
 
 import std.format,
 			 std.conv;
@@ -22,6 +23,7 @@ public struct SmErr{
 		UnsupFeat, /// Unsupported Feature used
 		ValExprExpected, /// Expression should have resolved to value
 		ParamCountMis, /// mismatched parameter count
+		TypeMis, /// type mismatch
 	}
 	/// where error happen
 	Location pos;
@@ -68,4 +70,12 @@ package SmErr errParamCount(ASTNode node, string name, size_t expected,
 			format!"Mismatched parameter count for `%s`: expected %d, received %d"(
 				name, expected, got),
 			SmErr.Type.ParamCountMis);
+}
+
+/// Type mismatch
+package SmErr errTypeMis(ASTNode node, ADataType expected, ADataType got){
+	return SmErr(node.pos,
+			format!"Mismatched types: expected `%s`, received `%s`"(
+				expected.toString, got.toString),
+			SmErr.Type.TypeMis);
 }
