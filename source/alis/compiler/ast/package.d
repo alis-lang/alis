@@ -12,4 +12,4 @@ public import alis.compiler.ast.ast;
 public alias ASTIter(Fns...) =
 	Instantiate!(alis.compiler.ast.iter.ASTIter!ASTNodes, Fns);
 
-public import alis.compiler.ast.iter : ItTerm, ItPre, ItPost, ItFnsOf;
+public import alis.compiler.ast.iter : ItFn, ItFnsOf;

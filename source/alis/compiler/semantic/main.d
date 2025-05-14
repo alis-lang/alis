@@ -7,16 +7,21 @@ import std.stdio,
 			 std.algorithm,
 			 std.datetime.stopwatch;
 
-import alis.compiler.error,
+import alis.common,
+			 alis.compiler.error,
 			 alis.compiler.lexer,
 			 alis.compiler.parser,
-			 alis.compiler.semantic;
+			 alis.compiler.semantic,
+			 alis.compiler.semantic.error,
+			 alis.compiler.semantic.common,
+			 alis.compiler.ast;
 
 import core.stdc.stdlib;
 
 void main(){
 	string source;
-	while (!stdin.eof) source ~= stdin.readln;
+	//while (!stdin.eof) source ~= stdin.readln;
+	source = "enum auto x = y;";
 	StopWatch sw = StopWatch(AutoStart.yes);
 	CmpErrVal!Module node = source.tokenize.parse;
 	sw.stop;
@@ -29,16 +34,12 @@ void main(){
 		exit(1);
 	}
 	sw.start;
-	CmpErr[] errs;
-	// TODO: do the semantic analysis. HOW??? HOW????
+	node.val.ident = "alis-main";
+	SmErrsVal!(STab!ASymbol) stabVal = node.val.symOf;
 	sw.stop;
-	stderr.writefln!"semantic analysis in: %d msecs"(sw.peek.total!"msecs");
-	if (errs){
-		JSONValue err;
-		err["_error"] = errs.map!(e => e.toString).array;
-		writeln(err.toPrettyString);
-		exit(1);
-	} else {
-		stdout.writeln(node.val.toJson.toPrettyString);
-	}
+	if (stabVal.isErr)
+		stderr.writefln!"Errors:\n%(%s%)"(stabVal.err);
+	else
+		stabVal.val.writeln;
+	stderr.writefln!"done in: %d msecs"(sw.peek.total!"msecs");
 }

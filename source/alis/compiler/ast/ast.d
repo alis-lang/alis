@@ -560,6 +560,8 @@ protected:
 		ret["type"] = type.toJson;
 		if (value)
 			ret["value"] = value.toJson;
+		if (isRO)
+			ret["ipub"] = true;
 		ret["_name"] = "VarDef";
 		return ret;
 	}
@@ -568,6 +570,8 @@ public:
 	Expression type;
 	/// optional default value, can be null
 	Expression value;
+	/// if this is read-only outside parent module
+	bool isRO;
 }
 
 /// static variable definition
@@ -751,11 +755,11 @@ protected:
 	}
 public:
 	/// counter name, can be null
-	string countIdent;
+	string countIdent; // TODO store VarDef instead
 	/// value type
 	Expression valType;
 	/// value
-	string valIdent;
+	string valIdent; // TODO store VarDef instead
 	/// range
 	Expression range;
 	/// loop body

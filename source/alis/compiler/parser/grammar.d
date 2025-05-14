@@ -74,6 +74,13 @@ CmpErrVal!Module parseModule(ref TokRange toks){
 			subC.attrs = attrs.val;
 			def.visibility = vis;
 			mod.defs ~= def;
+			// HACK: hacky code below, sadly:
+			if (vis == Visibility.IPub){
+				if (VarDefList vdl = cast(VarDefList)subC){
+					foreach (VarDef var; vdl.defs)
+						var.isRO = true;
+				}
+			}
 		} else
 		if (auto subC = cast(CCNode)sub){
 			mod.cComp ~= subC;
