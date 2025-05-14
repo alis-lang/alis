@@ -11,7 +11,8 @@ import std.algorithm,
 			 std.range,
 			 std.json,
 			 std.meta,
-			 std.traits;
+			 std.traits,
+			 std.conv;
 
 debug import std.stdio;
 
@@ -55,10 +56,10 @@ final class STab(T){
 public:
 	struct Node(E){
 		E val;
-		IdentU vis;
-		this (E val, IdentU vis) pure {
+		IdentU[] vis;
+		this (E val, IdentU[] vis) pure {
 			this.val = val;
-			this.vis = vis;
+			this.vis = vis.dup;
 		}
 	}
 
@@ -71,20 +72,22 @@ public:
 	private:
 		IdentU _head;
 		IdentU _id;
+		IdentU[] ctx;
 		Node!T[][IdentU][] _maps;
 
 		this(IdentU id, IdentU[] ctx, STab!T st) pure {
 			this._id = id;
+			this.ctx = ctx.dup;
 			this._head = ctx.length ? ctx[0] : IdentU.init;
 			_maps ~= st.map;
 			foreach (IdentU i; ctx){
 				if (i !in st.next)
 					break;
 				Node!(STab!T) nextNode = st.next[i];
-				if (nextNode.vis != IdentU.init && nextNode.vis != _head)
+				if (!nextNode.vis.isNoId && nextNode.vis != ctx)
 					break;
-				_maps ~= nextNode.st.map;
-				st = nextNode.st;
+				_maps ~= nextNode.val.map;
+				st = nextNode.val;
 			}
 			_maps ~= [];
 			popFront;
@@ -107,7 +110,7 @@ public:
 			Node!T[] arr;
 			if (_maps.length && (_id in _maps[$ - 1]) !is null)
 				arr = _maps[$ - 1][_id];
-			return arr.filter!(node => node.vis == IdentU.init || node.vis == _head);
+			return arr.filter!(node => node.vis.isNoId || node.vis == ctx);
 		}
 	}
 
@@ -123,7 +126,7 @@ public:
 	}
 
 	/// Add a new value.
-	void valAdd(IdentU id, T val, IdentU vis) pure {
+	void valAdd(IdentU id, T val, IdentU[] vis) pure {
 		if (auto ptr = id in map){
 			*ptr ~= Node!T(val, vis);
 			return;
@@ -131,40 +134,17 @@ public:
 		map[id] = [Node!T(val, vis)];
 	}
 	/// ditto
-	void valAdd(IdentU[] id, T val, IdentU vis) pure {
-		STab!T st = this;
-		IdentU[] ids = id.array;
-		foreach (IdentU i; ids[0 .. $ - 1]){
-			if (auto next = i in st.next){
-				st = next.st;
-			} else {
-				assert(false);
-			}
-		}
-		st.valAdd(ids[$ - 1], val, vis);
+	void valAdd(IdentU id, T val, Visibility vis, IdentU[] ctx) pure {
+		return valAdd(id, val, vis == Visibility.Default ? [IdentU.init] : ctx);
 	}
 
 	/// Add a new Symbol Table. **Will overwrite existing, if any.**
-	void stAdd(IdentU id, STab!T st, IdentU vis) pure {
+	void stAdd(IdentU id, STab!T st, IdentU[] vis) pure {
 		next[id] = Node!(STab!T)(st, vis);
 	}
 	/// ditto
-	void stAdd(IdentU[] id, STab!T stab, IdentU vis) pure {
-		STab!T st = this;
-		IdentU[] ids = id.array;
-		foreach (IdentU i; ids[0 .. $ - 1]){
-			if (auto next = i in st.next){
-				st = next.st;
-			} else {
-				assert(false);
-			}
-		}
-		st.stAdd(ids[$ - 1], stab, vis);
-	}
-
-	/// Returns: count of end nodes with unique IdentU at this level
-	size_t endKeyCount() const pure {
-		return map.length;
+	void stAdd(IdentU id, STab!T st, Visibility vis, IdentU[] ctx) pure {
+		return stAdd(id, st, vis == Visibility.Default ? [IdentU.init] : ctx);
 	}
 
 	JSONValue toJson() const {
@@ -178,7 +158,7 @@ public:
 						} else {
 							obj["val"] = n.val.toString;
 						}
-						obj["vis"] = n.vis.toString;
+						obj["vis"] = n.vis.to!string;
 						return obj;
 						})
 				.array;
@@ -187,8 +167,8 @@ public:
 			immutable string s = key.toString;
 			const Node!(STab!T) n = next[key];
 			JSONValue obj;
-			obj["val"] = n.st.toJson;
-			obj["vis"] = n.vis.toString;
+			obj["val"] = n.val.toJson;
+			obj["vis"] = n.vis.to!string;
 			continue;
 			if (s in ret)
 				ret[s] ~= obj;
