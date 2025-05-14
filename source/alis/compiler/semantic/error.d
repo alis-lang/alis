@@ -21,6 +21,7 @@ public struct SmErr{
 		IdentReuse, /// Same identifier used across definitions
 		UnsupFeat, /// Unsupported Feature used
 		ValExprExpected, /// Expression should have resolved to value
+		ParamCountMis, /// mismatched parameter count
 	}
 	/// where error happen
 	Location pos;
@@ -58,4 +59,13 @@ package SmErr errExprValExpected(Expression expr){
 	return SmErr(expr.pos,
 			format!"Expression does not evaluate to value",
 			SmErr.Type.ValExprExpected);
+}
+
+/// Parameter count mismatch
+package SmErr errParamCount(ASTNode node, string name, size_t expected,
+		size_t got){
+	return SmErr(node.pos,
+			format!"Mismatched parameter count for `%s`: expected %d, received %d"(
+				expected, got),
+			SmErr.Type.ParamCountMis);
 }
