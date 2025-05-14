@@ -66,6 +66,6 @@ package SmErr errParamCount(ASTNode node, string name, size_t expected,
 		size_t got){
 	return SmErr(node.pos,
 			format!"Mismatched parameter count for `%s`: expected %d, received %d"(
-				expected, got),
+				name, expected, got),
 			SmErr.Type.ParamCountMis);
 }
