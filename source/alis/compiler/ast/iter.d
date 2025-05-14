@@ -9,6 +9,8 @@ import meta,
 import std.meta,
 			 std.traits;
 
+debug import std.stdio, std.conv;
+
 /// UDA for tagging as iterator function
 package enum ItFn;
 
@@ -109,6 +111,7 @@ package template ASTIter(N...) if (allSatisfy!(IsASTNode, N)){
 
 		pragma(inline, true)
 		private static void _descend(N, S)(N node, auto ref S state){
+			//debug stderr.writefln!"_descend(%s) -> %s"(typeid(N).to!string, LDC_all!N.stringof);
 			static foreach (C; LDC_all!N){
 				if (auto sub = cast(C)node){
 					return _descend(sub, state);
@@ -127,12 +130,15 @@ package template ASTIter(N...) if (allSatisfy!(IsASTNode, N)){
 		/// executes appropriate iterator function
 		/// if none exists, `descend` is called
 		public static void exec(N, S)(N node, auto ref S state){
+			//debug stderr.writefln!"exec(%s) -> %s"(typeid(N).to!string, LDC!N.stringof);
 			if (node is null)
 				return;
+			//debug stderr.writefln!"exec(%s) -> %s"(typeid(N).to!string, LDC!N.stringof);
 			static if (RelT.length == 0){
 				return _descend(node, state);
 			}
-			static foreach (C; LDC!N){
+			//static foreach (C; LDC!N){
+			static foreach (C; LDC_all!N){ // HACK: LDC_all is not efficient for this.
 				if (auto sub = cast(C)node){
 					return exec(sub, state);
 				}
