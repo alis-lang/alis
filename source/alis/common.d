@@ -879,8 +879,7 @@ public struct AUnion{
 	}
 
 	string toString() const pure {
-		string ret = format!"union %s{\n#\ttype\tname\tval\n"(ident);
-		ret = format!"union %s{"(ident);
+		string ret = format!"union %s{"(ident);
 		foreach (size_t i, ref const ADataType type; types){
 			ret ~= format!"%s%s%s,"(names.length ? (names[i] ~ " ") : null, type,
 					defInd == i ? " default" : null);
@@ -916,7 +915,7 @@ public struct AEnumMember{
 	/// value
 	ubyte[] val;
 	string toString() const pure {
-		return format!"%s=%s"(ident, val);
+		return format!"enumMember %s=%s"(ident, val);
 	}
 }
 
@@ -1001,7 +1000,7 @@ public struct AImport{
 	Visibility vis;
 
 	string toString() const pure {
-		return format!"import %s as %s"(modIdent.join("."), ident);
+		return format!"import %s as %s"(modIdent, ident);
 	}
 }
 

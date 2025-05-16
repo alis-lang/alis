@@ -65,6 +65,8 @@ public static:
 	}
 }
 
+/// Resolves Expression to RExpr
+/// Returns: RExpr
 package struct exprRes{
 private:
 	alias It = ASTIter!(identExprIter);
@@ -77,7 +79,9 @@ static:
 		RExpr expr;
 	}
 
-	@ItFn void identExprIter(IdentExpr node, ref St st){}
+	@ItFn void identExprIter(IdentExpr node, ref St st){
+		st.errs ~= errUnsup(node);
+	}
 	// TODO make this
 public:
 
@@ -144,12 +148,12 @@ static:
 			case "int":
 				if (params.length != 1)
 					st.errs ~= errParamCount(node, "int", 1, params.length);
-				SmErrsVal!AValCT xVal = exprEval(params[0], st.stab);
+				SmErrsVal!AValCT xVal = eval(params[0], st.stab);
 				if (xVal.isErr){
 					st.errs ~= xVal.err;
 					return;
 				}
-				AValCT x = xVal.val; // TODO: continue from here
+				AValCT x = xVal.val;
 				if (x.typeL != ADataType.ofInt){
 					st.errs ~= errTypeMis(node, ADataType.ofInt, x.typeL);
 					return;
@@ -174,11 +178,30 @@ public:
 	}
 }
 
+/// evaluates an RExpr
+/// Returns: AValCT, or SmErr[]
+package SmErrsVal!AValCT eval(RExpr expr, STab!ASymbol stab){
+	return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 1024.asBytes));
+}
+
 /// evaluates an Expression
 /// Returns: AVAlCT, or SmErr[]
-package SmErrsVal!AValCT exprEval(Expression expr, STab!ASymbol stab){
+package SmErrsVal!AValCT eval(Expression expr, STab!ASymbol stab){
 	// TODO: implement expression evaluation
 	return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 1024.asBytes));
+}
+
+package struct resolve{ // TODO: complete this
+private:
+	//alias It = ASTIter!();
+
+static:
+	struct St{
+		SmErr[] errs;
+		STab!ASymbol stabMain;
+		STab!ASymbol stab;
+		IdentU[] ctx;
+	}
 }
 
 package struct symOf{
@@ -283,7 +306,7 @@ private SmErrsVal!AEnumConst conv(EnumConstDef node,
 	if (typeVal.isErr)
 		return SmErrsVal!AEnumConst(typeVal.err);
 	ret.type = typeVal.val;
-	SmErrsVal!AValCT dataVal = exprEval(node.val, stabMod);
+	SmErrsVal!AValCT dataVal = eval(node.val, stabMod);
 	if (dataVal.isErr)
 		return SmErrsVal!AEnumConst(dataVal.err);
 	AValCT data = dataVal.val;

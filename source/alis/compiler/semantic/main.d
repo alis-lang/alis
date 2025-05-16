@@ -20,8 +20,7 @@ import core.stdc.stdlib;
 
 void main(){
 	string source;
-	//while (!stdin.eof) source ~= stdin.readln;
-	source = "enum auto x = y;";
+	while (!stdin.eof) source ~= stdin.readln;
 	StopWatch sw = StopWatch(AutoStart.yes);
 	CmpErrVal!Module node = source.tokenize.parse;
 	sw.stop;

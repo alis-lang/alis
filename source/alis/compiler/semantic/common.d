@@ -135,7 +135,7 @@ public:
 	}
 	/// ditto
 	void valAdd(IdentU id, T val, Visibility vis, IdentU[] ctx) pure {
-		return valAdd(id, val, vis == Visibility.Default ? [IdentU.init] : ctx);
+		return valAdd(id, val, vis == Visibility.Default ? ctx : [IdentU.init]);
 	}
 
 	/// Add a new Symbol Table. **Will overwrite existing, if any.**
@@ -144,7 +144,7 @@ public:
 	}
 	/// ditto
 	void stAdd(IdentU id, STab!T st, Visibility vis, IdentU[] ctx) pure {
-		return stAdd(id, st, vis == Visibility.Default ? [IdentU.init] : ctx);
+		return stAdd(id, st, vis == Visibility.Default ? ctx : [IdentU.init]);
 	}
 
 	JSONValue toJson() const {
