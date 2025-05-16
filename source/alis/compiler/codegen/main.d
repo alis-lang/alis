@@ -214,11 +214,8 @@ class BytecodeGenerator {
 		// Add a jump to the end label after the true branch
 		addInstruction("\tjmpC", ["@" ~ endLabel]); // Jump to end label after true branch
 
-
 		// Generate bytecode for the false branch if it exists
 		if (ifStmt.onFalse) {
-			writeln("ifStmt.onFalse: ", ifStmt.onFalse);
-					// Add the false label
 			addInstruction(falseLabel, []); // Mark the false branch
 			generateStatementBytecode(ifStmt.onFalse);
 		}
