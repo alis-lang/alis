@@ -34,7 +34,7 @@ void main(){
 	}
 	sw.start;
 	node.val.ident = "alis-main";
-	SmErrsVal!(STab!ASymbol) stabVal = node.val.symOf;
+	SmErrsVal!STab stabVal = node.val.symOf;
 	sw.stop;
 	if (stabVal.isErr)
 		stderr.writefln!"Errors:\n%(%s%)"(stabVal.err);
