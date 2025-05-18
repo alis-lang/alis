@@ -65,57 +65,35 @@ public static:
 	}
 }
 
-/// Resolves Expression to RExpr
-/// Returns: RExpr
-package struct exprRes{
-private:
-	alias It = ASTIter!(identExprIter);
-static:
-	struct St{
-		SmErr[] errs;
-		ASymbol[IdentU] syms;
-		ASymbol[IdentU][] symStack;
-		IdentU modId;
-		RExpr expr;
-	}
-
-	@ItFn void identExprIter(IdentExpr node, ref St st){
-		st.errs ~= errUnsup(node);
-	}
-	// TODO make this
-public:
-
-	SmErrsVal!RExpr opCall(Expression expr, IdentU modId,
-			ASymbol[IdentU][] symStack = null){
-		St st;
-		st.symStack = symStack.dup;
-		if (st.symStack.length)
-			st.syms = st.symStack[$ - 1];
-		st.modId = modId;
-		It.exec(expr, st);
-		if (st.errs.length)
-			return SmErrsVal!RExpr(st.errs);
-		return SmErrsVal!RExpr(st.expr);
-	}
-}
-
-package struct typeRes{
+/// Expression Resolver (to RExpr)
+private struct ExpressionResolver{
+	@disable this();
 private:
 	alias It = ASTIter!(identExprIter, noinitExpr, callExpr, dotExpr);
 static:
 	struct St{
+		/// errors
 		SmErr[] errs;
-		STab!ASymbol stab;
-		IdentU modId;
-		ADataType type;
+		/// main STab, for lookups
+		STab stabMain;
+		/// local STab
+		STab stab;
+		/// context
+		IdentU[] ctx;
+		/// resulting expression
+		RExpr res;
+		/// parameter types if resuslting expression is expected to be callable
+		ADataType[] paramsT;
 	}
 
 	@ItFn void identExprIter(IdentExpr node, ref St st){
-		st.errs ~= errUnsup(node);
+		st.errs ~= errUnsup(node); // TODO
 	}
 
-	@ItFn void noinitExpr(IntrNoInit, ref St st){
-		st.type = ADataType.ofNoInit;
+	@ItFn void noinitExpr(IntrNoInit node, ref St st){
+		RIntrinsicExpr res = new RIntrinsicExpr;
+		res.name = node.name;
+		st.res = res;
 	}
 
 	@ItFn void callExpr(OpCallExpr node, ref St st){
@@ -138,7 +116,8 @@ static:
 	}
 
 	void intrExpr(IntrinsicExpr node, Expression[] params, ref St st){
-		switch (node.name){
+		// TODO: implement IntrinsicExpr -> RExpr
+		/*switch (node.name){
 			case "noinit":
 				if (params.length != 0)
 					st.errs ~= errParamCount(node, "$noinit", 0, params.length);
@@ -162,46 +141,102 @@ static:
 				return;
 			default:
 				st.errs ~= errUnsup(node);
-		}
+		}*/
 	}
-
-	// TODO make this
 public:
 
-	SmErrsVal!ADataType opCall(Expression expr, STab!ASymbol stab){
+	/// Resolves Expression to RExpr
+	/// Returns: RExpr, or SmErr[]
+	static SmErrsVal!RExpr resolve(Expression expr, STab stab, IdentU[] ctx,
+			ADataType[] paramsT = null){
 		St st;
+		st.ctx = ctx.dup;
+		st.stabMain = stab;
 		st.stab = stab;
+		st.paramsT = paramsT.dup;
 		It.exec(expr, st);
 		if (st.errs.length)
-			return SmErrsVal!ADataType(st.errs);
-		return SmErrsVal!ADataType(st.type);
+			return SmErrsVal!RExpr(st.errs);
+		return SmErrsVal!RExpr(st.res);
 	}
 }
 
-/// evaluates an RExpr
-/// Returns: AValCT, or SmErr[]
-package SmErrsVal!AValCT eval(RExpr expr, STab!ASymbol stab){
-	return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 1024.asBytes));
+/// Resolves Expression to RExpr
+/// Params:
+/// - `expr` - The expression to resolve
+/// - `stab` - The root level Symbol Table
+/// - `ctx` - Context where the `expr` occurs
+/// - `paramsT` - Parameter Data Types if `expr` is to be used as a callable
+/// Returns: RExpr or SmErr[]
+pragma(inline, true)
+package SmErrsVal!RExpr resolve(Expression expr, STab stab, IdentU[] ctx,
+		ADataType[] paramsT = null){
+	return ExpressionResolver.resolve(expr, stab, ctx, paramsT);
 }
 
-/// evaluates an Expression
-/// Returns: AVAlCT, or SmErr[]
-package SmErrsVal!AValCT eval(Expression expr, STab!ASymbol stab){
-	// TODO: implement expression evaluation
-	return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 1024.asBytes));
-}
-
-package struct resolve{ // TODO: complete this
+/// Expression Evaluator
+private struct ExpressionEvaluator{
+	@disable this();
 private:
-	//alias It = ASTIter!();
-
+	alias It = ASTIter!(rIdentIter);
 static:
 	struct St{
+		/// errors
 		SmErr[] errs;
-		STab!ASymbol stabMain;
-		STab!ASymbol stab;
+		/// main STab, for lookups
+		STab stabMain;
+		/// local STab
+		STab stab;
+		/// context ctx
 		IdentU[] ctx;
+		/// Result
+		AValCT res;
 	}
+
+	@ItFn void rIdentIter(RIdentExpr expr, ref St st){
+		st.errs ~= errUnsup(expr);
+	}
+
+public:
+
+	/// Evaluates an RExpr
+	/// Returns: AValCT, or SmErr[]
+	static SmErrsVal!AValCT eval(RExpr expr, STab stab, IdentU[] ctx){
+		St st;
+		st.stab = stab;
+		st.stabMain = stab;
+		st.ctx = ctx.dup;
+		It.exec(expr, st);
+		if (st.errs.length)
+			return SmErrsVal!AValCT(st.errs);
+		return SmErrsVal!AValCT(st.res);
+	}
+}
+
+/// Evaluates an RExpr
+/// Params:
+/// - `expr` - The expression to resolve
+/// - `stab` - The root level Symbol Table
+/// - `ctx` - Context where the `expr` occurs
+/// Returns: AValCT, or SmErr[]
+pragma(inline, true)
+package SmErrsVal!AValCT eval(RExpr expr, STab stab, IdentU[] ctx){
+	return ExpressionEvaluator.eval(expr, stab, ctx);
+}
+
+/// Evaluates an Expression
+/// Params:
+/// - `expr` - The expression to resolve
+/// - `stab` - The root level Symbol Table
+/// - `ctx` - Context where the `expr` occurs
+/// - `paramsT` - Parameter Data Types if `expr` is to be used as a callable
+/// Returns: AValCT or SmErr[]
+package SmErrsVal!AValCT eval(Expression expr, STab stab, IdentU[] ctx,
+		ADataType[] paramsT = null){
+	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, paramsT);
+	if (resolved.isErr)
+		return SmErrsVal!AValCT(resolved.err);
+	return eval(resolved.val, stab, ctx);
 }
 
 package struct symOf{
@@ -213,18 +248,17 @@ private:
 static:
 	struct St{
 		SmErr[] errs;
-		STab!ASymbol stabMain;
-		STab!ASymbol stab;
+		STab stabMain;
+		STab stab;
 		IdentU[] ctx;
 		Visibility[] visStack;
 		Imports imports;
-		IdentU modId;
 	}
 
 	@ItFn void moduleIter(Module mod, ref St st){
-		st.stab = new STab!ASymbol;
+		st.stab = new STab;
 		if (st.stabMain)
-			st.stabMain.stAdd(mod.ident.IdentU, st.stab, Visibility.Pub, st.ctx);
+			st.stabMain.add(mod.ident.IdentU, st.stab, Visibility.Pub, st.ctx);
 		else
 			st.stabMain = st.stab;
 		if (st.ctx)
@@ -259,7 +293,7 @@ static:
 			return;
 		}
 		AEnumConst ret = val.val;
-		st.stab.valAdd(ret.ident[$ - 1], ASymbol(ret), st.visStack[$ - 1], st.ctx);
+		st.stab.add(ret.ident[$ - 1], new ASymbol(ret), st.visStack[$ - 1], st.ctx);
 	}
 	@ItFn void enumSmIter(EnumSmDef node, ref St st){}
 	@ItFn void structIter(StructDef node, ref St st){}
@@ -269,19 +303,19 @@ static:
 	@ItFn void utestIter(UTest node, ref St st){}
 
 public static:
-	SmErrsVal!(STab!ASymbol) opCall(Module mod,
-			STab!ASymbol stab = null, IdentU[] ctx = null){
+	SmErrsVal!STab opCall(Module mod,
+			STab stab = null, IdentU[] ctx = null){
 		St st;
 		SmErrsVal!Imports imports = mod.importsOf;
 		if (imports.isErr)
-			return SmErrsVal!(STab!ASymbol)(imports.err);
+			return SmErrsVal!STab(imports.err);
 		st.imports = imports.val;
 		st.stabMain = stab;
 		st.ctx = ctx;
 		It.exec(mod, st);
 		if (st.errs)
-			return SmErrsVal!(STab!ASymbol)(st.errs);
-		return SmErrsVal!(STab!ASymbol)(st.stab);
+			return SmErrsVal!STab(st.errs);
+		return SmErrsVal!STab(st.stab);
 	}
 }
 
@@ -297,16 +331,18 @@ public static:
 /// converts an EnumConstDef to AEnumConst
 /// Returns: AEnumConst, or errors
 private SmErrsVal!AEnumConst conv(EnumConstDef node,
-		STab!ASymbol stabMod,
+		STab stabMod,
 		Visibility vis = Visibility.Default, IdentU[] ctx = null){
 	AEnumConst ret;
 	ret.ident = ctx ~ node.name.IdentU;
 	ret.vis = vis;
-	SmErrsVal!ADataType typeVal = typeRes(node.type, stabMod);
+	SmErrsVal!AValCT typeVal = eval(node.type, stabMod, ctx);
 	if (typeVal.isErr)
 		return SmErrsVal!AEnumConst(typeVal.err);
-	ret.type = typeVal.val;
-	SmErrsVal!AValCT dataVal = eval(node.val, stabMod);
+	if (typeVal.val.type != AValCT.Type.Type)
+		return SmErrsVal!AEnumConst([errExprTypeExpected(node.type)]);
+	ret.type = typeVal.val.typeT;
+	SmErrsVal!AValCT dataVal = eval(node.val, stabMod, ctx);
 	if (dataVal.isErr)
 		return SmErrsVal!AEnumConst(dataVal.err);
 	AValCT data = dataVal.val;
