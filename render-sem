@@ -1,0 +1,7 @@
+#!/bin/bash
+touch ast.json
+echo "@startjson" >> ast.json
+./alis-semantic | tee -a ast.json
+echo "@endjson" >> ast.json
+plantuml -tsvg ast.json
+rm ast.json
