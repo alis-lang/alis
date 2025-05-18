@@ -17,7 +17,7 @@ import std.algorithm,
 debug import std.stdio;
 
 /// Iterator Function Level
-public struct ITL{
+package struct ITL{
 	size_t level;
 	@disable this();
 	this(size_t level){
@@ -26,7 +26,7 @@ public struct ITL{
 }
 
 /// AST Iterator, using ItFns from module `M`, that are tagged with `ITL(L)`
-public template ItL(alias M, size_t L){
+package template ItL(alias M, size_t L){
 	// yes, I know Fns not used. go ahead, remove it, I dare you.
 	alias Fns = AliasSeq!();
 	static foreach (F; ItFnsOf!M){
@@ -38,7 +38,7 @@ public template ItL(alias M, size_t L){
 }
 
 /// Symbol Table
-final class STab{
+public final class STab{
 public:
 	struct Node(E){
 		E val;
