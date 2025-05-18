@@ -2020,7 +2020,8 @@ CmpErrVal!OpAssignBin parseOpAssignAddBin(ref TokRange toks,
 	CmpErrVal!Expression rhsRes = P.parseExpr!(PrecedOfBin!"+=", Expression)(toks);
 	if (rhsRes.isErr)
 		return CmpErrVal!OpAssignBin(rhsRes.err);
-	OpBinExpr rhsVal = cast(OpBinExpr)(rhsRes.val);
+	Expression rhsVal = (rhsRes.val);
+	debug stderr.writeln(rhsVal);
 	OpAssignBin ret = new OpAssignBin;
 	OpBinExpr valExpr;
 	final switch (op){
