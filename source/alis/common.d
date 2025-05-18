@@ -14,6 +14,8 @@ import std.string,
 			 std.algorithm,
 			 std.digest.crc;
 
+debug import std.stdio;
+
 public import alis.compiler.common : Visibility; // TODO move it here
 
 /// an Alis CompileTime Value
@@ -545,11 +547,17 @@ public struct ADataType{
 			case Type.Ref:
 				return null.sizeof;
 			case Type.Struct:
-				assert (false, "thou shall not call ADataType.sizeOf on Struct!");
+				debug stderr.writeln("STUB: ADataType.sizeOf called on Struct.");
+				return 0;
+				//assert (false, "thou shall not call ADataType.sizeOf on Struct!");
 			case Type.Union:
-				assert (false, "thou shall not call ADataType.sizeOf on Union!");
+				debug stderr.writeln("STUB: ADataType.sizeOf called on Union.");
+				return 0;
+				//assert (false, "thou shall not call ADataType.sizeOf on Union!");
 			case Type.Enum:
-				assert (false, "thou shall not call ADataType.sizeOf on Enum!");
+				debug stderr.writeln("STUB: ADataType.sizeOf called on Enum.");
+				return size_t.sizeof;
+				//assert (false, "thou shall not call ADataType.sizeOf on Enum!");
 			case Type.NoInit:
 				return 0;
 		}
