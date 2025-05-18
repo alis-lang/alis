@@ -37,22 +37,8 @@ public template ItL(alias M, size_t L){
 	alias ItL = ASTIter!(Filter!(HasAnyUDA!(ITL(L)), ItFnsOf!M));
 }
 
-/// Symbol Tree Node
-private struct STNode(T){
-	T val;
-	STNode!T[IdentU] next;
-}
-
-/// Symbol Tree
-public alias STree(T) = STNode!T[IdentU];
-
-/// whether a path exists in STree
-public bool canFind(T)(auto ref const STree!T, IdentU[]){
-	assert(false, "canFind on STree not implemented");
-}
-
 /// Symbol Table
-final class STab(T){
+final class STab{
 public:
 	struct Node(E){
 		E val;
@@ -64,18 +50,18 @@ public:
 	}
 
 	/// the symbol table
-	Node!T[][IdentU] map;
+	Node!(ASymbol*)[][IdentU] map;
 	/// sub-tables
-	Node!(STab!T)[IdentU] next;
+	Node!STab[IdentU] next;
 
 	static struct ResRange{
 	private:
 		IdentU _head;
 		IdentU _id;
 		IdentU[] ctx;
-		Node!T[][IdentU][] _maps;
+		Node!(ASymbol*)[][IdentU][] _maps;
 
-		this(IdentU id, IdentU[] ctx, STab!T st) pure {
+		this(IdentU id, IdentU[] ctx, STab st) pure {
 			this._id = id;
 			this.ctx = ctx.dup;
 			this._head = ctx.length ? ctx[0] : IdentU.init;
@@ -83,7 +69,7 @@ public:
 			foreach (IdentU i; ctx){
 				if (i !in st.next)
 					break;
-				Node!(STab!T) nextNode = st.next[i];
+				Node!STab nextNode = st.next[i];
 				if (!nextNode.vis.isNoId && nextNode.vis != ctx)
 					break;
 				_maps ~= nextNode.val.map;
@@ -107,7 +93,7 @@ public:
 				_maps = _maps[0 .. $ - 1];
 		}
 		auto front() pure {
-			Node!T[] arr;
+			Node!(ASymbol*)[] arr;
 			if (_maps.length && (_id in _maps[$ - 1]) !is null)
 				arr = _maps[$ - 1][_id];
 			return arr.filter!(node => node.vis.isNoId || node.vis == ctx);
@@ -122,36 +108,36 @@ public:
 
 	/// Returns: true if id can be found from ctx scope
 	bool canFind(IdentU id, IdentU[] ctx) pure {
-		return !find(id, ctx).empty;
+		return !(find(id, ctx).empty);
 	}
 
 	/// Add a new value.
-	void valAdd(IdentU id, T val, IdentU[] vis) pure {
+	void add(IdentU id, ASymbol* sym, IdentU[] vis) pure {
 		if (auto ptr = id in map){
-			*ptr ~= Node!T(val, vis);
+			*ptr ~= Node!(ASymbol*)(sym, vis);
 			return;
 		}
-		map[id] = [Node!T(val, vis)];
+		map[id] = [Node!(ASymbol*)(sym, vis)];
 	}
 	/// ditto
-	void valAdd(IdentU id, T val, Visibility vis, IdentU[] ctx) pure {
-		return valAdd(id, val, vis == Visibility.Default ? ctx : [IdentU.init]);
+	void add(IdentU id, ASymbol* sym, Visibility vis, IdentU[] ctx) pure {
+		return add(id, sym, vis == Visibility.Default ? ctx : [IdentU.init]);
 	}
 
 	/// Add a new Symbol Table. **Will overwrite existing, if any.**
-	void stAdd(IdentU id, STab!T st, IdentU[] vis) pure {
-		next[id] = Node!(STab!T)(st, vis);
+	void add(IdentU id, STab st, IdentU[] vis) pure {
+		next[id] = Node!STab(st, vis);
 	}
 	/// ditto
-	void stAdd(IdentU id, STab!T st, Visibility vis, IdentU[] ctx) pure {
-		return stAdd(id, st, vis == Visibility.Default ? ctx : [IdentU.init]);
+	void add(IdentU id, STab st, Visibility vis, IdentU[] ctx) pure {
+		return add(id, st, vis == Visibility.Default ? ctx : [IdentU.init]);
 	}
 
 	JSONValue toJson() const {
 		JSONValue ret;
 		foreach (IdentU key; map.byKey){
 			ret[key.toString] = map[key]
-				.map!((const Node!T n){
+				.map!((const Node!(ASymbol*) n){
 						JSONValue obj;
 						static if (__traits(compiles, n.val.toJson)){
 							obj["val"] = n.val.toJson;
@@ -165,7 +151,7 @@ public:
 		}
 		foreach (IdentU key; next.byKey){
 			immutable string s = key.toString;
-			const Node!(STab!T) n = next[key];
+			const Node!STab n = next[key];
 			JSONValue obj;
 			obj["val"] = n.val.toJson;
 			obj["vis"] = n.vis.to!string;
