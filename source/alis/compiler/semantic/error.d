@@ -22,6 +22,7 @@ public struct SmErr{
 		IdentReuse, /// Same identifier used across definitions
 		UnsupFeat, /// Unsupported Feature used
 		ValExprExpected, /// Expression should have resolved to value
+		TypeExprExpected, /// Expression should have resolved to type
 		ParamCountMis, /// mismatched parameter count
 		TypeMis, /// type mismatch
 	}
@@ -61,6 +62,13 @@ package SmErr errExprValExpected(Expression expr){
 	return SmErr(expr.pos,
 			format!"Expression does not evaluate to value",
 			SmErr.Type.ValExprExpected);
+}
+
+/// Expression should have resolved to type
+package SmErr errExprTypeExpected(Expression expr){
+	return SmErr(expr.pos,
+			format!"Expression does not evaluate to type",
+			SmErr.Type.TypeExprExpected);
 }
 
 /// Parameter count mismatch
