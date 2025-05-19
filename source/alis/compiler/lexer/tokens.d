@@ -93,7 +93,7 @@ enum TokType{
 	@Match(`$for`)													StaticFor,
 	@Match(`$switch`)												StaticSwitch,
 
-	// intrinsics
+	// intrinsics: types
 	@Match(`$type`)													IntrType,
 	@Match(`$noinit`)												IntrNoInit,
 	@Match(`$noinitval`)										IntrNoInitVal,
@@ -103,19 +103,45 @@ enum TokType{
 	@Match(`$char`)													IntrChar,
 	@Match(`$slice`)												IntrSlice,
 	@Match(`$array`)												IntrArray,
-	@Match(`$arrayLen`)											IntrArrayLen,
-	@Match(`$arrayInd`)											IntrArrayInd,
-	@Match(`$unionIs`)											IntrUnionIs,
 	@Match(`$vt`)														IntrVt,
-	@Match(`$attrsOf`)											IntrAttrsOf,
-	@Match(`$byAttrs`)											IntrByAttrs,
-	@Match(`$debug`)												IntrDebug,
-	@Match(`$stackTrace`)										IntrStackTrace,
 	@Match(`$isType`)												IntrIsType,
+	@Match(`$typeOf`)												IntrTypeOf,
+
+	// intrinsics: ararys & sequences
+	@Match(`$arrLen`)												IntrArrayLen,
+	@Match(`$arrInd`)												IntrArrayInd,
 	@Match(`$seqLen`)												IntrSeqLen,
 	@Match(`$seqInd`)												IntrSeqInd,
+
+	// intrinsics: unions & aggregates
+	@Match(`$unionIs`)											IntrUnionIs,
+
+	// intrinsics: attributes
+	@Match(`$attrsOf`)											IntrAttrsOf,
+	@Match(`$byAttrs`)											IntrByAttrs,
+
+	// intrinsics: misc
+	@Match(`$debug`)												IntrDebug,
+	@Match(`$stackTrace`)										IntrStackTrace,
 	@Match(`$err`)													IntrErr,
-	@Match(`$typeOf`)												IntrTypeOf,
+
+	// intrinsics: printing
+	@Match(`$rtWrite`)											IntrRTWrite,
+	@Match(`$ctWrite`)											IntrCTWrite,
+
+	// intrinsics: arithmetic operations
+	@Match(`$arithNeg`)											IntrArithNeg,
+	@Match(`$arithBinNot`)									IntrArithBinNot,
+	@Match(`$arithBinOr`)										IntrArithBinOr,
+	@Match(`$arithBinAnd`)									IntrArithBinAnd,
+	@Match(`$arithBinXor`)									IntrArithBinXor,
+	@Match(`$arithAdd`)											IntrArithAdd,
+	@Match(`$arithSub`)											IntrArithSub,
+	@Match(`$arithMul`)											IntrArithMul,
+	@Match(`$arithDiv`)											IntrArithDiv,
+	@Match(`$arithMod`)											IntrArithMod,
+	@Match(`$arithLShift`)									IntrArithLShift,
+	@Match(`$arithSShift`)									IntrArithSShift,
 
 	// binary operators
 	@Match(`(`)
