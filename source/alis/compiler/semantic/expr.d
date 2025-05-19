@@ -92,11 +92,11 @@ static:
 				st.errs ~= errUnsup(node);
 		}*/
 	}
-public:
+public static:
 
 	/// Resolves Expression to RExpr
 	/// Returns: RExpr, or SmErr[]
-	static SmErrsVal!RExpr resolve(Expression expr, STab stab, IdentU[] ctx,
+	SmErrsVal!RExpr resolve(Expression expr, STab stab, IdentU[] ctx,
 			ADataType[] paramsT = null){
 		St st;
 		st.ctx = ctx.dup;

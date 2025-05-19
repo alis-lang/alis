@@ -36,11 +36,10 @@ static:
 		st.errs ~= errUnsup(expr);
 	}
 
-public:
-
+public static:
 	/// Evaluates an RExpr
 	/// Returns: AValCT, or SmErr[]
-	static SmErrsVal!AValCT eval(RExpr expr, STab stab, IdentU[] ctx){
+	SmErrsVal!AValCT eval(RExpr expr, STab stab, IdentU[] ctx){
 		St st;
 		st.stab = stab;
 		st.stabMain = stab;
