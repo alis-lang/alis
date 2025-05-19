@@ -95,7 +95,7 @@ enum TokType{
 
 	// intrinsics
 	@Match(`$type`)													IntrType,
-	@Match(`$noinit`)											IntrNoInit,
+	@Match(`$noinit`)												IntrNoInit,
 	@Match(`$noinitval`)										IntrNoInitVal,
 	@Match(`$int`)													IntrInt,
 	@Match(`$uint`)													IntrUInt,
