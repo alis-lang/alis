@@ -5,6 +5,8 @@ module alis.compiler.lexer.tokens;
 
 import alis.compiler.lexer.lexer;
 
+import alis.compiler.common : IntrN;
+
 import utils.ds;
 
 debug import std.stdio;
@@ -141,7 +143,10 @@ enum TokType{
 	@Match(`$arithDiv`)											IntrArithDiv,
 	@Match(`$arithMod`)											IntrArithMod,
 	@Match(`$arithLShift`)									IntrArithLShift,
-	@Match(`$arithSShift`)									IntrArithSShift,
+	@Match(`$arithRShift`)									IntrArithRShift,
+
+	// intrinsics: Type casting
+	@Match(`$cast`)													IntrCast,
 
 	// binary operators
 	@Match(`(`)
