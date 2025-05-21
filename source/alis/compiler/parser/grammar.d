@@ -2136,74 +2136,8 @@ CmpErrVal!IntrinsicExpr parseIntrinsicExpr(ref TokRange toks){
 	assert(toks.front.type.get!(TT.Intrinsic));
 	Tok front = toks.front;
 	toks.popFront;
-	IntrinsicExpr ret;
-
-	if (front.type.get!(TT.IntrType)){
-		ret = new IntrType;
-	} else
-	if (front.type.get!(TT.IntrNoInit)){
-		ret = new IntrNoInit;
-	} else
-	if (front.type.get!(TT.IntrNoInitVal)){
-		ret = new IntrNoInitVal;
-	} else
-	if (front.type.get!(TT.IntrInt)){
-		ret = new IntrInt;
-	} else
-	if (front.type.get!(TT.IntrUInt)){
-		ret = new IntrUInt;
-	} else
-	if (front.type.get!(TT.IntrFloat)){
-		ret = new IntrFloat;
-	} else
-	if (front.type.get!(TT.IntrChar)){
-		ret = new IntrChar;
-	} else
-	if (front.type.get!(TT.IntrSlice)){
-		ret = new IntrSlice;
-	} else
-	if (front.type.get!(TT.IntrArray)){
-		ret = new IntrArray;
-	} else
-	if (front.type.get!(TT.IntrArrayLen)){
-		ret = new IntrArrayLen;
-	} else
-	if (front.type.get!(TT.IntrArrayInd)){
-		ret = new IntrArrayInd;
-	} else
-	if (front.type.get!(TT.IntrUnionIs)){
-		ret = new IntrUnionIs;
-	} else
-	if (front.type.get!(TT.IntrVt)){
-		ret = new IntrVt;
-	} else
-	if (front.type.get!(TT.IntrAttrsOf)){
-		ret = new IntrAttrsOf;
-	} else
-	if (front.type.get!(TT.IntrByAttrs)){
-		ret = new IntrByAttrs;
-	} else
-	if (front.type.get!(TT.IntrDebug)){
-		ret = new IntrDebug;
-	} else
-	if (front.type.get!(TT.IntrStackTrace)){
-		ret = new IntrStackTrace;
-	} else
-	if (front.type.get!(TT.IntrIsType)){
-		ret = new IntrIsType;
-	} else
-	if (front.type.get!(TT.IntrSeqLen)){
-		ret = new IntrSeqLen;
-	} else
-	if (front.type.get!(TT.IntrSeqInd)){
-		ret = new IntrSeqInd;
-	} else
-	if (front.type.get!(TT.IntrErr)){
-		ret = new IntrErr;
-	} else {
-		ret = new IntrinsicExpr;
-		ret.name = front.token[1 .. $];
-	}
+	IntrinsicExpr ret = new IntrinsicExpr;
+	ret.name = front.token[1 .. $];
 
 	return CmpErrVal!IntrinsicExpr(ret);
 }
