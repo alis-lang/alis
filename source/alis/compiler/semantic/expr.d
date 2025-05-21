@@ -18,7 +18,7 @@ import meta;
 package struct ExpressionResolver{
 	@disable this();
 private:
-	alias It = ASTIter!(identExprIter, noinitExpr, callExpr, dotExpr);
+	alias It = ASTIter!(identExprIter, callExpr, dotExpr);
 static:
 	struct St{
 		/// errors
@@ -37,12 +37,6 @@ static:
 
 	@ItFn void identExprIter(IdentExpr node, ref St st){
 		st.errs ~= errUnsup(node); // TODO
-	}
-
-	@ItFn void noinitExpr(IntrNoInit node, ref St st){
-		RIntrinsicExpr res = new RIntrinsicExpr;
-		res.name = node.name;
-		st.res = res;
 	}
 
 	@ItFn void callExpr(OpCallExpr node, ref St st){
