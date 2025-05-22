@@ -31,9 +31,7 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 private struct St{
 	/// errors
 	SmErr[] errs;
-	/// symbol table, for lookups
-	STab stabMain;
-	/// symbol table, local
+	/// symbol table
 	STab stab;
 	/// current context
 	IdentU[] ctx;
@@ -56,24 +54,21 @@ private void l0Iter(S, D)(D node, ref St st){
 	if (__traits(compiles, symC.vis = st.visStack[$ - 1]))
 		symC.vis = st.visStack[$ - 1];
 	ASymbol* sym = new ASymbol(symC);
+	// TODO: untested name collision test
+	if (sym.isCallable){
+		if (st.stab.hasLocalNonCallable(symC.ident[$ - 1], st.ctx)){
+			st.errs ~= errIdentReuse(node.pos, symC.ident[$ - 1].toString);
+			return;
+		}
+	} else if (symC.ident[$ - 1] in st.stab.map){
+		st.errs ~= errIdentReuse(node.pos, symC.ident[$ - 1].toString);
+		return;
+	}
 	st.sMap[node] = sym;
 	st.stab.add(symC.ident[$ - 1], sym, st.visStack[$ - 1], st.ctx);
 }
 
 @ItFn @ITL(0){
-	void moduleIter(Module mod, ref St st){
-		STab prevStab = st.stab;
-		st.stab = new STab;
-		prevStab.add(mod.ident.IdentU, st.stab, Visibility.Pub, st.ctx);
-		if (st.ctx)
-			st.ctx ~= mod.ident.IdentU;
-		else
-			st.ctx = [mod.ident.IdentU];
-		It.descend(mod, st);
-		st.stab = prevStab;
-		st.ctx.length --;
-	}
-
 	void mixinInitDefIter(MixinInitDef node, ref St st){
 		st.errs ~= errUnsup(node);
 	}
@@ -132,7 +127,6 @@ package SmErrsVal!S0R stab0Of(ASTNode node, STab stab = null,
 	St st;
 	if (stab is null)
 		stab = new STab;
-	st.stabMain = stab;
 	st.stab = stab;
 	st.ctx = ctx.dup;
 	st.visStack ~= Visibility.Default;
