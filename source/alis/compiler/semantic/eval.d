@@ -13,41 +13,24 @@ import alis.common,
 
 import meta;
 
-/// Expression Evaluator
-private struct ExpressionEvaluator{
-	@disable this();
-private:
-	alias It = ASTIter!(rIdentIter);
-static:
-	struct St{
-		/// errors
-		SmErr[] errs;
-		/// main STab, for lookups
-		STab stabMain;
-		/// local STab
-		STab stab;
-		/// context ctx
-		IdentU[] ctx;
-		/// Result
-		AValCT res;
-	}
+private alias It = ItL!(mixin(__MODULE__), 0);
 
+struct St{
+	/// errors
+	SmErr[] errs;
+	/// main STab, for lookups
+	STab stabMain;
+	/// local STab
+	STab stab;
+	/// context ctx
+	IdentU[] ctx;
+	/// Result
+	AValCT res;
+}
+
+@ItFn @ITL(0) {
 	@ItFn void rIdentIter(RIdentExpr expr, ref St st){
 		st.errs ~= errUnsup(expr);
-	}
-
-public static:
-	/// Evaluates an RExpr
-	/// Returns: AValCT, or SmErr[]
-	SmErrsVal!AValCT eval(RExpr expr, STab stab, IdentU[] ctx){
-		St st;
-		st.stab = stab;
-		st.stabMain = stab;
-		st.ctx = ctx.dup;
-		It.exec(expr, st);
-		if (st.errs.length)
-			return SmErrsVal!AValCT(st.errs);
-		return SmErrsVal!AValCT(st.res);
 	}
 }
 
@@ -59,7 +42,14 @@ public static:
 /// Returns: AValCT, or SmErr[]
 pragma(inline, true)
 package SmErrsVal!AValCT eval(RExpr expr, STab stab, IdentU[] ctx){
-	return ExpressionEvaluator.eval(expr, stab, ctx);
+	St st;
+	st.stab = stab;
+	st.stabMain = stab;
+	st.ctx = ctx.dup;
+	It.exec(expr, st);
+	if (st.errs.length)
+		return SmErrsVal!AValCT(st.errs);
+	return SmErrsVal!AValCT(st.res);
 }
 
 /// Evaluates an Expression
