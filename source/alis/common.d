@@ -33,7 +33,7 @@ public struct AValCT{
 			ubyte[] dataL; /// data for `Literal`
 			ADataType typeL; /// data type for `Literal`
 		}
-		ASymRef symS; /// symbol ref for `Symbol`
+		ASymbol* symS; /// symbol for `Symbol`
 		ADataType typeT; /// data type for `Type`
 	}
 
@@ -80,12 +80,7 @@ public struct AValCT{
 		this.typeL = type;
 	}
 	/// ditto
-	this (ASymbol sym){
-		this.type = Type.Symbol;
-		this.symS = sym.ident.ASymRef;
-	}
-	/// ditto
-	this (ASymRef sym){
+	this (ASymbol* sym){
 		this.type = Type.Symbol;
 		this.symS = sym;
 	}
@@ -114,7 +109,7 @@ public:
 					params.map!(p => p.toString).join(","));
 		return ident;
 	}
-	//bool opEquals()(auto ref const IdentU rhs) const pure {
+	//bool opEquals(const IdentU rhs) const pure {
 	bool opEquals()(auto ref const IdentU rhs) const pure {
 		if (ident != rhs.ident || params.length != rhs.params.length)
 			return false;
@@ -199,6 +194,25 @@ public:
 
 /// a symbol
 public struct ASymbol{
+	/// Returns: whether this is a callable (template or function)
+	@property bool isCallable() const pure {
+		final switch (type){
+			case Type.Struct:
+			case Type.Union:
+			case Type.Enum:
+			case Type.EnumMember:
+			case Type.Var:
+			case Type.Alias:
+			case Type.Import:
+			case Type.EnumConst:
+			case Type.UTest:
+				return false;
+			case Type.Template:
+			case Type.Fn:
+				return true;
+		}
+	}
+
 	/// Returns: identifier, `_` if anonymous
 	@property inout(IdentU[]) ident() pure inout {
 		final switch (type){
@@ -222,6 +236,8 @@ public struct ASymbol{
 				return importS.ident;
 			case Type.Template:
 				return templateS.ident;
+			case Type.UTest:
+				return utestS.ident;
 		}
 		assert(false);
 	}
@@ -249,6 +265,8 @@ public struct ASymbol{
 				return importS.vis;
 			case Type.Template:
 				return templateS.vis;
+			case Type.UTest:
+				return utestS.vis;
 		}
 		assert(false);
 	}
@@ -265,9 +283,11 @@ public struct ASymbol{
 		Alias,
 		Import,
 		Template,
+		UTest,
 	}
 	/// type of this symbol
 	Type type;
+
 	union{
 		AStruct structS; /// struct for `Type.Struct`
 		AUnion unionS; /// union for `Type.Union`
@@ -282,8 +302,10 @@ public struct ASymbol{
 		AVar varS; /// variable for `Type.Var`
 		AAlias aliasS; /// alias for `Type.Alias`
 		AImport importS; /// import for `Type.Import`
-		ATemplate templateS;
+		ATemplate templateS; /// template for `Type.Template`
+		AUTest utestS; /// utest for `Type.UTest`
 	}
+
 	/// Returns: string representation, equivalent to `ASymbol.ident.toString`
 	string toString() const pure {
 		final switch (type){
@@ -307,6 +329,8 @@ public struct ASymbol{
 				return importS.toString;
 			case Type.Template:
 				return templateS.toString;
+			case Type.UTest:
+				return utestS.toString;
 		}
 		assert(false);
 	}
@@ -342,6 +366,9 @@ public struct ASymbol{
 	}
 	bool opEquals()(auto ref const ATemplate templateS) const {
 		return this.type == Type.Template && this.templateS == templateS;
+	}
+	bool opEquals()(auto ref const AUTest utestS) const {
+		return this.type == Type.UTest && this.utestS == utestS;
 	}
 
 	bool opEquals()(auto ref const ASymbol rhs) const {
@@ -422,6 +449,11 @@ public struct ASymbol{
 		this.type = Type.Template;
 		this.templateS = templateS;
 	}
+	/// ditto
+	this (AUTest utestS){
+		this.type = Type.UTest;
+		this.utestS = utestS;
+	}
 }
 
 /// an Alis Module. Aggregates all public symbols for a module
@@ -467,8 +499,12 @@ public struct ADataType{
 		}
 		/// type sequence, for `Seq`
 		ADataType[] seqT;
-		/// symbol reference, for `Struct`, `Union`, or `Enum`
-		ASymRef sym;
+		/// Struct reference for `Struct`
+		AStruct* structS;
+		/// Union reference for `Union`
+		AUnion* unionS;
+		/// Enum reference for `Enum`
+		AEnum* enumS;
 		struct{
 			/// return type, for `Fn`
 			ADataType* retT;
@@ -514,11 +550,17 @@ public struct ADataType{
 			case Type.Ref:
 				return ret ~ (*refT).toString.format!"@%s";
 			case Type.Struct:
-				return sym.toString.format!"struct(%s)";
+				if (structS is null)
+					return "struct NULL";
+				return structS.toString;
 			case Type.Union:
-				return sym.toString.format!"union(%s)";
+				if (unionS is null)
+					return "union NULL";
+				return unionS.toString;
 			case Type.Enum:
-				return sym.toString.format!"enum(%s)";
+				if (enumS is null)
+					return "enum NULL";
+				return enumS.toString;
 			case Type.NoInit:
 				return "$noinit";
 		}
@@ -547,16 +589,16 @@ public struct ADataType{
 			case Type.Ref:
 				return null.sizeof;
 			case Type.Struct:
-				debug stderr.writeln("STUB: ADataType.sizeOf called on Struct.");
-				return 0;
+				assert (structS !is null);
+				return structS.sizeOf;
 				//assert (false, "thou shall not call ADataType.sizeOf on Struct!");
 			case Type.Union:
-				debug stderr.writeln("STUB: ADataType.sizeOf called on Union.");
-				return 0;
+				assert (unionS !is null);
+				return unionS.sizeOf;
 				//assert (false, "thou shall not call ADataType.sizeOf on Union!");
 			case Type.Enum:
-				debug stderr.writeln("STUB: ADataType.sizeOf called on Enum.");
-				return size_t.sizeof;
+				assert(enumS !is null);
+				return enumS.type.sizeOf;
 				//assert (false, "thou shall not call ADataType.sizeOf on Enum!");
 			case Type.NoInit:
 				return 0;
@@ -669,47 +711,26 @@ public struct ADataType{
 	}
 
 	/// Returns: struct type
-	static ADataType of()(auto ref const AStruct structT) pure {
+	static ADataType of(AStruct* structT) pure {
 		ADataType ret;
 		ret.type = Type.Struct;
-		ret.sym = structT.ident.ASymRef;
-		return ret;
-	}
-	/// ditto
-	static ADataType ofStruct(ASymRef symR) pure {
-		ADataType ret;
-		ret.type = Type.Struct;
-		ret.sym = symR;
+		ret.structS = structT;
 		return ret;
 	}
 
 	/// Returns: union type
-	static ADataType of()(auto ref const AUnion unionT) pure {
+	static ADataType of(AUnion* unionT) pure {
 		ADataType ret;
 		ret.type = Type.Union;
-		ret.sym = unionT.ident.ASymRef;
-		return ret;
-	}
-	/// ditto
-	static ADataType ofUnion(ASymRef symR) pure {
-		ADataType ret;
-		ret.type = Type.Union;
-		ret.sym = symR;
+		ret.unionS = unionT;
 		return ret;
 	}
 
 	/// Returns: enum type
-	static ADataType of()(auto ref const AEnum enumT) pure {
+	static ADataType of(AEnum* enumT) pure {
 		ADataType ret;
 		ret.type = Type.Enum;
-		ret.sym = enumT.ident.ASymRef;
-		return ret;
-	}
-	/// ditto
-	static ADataType ofEnum(ASymRef symR) pure {
-		ADataType ret;
-		ret.type = Type.Enum;
-		ret.sym = symR;
+		ret.enumS = enumT;
 		return ret;
 	}
 
@@ -786,11 +807,11 @@ public struct ADataType{
 				}
 				return true;
 			case Type.Struct:
-				return sym == rhs.sym;
+				return structS !is null && structS == rhs.structS;
 			case Type.Union:
-				return sym == rhs.sym;
+				return unionS !is null && unionS == rhs.unionS;
 			case Type.Enum:
-				return sym == rhs.sym;
+				return enumS !is null && enumS == rhs.enumS;
 			case Type.NoInit:
 				return true;
 		}
@@ -954,7 +975,7 @@ public struct AFn{
 	/// label name in ABC
 	string labN;
 	/// whether this is an alis function (true) or an external (false)
-	bool isAlisFn;
+	bool isAlisFn = true;
 	/// Visibility outside its parent module
 	Visibility vis;
 
@@ -975,7 +996,7 @@ public struct AVar{
 	/// offset
 	size_t offset;
 	/// whether is global or local
-	bool isGlobal;
+	bool isGlobal = false;
 	/// Visibility outside its parent module
 	Visibility vis;
 
@@ -1022,6 +1043,21 @@ public struct ATemplate{
 
 	string toString() const pure {
 		return format!"template";
+	}
+}
+
+/// Alis Unit Test
+public struct AUTest{
+	/// identifier
+	IdentU[] ident;
+	/// Visibility (always default)
+	@property Visibility vis(Visibility) const pure { return Visibility.Default; }
+	/// ditto
+	@property Visibility vis() const pure { return Visibility.Default; }
+	// TODO: what to store in AUTest
+
+	string toString() const pure {
+		return format!"utest";
 	}
 }
 
