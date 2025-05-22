@@ -5,9 +5,11 @@ import std.stdio,
 			 std.json,
 			 std.array,
 			 std.algorithm,
+			 std.typecons,
 			 std.datetime.stopwatch;
 
 import alis.common,
+			 alis.compiler.common,
 			 alis.compiler.error,
 			 alis.compiler.lexer,
 			 alis.compiler.parser,
@@ -17,6 +19,8 @@ import alis.common,
 			 alis.compiler.ast;
 
 import core.stdc.stdlib;
+
+debug import alis.compiler.semantic.sym0;
 
 void main(){
 	string source;
@@ -34,11 +38,11 @@ void main(){
 	}
 	sw.start;
 	node.val.ident = "alis-main";
-	SmErrsVal!STab stabVal = node.val.symOf;
+	SmErrsVal!S0R stabVal = node.val.stab0Of;
 	sw.stop;
 	if (stabVal.isErr)
 		stderr.writefln!"Errors:\n%(%s%)"(stabVal.err);
 	else
-		stabVal.val.writeln;
+		stabVal.val.stab.writeln;
 	stderr.writefln!"done in: %d msecs"(sw.peek.total!"msecs");
 }
