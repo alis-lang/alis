@@ -57,6 +57,12 @@ package SmErr errUnsup(ASTNode node){
 			SmErr.Type.UnsupFeat);
 }
 
+/// Unsupported Feature
+package SmErr errUnsup(Location pos, string feat){
+	return SmErr(pos, feat.format!"Unsupported Feature: %s",
+			SmErr.Type.UnsupFeat);
+}
+
 /// Expression should have resolved to Value
 package SmErr errExprValExpected(Expression expr){
 	return SmErr(expr.pos,
