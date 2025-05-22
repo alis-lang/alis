@@ -67,12 +67,12 @@ package SmErrsVal!AValCT eval(RExpr expr, STab stab, IdentU[] ctx){
 /// - `expr` - The expression to resolve
 /// - `stab` - The root level Symbol Table
 /// - `ctx` - Context where the `expr` occurs
-/// - `paramsT` - Parameter Data Types if `expr` is to be used as a callable
+/// - `params` - Parameters for `expr` if any
 /// Returns: AValCT or SmErr[]
 package SmErrsVal!AValCT eval(Expression expr, STab stab, IdentU[] ctx,
-		ADataType[] paramsT = null){
+		AValCT[] params = null){
 	import alis.compiler.semantic.expr : resolve;
-	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, paramsT);
+	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, params);
 	if (resolved.isErr)
 		return SmErrsVal!AValCT(resolved.err);
 	return eval(resolved.val, stab, ctx);
