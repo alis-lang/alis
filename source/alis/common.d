@@ -545,22 +545,22 @@ public struct ADataType{
 			case Type.Array:
 				return (*refT).toString.format!"$array(%s)"; // cannot be const
 			case Type.Fn:
-				return format!"fn (%s) -> %s"(
+				return format!"fn(%s)->%s"(
 						paramT.map!(p => p.toString).join(","), retT.toString);
 			case Type.Ref:
 				return ret ~ (*refT).toString.format!"@%s";
 			case Type.Struct:
 				if (structS is null)
-					return "struct NULL";
-				return structS.toString;
+					return "struct(NULL)";
+				return structS.ident.format!"struct(%s)";
 			case Type.Union:
 				if (unionS is null)
-					return "union NULL";
-				return unionS.toString;
+					return "union(NULL)";
+				return unionS.ident.format!"union(%s)";
 			case Type.Enum:
 				if (enumS is null)
-					return "enum NULL";
-				return enumS.toString;
+					return "enum(NULL)";
+				return enumS.ident.format!"enum(%s)";
 			case Type.NoInit:
 				return "$noinit";
 		}
