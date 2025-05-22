@@ -18,11 +18,8 @@ import alis.common,
 			 alis.compiler.common,
 			 alis.compiler.semantic.common,
 			 alis.compiler.semantic.error,
-			 alis.compiler.semantic.expr,
-			 alis.compiler.semantic.eval,
 			 alis.compiler.ast,
-			 alis.compiler.ast.iter,
-			 alis.compiler.rst;
+			 alis.compiler.ast.iter;
 
 import meta;
 
