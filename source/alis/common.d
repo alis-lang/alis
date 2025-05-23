@@ -129,6 +129,11 @@ public bool isNoId()(auto ref const IdentU[] ident){
 	return ident.length == 1 && ident[0] == IdentU.init;
 }
 
+/// Returns: IdentU[] as a human readable string
+public string toString()(const auto ref IdentU[] id) pure {
+	return id.map!(i => i.toString).join(".");
+}
+
 /// complete identifier
 /*public final class Ident{
 public:
@@ -972,8 +977,8 @@ public struct AFn{
 	ADataType retT;
 	/// locals, including parameters
 	ADT params;
-	/// label name in ABC
-	string labN;
+	/// mangled name
+	string uid;
 	/// whether this is an alis function (true) or an external (false)
 	bool isAlisFn = true;
 	/// Visibility outside its parent module
@@ -981,9 +986,9 @@ public struct AFn{
 
 	string toString() const pure {
 		return format!
-			"fn %s%s->%s params={\n%s\n}"(
+			"fn %s%s(%s)->%s"(
 					(isAlisFn ? "" : "external "),
-					ident, retT, params);
+					ident, params, retT);
 	}
 }
 
