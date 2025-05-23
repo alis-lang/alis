@@ -23,8 +23,10 @@ public struct SmErr{
 		UnsupFeat, /// Unsupported Feature used
 		ValExprExpected, /// Expression should have resolved to value
 		TypeExprExpected, /// Expression should have resolved to type
+		SymExprExpected, /// Expression should have resolved to symbol
 		ParamCountMis, /// mismatched parameter count
 		TypeMis, /// type mismatch
+		RecursiveDep, /// Recursive Dependency
 	}
 	/// where error happen
 	Location pos;
@@ -64,17 +66,23 @@ package SmErr errUnsup(Location pos, string feat){
 }
 
 /// Expression should have resolved to Value
-package SmErr errExprValExpected(Expression expr){
+package SmErr errExprValExpected(ASTNode expr){
 	return SmErr(expr.pos,
 			format!"Expression does not evaluate to value",
 			SmErr.Type.ValExprExpected);
 }
 
 /// Expression should have resolved to type
-package SmErr errExprTypeExpected(Expression expr){
+package SmErr errExprTypeExpected(ASTNode expr){
 	return SmErr(expr.pos,
 			format!"Expression does not evaluate to type",
 			SmErr.Type.TypeExprExpected);
+}
+/// Expression should have resolved to Value
+package SmErr errExprSymExpected(ASTNode expr){
+	return SmErr(expr.pos,
+			format!"Expression does not evaluate to symbol",
+			SmErr.Type.SymExprExpected);
 }
 
 /// Parameter count mismatch
@@ -92,4 +100,11 @@ package SmErr errTypeMis(ASTNode node, ADataType expected, ADataType got){
 			format!"Mismatched types: expected `%s`, received `%s`"(
 				expected.toString, got.toString),
 			SmErr.Type.TypeMis);
+}
+
+/// Recursive Dependency
+package SmErr errRecDep(Location pos, string name){
+	return SmErr(pos,
+			name.format!"Recursive Dependency on %s",
+			SmErr.Type.RecursiveDep);
 }
