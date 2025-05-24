@@ -27,6 +27,7 @@ public struct SmErr{
 		ParamCountMis, /// mismatched parameter count
 		TypeMis, /// type mismatch
 		RecursiveDep, /// Recursive Dependency
+		IncompatTypes, /// incompatible types
 	}
 	/// where error happen
 	Location pos;
@@ -107,4 +108,13 @@ package SmErr errRecDep(Location pos, string name){
 	return SmErr(pos,
 			name.format!"Recursive Dependency on %s",
 			SmErr.Type.RecursiveDep);
+}
+
+/// incompatible types
+package SmErr errIncompatType()(Location pos, ADataType expected,
+		ADataType got){
+	return SmErr(pos,
+			format!"Incompatible Types: Cannot implicitly cast `%s` to `%s`"(
+				got, expected),
+			SmErr.Type.IncompatTypes);
 }
