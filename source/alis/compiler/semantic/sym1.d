@@ -93,6 +93,26 @@ private bool isRecDep(ASTNode node, ref St st){
 		assert (sym);
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
+		AEnum* symC = &sym.enumS;
+
+		SmErrsVal!ADataType typeRes = eval4Type(node.type, st.stabR, st.ctx);
+		if (typeRes.isErr){
+			st.errs ~= typeRes.err;
+			return;
+		}
+		symC.type = typeRes.val;
+
+		foreach (EnumMember member; node.members){
+			SmErrsVal!AValCT valRes = eval4Val(member.value, st.stabR, st.ctx);
+			if (valRes.isErr){
+				st.errs ~= valRes.err;
+				return;
+			}
+			AEnumMember amem;
+			amem.val = valRes.val.dataL;
+			amem.ident = symC.ident ~ member.name.IdentU;
+			symC.members ~= amem;
+		}
 	}
 
 	void structIter(StructDef node, ref St st){
