@@ -29,6 +29,7 @@ public struct SmErr{
 		RecursiveDep, /// Recursive Dependency
 		IncompatTypes, /// incompatible types
 		EnumMemValMis, /// enum member value missing
+		MultiInherit, /// multiple alias `this`
 	}
 	/// where error happen
 	Location pos;
@@ -131,4 +132,9 @@ package SmErr errIncompatType(EnumDef node){
 package SmErr errEnumMemValMis(EnumMember member){
 	return SmErr(member.pos, member.name.format!"Enum Member %s has no value",
 			SmErr.Type.EnumMemValMis);
+}
+
+/// multiple inheritence
+package SmErr errMultiInherit(Location pos){
+	return SmErr(pos, "Multiple `alias this`", SmErr.Type.MultiInherit);
 }
