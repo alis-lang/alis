@@ -178,7 +178,7 @@ public:
 	/// name
 	string name;
 	/// val
-	Expression val;
+	IdentExpr val;
 }
 
 /// AggMember named
