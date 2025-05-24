@@ -842,12 +842,10 @@ public struct ADT{
 	string toString() const pure {
 		string ret = "ADT{";
 		size_t off;
-		foreach (size_t i; 0 .. types.length){
-			ret ~= format!"%d-%d{name:%s,type:%s,tb:%s}"(
-					off, off + types[i].sizeOf, names[i], types[i].toString,
-					tb[off .. off + types[i].sizeOf]);
-			off += types[i].sizeOf;
-		}
+		foreach (size_t i; 0 .. types.length)
+			ret ~= format!"%d{name:%s,type:%s,tb:%s}"(
+					offsets[i] == size_t.max ? -1 : cast(ptrdiff_t)(offsets[i]),
+					names[i], types[i].toString, tb[off .. off + types[i].sizeOf]);
 		ret ~= "}";
 		return ret;
 	}
