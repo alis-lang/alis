@@ -47,6 +47,14 @@ public:
 			this.val = val;
 			this.vis = vis.dup;
 		}
+		/// Returns: whether this is visible from a ctx
+		bool isVis(IdentU[] ctx) const pure {
+			if (ctx.isNoId)
+				return true;
+			if (ctx.length < vis.length)
+				return false;
+			return vis == ctx[0 .. vis.length];
+		}
 	}
 
 	/// the symbol table
@@ -70,7 +78,7 @@ public:
 				if (i !in st.next)
 					break;
 				Node!STab nextNode = st.next[i];
-				if (!nextNode.vis.isNoId && nextNode.vis != ctx)
+				if (!nextNode.isVis(ctx))
 					break;
 				_maps ~= nextNode.val.map;
 				st = nextNode.val;
@@ -96,7 +104,9 @@ public:
 			Node!(ASymbol*)[] arr;
 			if (_maps.length && (_id in _maps[$ - 1]) !is null)
 				arr = _maps[$ - 1][_id];
-			return arr.filter!(node => node.vis.isNoId || node.vis == ctx);
+			return arr
+				.filter!(node => node.isVis(ctx))
+				.map!(node => node.val);
 		}
 	}
 
@@ -133,6 +143,24 @@ public:
 		return add(id, st, vis == Visibility.Default ? ctx : [IdentU.init]);
 	}
 
+	/// Returns: nonCallable symbol at this level, by its IdentU. Will return
+	/// `null` if none present, or none visible.
+	ASymbol* localNonCallable(IdentU id, IdentU[] ctx) pure {
+		if (id !in map)
+			return null;
+		auto range = map[id]
+			.filter!(node => node.isVis(ctx) && !node.val.isCallable);
+		if (range.empty)
+			return null;
+		return range.front.val;
+	}
+
+	/// Returns: whether a nonCallable symbol exists by certain IdentU, at this
+	/// level
+	@property bool hasLocalNonCallable(IdentU id, IdentU[] ctx) pure {
+		return localNonCallable(id, ctx) !is null;
+	}
+
 	JSONValue toJson() const {
 		JSONValue ret;
 		foreach (IdentU key; map.byKey){
@@ -149,14 +177,15 @@ public:
 						})
 				.array;
 		}
+		if (ret.isNull)
+			ret = JSONValue.emptyObject;
 		foreach (IdentU key; next.byKey){
 			immutable string s = key.toString;
 			const Node!STab n = next[key];
 			JSONValue obj;
 			obj["val"] = n.val.toJson;
 			obj["vis"] = n.vis.to!string;
-			continue;
-			if (s in ret)
+			if (s in ret.object)
 				ret[s] ~= obj;
 			else
 				ret[s] = [obj];

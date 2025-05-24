@@ -23,8 +23,12 @@ public struct SmErr{
 		UnsupFeat, /// Unsupported Feature used
 		ValExprExpected, /// Expression should have resolved to value
 		TypeExprExpected, /// Expression should have resolved to type
+		SymExprExpected, /// Expression should have resolved to symbol
 		ParamCountMis, /// mismatched parameter count
 		TypeMis, /// type mismatch
+		RecursiveDep, /// Recursive Dependency
+		IncompatTypes, /// incompatible types
+		EnumMemValMis, /// enum member value missing
 	}
 	/// where error happen
 	Location pos;
@@ -57,18 +61,30 @@ package SmErr errUnsup(ASTNode node){
 			SmErr.Type.UnsupFeat);
 }
 
+/// Unsupported Feature
+package SmErr errUnsup(Location pos, string feat){
+	return SmErr(pos, feat.format!"Unsupported Feature: %s",
+			SmErr.Type.UnsupFeat);
+}
+
 /// Expression should have resolved to Value
-package SmErr errExprValExpected(Expression expr){
+package SmErr errExprValExpected(ASTNode expr){
 	return SmErr(expr.pos,
 			format!"Expression does not evaluate to value",
 			SmErr.Type.ValExprExpected);
 }
 
 /// Expression should have resolved to type
-package SmErr errExprTypeExpected(Expression expr){
+package SmErr errExprTypeExpected(ASTNode expr){
 	return SmErr(expr.pos,
 			format!"Expression does not evaluate to type",
 			SmErr.Type.TypeExprExpected);
+}
+/// Expression should have resolved to Value
+package SmErr errExprSymExpected(ASTNode expr){
+	return SmErr(expr.pos,
+			format!"Expression does not evaluate to symbol",
+			SmErr.Type.SymExprExpected);
 }
 
 /// Parameter count mismatch
@@ -86,4 +102,33 @@ package SmErr errTypeMis(ASTNode node, ADataType expected, ADataType got){
 			format!"Mismatched types: expected `%s`, received `%s`"(
 				expected.toString, got.toString),
 			SmErr.Type.TypeMis);
+}
+
+/// Recursive Dependency
+package SmErr errRecDep(Location pos, string name){
+	return SmErr(pos,
+			name.format!"Recursive Dependency on %s",
+			SmErr.Type.RecursiveDep);
+}
+
+/// incompatible types
+package SmErr errIncompatType()(Location pos, ADataType expected,
+		ADataType got){
+	return SmErr(pos,
+			format!"Incompatible Types: Cannot implicitly cast `%s` to `%s`"(
+				got, expected),
+			SmErr.Type.IncompatTypes);
+}
+
+/// incompatible types in enum values
+package SmErr errIncompatType(EnumDef node){
+	return SmErr(node.pos,
+			format!"Incompatible Types: Enum %s members of incompatible types"(
+				node.name), SmErr.Type.IncompatTypes);
+}
+
+/// enum member value missing
+package SmErr errEnumMemValMis(EnumMember member){
+	return SmErr(member.pos, member.name.format!"Enum Member %s has no value",
+			SmErr.Type.EnumMemValMis);
 }
