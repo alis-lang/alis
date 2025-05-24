@@ -11,6 +11,8 @@ import alis.common,
 			 alis.compiler.ast.iter,
 			 alis.compiler.rst;
 
+import alis.compiler.semantic.expr : resolve;
+
 import meta;
 
 private alias It = ItL!(mixin(__MODULE__), 0);
@@ -34,7 +36,9 @@ struct St{
 	}
 }
 
-/// Evaluates an RExpr
+/// Evaluates an `expr`. Resulting AVAlCT can be any of 3 `AValCT.Type`,
+/// in case something is suitable as `Type.Symbol` and something else,
+/// `Type.Symbol` will be preferred.
 /// Params:
 /// - `expr` - The expression to resolve
 /// - `stab` - The root level Symbol Table
@@ -51,6 +55,15 @@ package SmErrsVal!AValCT eval(RExpr expr, STab stab, IdentU[] ctx){
 	return SmErrsVal!AValCT(st.res);
 }
 
+/// ditto
+package SmErrsVal!AValCT eval(Expression expr, STab stab, IdentU[] ctx,
+		AValCT[] params = null){
+	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, params);
+	if (resolved.isErr)
+		return SmErrsVal!AValCT(resolved.err);
+	return eval(resolved.val, stab, ctx);
+}
+
 /// Evaluates an RExpr expecting a value. See `eval`
 /// Returns: AValCT with Type.Literal, or SmErr[]
 package SmErrsVal!AValCT eval4Val(RExpr expr, STab stab, IdentU[] ctx){
@@ -60,6 +73,15 @@ package SmErrsVal!AValCT eval4Val(RExpr expr, STab stab, IdentU[] ctx){
 	if (ret.val.type != AValCT.Type.Literal)
 		return SmErrsVal!AValCT([errExprValExpected(expr)]);
 	return ret;
+}
+
+/// ditto
+package SmErrsVal!AValCT eval4Val(Expression expr, STab stab, IdentU[] ctx,
+		AValCT[] params = null){
+	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, params);
+	if (resolved.isErr)
+		return SmErrsVal!AValCT(resolved.err);
+	return eval4Val(resolved.val, stab, ctx);
 }
 
 /// Evaluates an RExpr expecting a type. See `eval`
@@ -73,6 +95,15 @@ package SmErrsVal!AValCT eval4Type(RExpr expr, STab stab, IdentU[] ctx){
 	return ret;
 }
 
+/// ditto
+package SmErrsVal!AValCT eval4Type(Expression expr, STab stab, IdentU[] ctx,
+		AValCT[] params = null){
+	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, params);
+	if (resolved.isErr)
+		return SmErrsVal!AValCT(resolved.err);
+	return eval4Type(resolved.val, stab, ctx);
+}
+
 /// Evaluates an RExpr expecting a symbol. See `eval`
 /// Returns: AValCT with Type.Type, or SmErr[]
 package SmErrsVal!AValCT eval4Sym(RExpr expr, STab stab, IdentU[] ctx){
@@ -84,54 +115,11 @@ package SmErrsVal!AValCT eval4Sym(RExpr expr, STab stab, IdentU[] ctx){
 	return ret;
 }
 
-/// Evaluates an Expression
-/// Params:
-/// - `expr` - The expression to resolve
-/// - `stab` - The root level Symbol Table
-/// - `ctx` - Context where the `expr` occurs
-/// - `params` - Parameters for `expr` if any
-/// Returns: AValCT or SmErr[]
-package SmErrsVal!AValCT eval(Expression expr, STab stab, IdentU[] ctx,
+/// ditto
+package SmErrsVal!AValCT eval4Sym(Expression expr, STab stab, IdentU[] ctx,
 		AValCT[] params = null){
-	import alis.compiler.semantic.expr : resolve;
 	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, params);
 	if (resolved.isErr)
 		return SmErrsVal!AValCT(resolved.err);
-	return eval(resolved.val, stab, ctx);
-}
-
-/// Evaluates an Expression, expecting a value. See `eval`
-/// Returns: AValCT with Type.Literal, or SmErr[]
-package SmErrsVal!AValCT eval4Val(Expression expr, STab stab, IdentU[] ctx,
-		AValCT[] params = null){
-	SmErrsVal!AValCT ret = eval(expr, stab, ctx, params);
-	if (ret.isErr)
-		return ret;
-	if (ret.val.type != AValCT.Type.Literal)
-		return SmErrsVal!AValCT([errExprValExpected(expr)]);
-	return ret;
-}
-
-/// Evaluates an Expression, expecting a type. See `eval`
-/// Returns: AValCT with Type.Literal, or SmErr[]
-package SmErrsVal!AValCT eval4Type(Expression expr, STab stab, IdentU[] ctx,
-		AValCT[] params = null){
-	SmErrsVal!AValCT ret = eval(expr, stab, ctx, params);
-	if (ret.isErr)
-		return ret;
-	if (ret.val.type != AValCT.Type.Type)
-		return SmErrsVal!AValCT([errExprTypeExpected(expr)]);
-	return ret;
-}
-
-/// Evaluates an Expression, expecting a symbol. See `eval`
-/// Returns: AValCT with Type.Literal, or SmErr[]
-package SmErrsVal!AValCT eval4Sym(Expression expr, STab stab, IdentU[] ctx,
-		AValCT[] params = null){
-	SmErrsVal!AValCT ret = eval(expr, stab, ctx, params);
-	if (ret.isErr)
-		return ret;
-	if (ret.val.type != AValCT.Type.Symbol)
-		return SmErrsVal!AValCT([errExprSymExpected(expr)]);
-	return ret;
+	return eval4Sym(resolved.val, stab, ctx);
 }
