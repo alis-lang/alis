@@ -85,41 +85,41 @@ package SmErrsVal!AValCT eval4Val(Expression expr, STab stab, IdentU[] ctx,
 }
 
 /// Evaluates an RExpr expecting a type. See `eval`
-/// Returns: AValCT with Type.Type, or SmErr[]
-package SmErrsVal!AValCT eval4Type(RExpr expr, STab stab, IdentU[] ctx){
+/// Returns: ADataType or SmErr[]
+package SmErrsVal!ADataType eval4Type(RExpr expr, STab stab, IdentU[] ctx){
 	SmErrsVal!AValCT ret = eval(expr, stab, ctx);
 	if (ret.isErr)
-		return ret;
+		return SmErrsVal!ADataType(ret.err);
 	if (ret.val.type != AValCT.Type.Type)
-		return SmErrsVal!AValCT([errExprTypeExpected(expr)]);
-	return ret;
+		return SmErrsVal!ADataType([errExprTypeExpected(expr)]);
+	return SmErrsVal!ADataType(ret.val.typeT);
 }
 
 /// ditto
-package SmErrsVal!AValCT eval4Type(Expression expr, STab stab, IdentU[] ctx,
+package SmErrsVal!ADataType eval4Type(Expression expr, STab stab, IdentU[] ctx,
 		AValCT[] params = null){
 	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, params);
 	if (resolved.isErr)
-		return SmErrsVal!AValCT(resolved.err);
+		return SmErrsVal!ADataType(resolved.err);
 	return eval4Type(resolved.val, stab, ctx);
 }
 
 /// Evaluates an RExpr expecting a symbol. See `eval`
-/// Returns: AValCT with Type.Type, or SmErr[]
-package SmErrsVal!AValCT eval4Sym(RExpr expr, STab stab, IdentU[] ctx){
+/// Returns: ASymbol* or SmErr[]
+package SmErrsVal!(ASymbol*) eval4Sym(RExpr expr, STab stab, IdentU[] ctx){
 	SmErrsVal!AValCT ret = eval(expr, stab, ctx);
 	if (ret.isErr)
-		return ret;
+		return SmErrsVal!(ASymbol*)(ret.err);
 	if (ret.val.type != AValCT.Type.Symbol)
-		return SmErrsVal!AValCT([errExprSymExpected(expr)]);
-	return ret;
+		return SmErrsVal!(ASymbol*)([errExprSymExpected(expr)]);
+	return SmErrsVal!(ASymbol*)(ret.val.symS);
 }
 
 /// ditto
-package SmErrsVal!AValCT eval4Sym(Expression expr, STab stab, IdentU[] ctx,
+package SmErrsVal!(ASymbol*) eval4Sym(Expression expr, STab stab, IdentU[] ctx,
 		AValCT[] params = null){
 	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, params);
 	if (resolved.isErr)
-		return SmErrsVal!AValCT(resolved.err);
+		return SmErrsVal!(ASymbol*)(resolved.err);
 	return eval4Sym(resolved.val, stab, ctx);
 }
