@@ -105,23 +105,45 @@ private bool isRecDep(ASTNode node, ref St st){
 		scope(exit) st.dep.remove(sym);
 		AEnum* symC = &sym.enumS;
 
-		SmErrsVal!ADataType typeRes = eval4Type(node.type, st.stabR, st.ctx);
-		if (typeRes.isErr){
-			st.errs ~= typeRes.err;
-			return;
+		immutable bool isAuto = cast(AutoExpr)node.type !is null;
+		if (!isAuto){
+			SmErrsVal!ADataType typeRes = eval4Type(node.type, st.stabR, st.ctx);
+			if (typeRes.isErr){
+				st.errs ~= typeRes.err;
+				return;
+			}
+			symC.type = typeRes.val;
 		}
-		symC.type = typeRes.val;
 
+		ADataType[] types;
 		foreach (EnumMember member; node.members){
+			if (member.value is null){
+				st.errs ~= errEnumMemValMis(member);
+				return;
+			}
 			SmErrsVal!AValCT valRes = eval4Val(member.value, st.stabR, st.ctx);
 			if (valRes.isErr){
 				st.errs ~= valRes.err;
 				return;
 			}
+			types ~= valRes.val.typeL;
 			AEnumMember amem;
 			amem.val = valRes.val.dataL;
 			amem.ident = symC.ident ~ member.name.IdentU;
 			symC.members ~= amem;
+		}
+
+		if (isAuto){
+			symC.type = commonType(types);
+			if (symC.type == ADataType.ofNoInit){
+				st.errs ~= errIncompatType(node);
+				//return;
+			}
+		} else {
+			foreach (size_t i, ref ADataType type; types){
+				if (!type.canCastTo(symC.type))
+					st.errs ~= errIncompatType(node.members[i].pos, symC.type, type);
+			}
 		}
 	}
 
