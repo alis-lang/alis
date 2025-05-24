@@ -20,6 +20,7 @@ import alis.common,
 			 alis.compiler.semantic.error,
 			 alis.compiler.semantic.expr,
 			 alis.compiler.semantic.eval,
+			 alis.compiler.semantic.types,
 			 alis.compiler.ast,
 			 alis.compiler.ast.iter,
 			 alis.compiler.rst;
@@ -71,12 +72,15 @@ private bool isRecDep(ASTNode node, ref St st){
 		scope(exit) st.dep.remove(sym);
 		AEnumConst* symC = &sym.enumCS;
 
-		SmErrsVal!ADataType typeRes = eval4Type(node.type, st.stabR, st.ctx);
-		if (typeRes.isErr){
-			st.errs ~= typeRes.err;
-			return;
+		immutable bool isAuto = cast(AutoExpr)node.type !is null;
+		if (!isAuto){
+			SmErrsVal!ADataType typeRes = eval4Type(node.type, st.stabR, st.ctx);
+			if (typeRes.isErr){
+				st.errs ~= typeRes.err;
+				return;
+			}
+			symC.type = typeRes.val;
 		}
-		symC.type = typeRes.val;
 
 		SmErrsVal!AValCT valRes = eval4Val(node.val, st.stabR, st.ctx);
 		if (valRes.isErr){
@@ -84,6 +88,12 @@ private bool isRecDep(ASTNode node, ref St st){
 			return;
 		}
 		symC.data = valRes.val.dataL;
+		if (isAuto)
+			symC.type = valRes.val.typeL;
+		if (!valRes.val.typeL.canCastTo(symC.type)){
+			st.errs ~= errIncompatType(node.pos, symC.type, valRes.val.typeL);
+			return;
+		}
 	}
 
 	void enumSmIter(EnumSmDef node, ref St st){
