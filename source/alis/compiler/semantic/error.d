@@ -28,6 +28,7 @@ public struct SmErr{
 		TypeMis, /// type mismatch
 		RecursiveDep, /// Recursive Dependency
 		IncompatTypes, /// incompatible types
+		EnumMemValMis, /// enum member value missing
 	}
 	/// where error happen
 	Location pos;
@@ -117,4 +118,17 @@ package SmErr errIncompatType()(Location pos, ADataType expected,
 			format!"Incompatible Types: Cannot implicitly cast `%s` to `%s`"(
 				got, expected),
 			SmErr.Type.IncompatTypes);
+}
+
+/// incompatible types in enum values
+package SmErr errIncompatType(EnumDef node){
+	return SmErr(node.pos,
+			format!"Incompatible Types: Enum %s members of incompatible types"(
+				node.name), SmErr.Type.IncompatTypes);
+}
+
+/// enum member value missing
+package SmErr errEnumMemValMis(EnumMember member){
+	return SmErr(member.pos, member.name.format!"Enum Member %s has no value",
+			SmErr.Type.EnumMemValMis);
 }
