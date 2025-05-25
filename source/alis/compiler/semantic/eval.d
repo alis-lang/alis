@@ -45,6 +45,11 @@ struct St{
 /// - `ctx` - Context where the `expr` occurs
 /// Returns: AValCT, or SmErr[]
 package SmErrsVal!AValCT eval(RExpr expr, STab stab, IdentU[] ctx){
+	debug{
+		import std.stdio;
+		stderr.writefln!"STUB: eval(RExpr) going to return int = 5";
+		return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 5.asBytes));
+	}
 	St st;
 	st.stab = stab;
 	st.stabMain = stab;
@@ -58,6 +63,11 @@ package SmErrsVal!AValCT eval(RExpr expr, STab stab, IdentU[] ctx){
 /// ditto
 package SmErrsVal!AValCT eval(Expression expr, STab stab, IdentU[] ctx,
 		AValCT[] params = null){
+	debug{
+		import std.stdio;
+		stderr.writefln!"STUB: eval(Expression) going to return int = 5";
+		return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 5.asBytes));
+	}
 	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, params);
 	if (resolved.isErr)
 		return SmErrsVal!AValCT(resolved.err);
@@ -67,6 +77,11 @@ package SmErrsVal!AValCT eval(Expression expr, STab stab, IdentU[] ctx,
 /// Evaluates an RExpr expecting a value. See `eval`
 /// Returns: AValCT with Type.Literal, or SmErr[]
 package SmErrsVal!AValCT eval4Val(RExpr expr, STab stab, IdentU[] ctx){
+	debug{
+		import std.stdio;
+		stderr.writefln!"STUB: eval4Val going to return int = 5";
+		return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 5.asBytes));
+	}
 	SmErrsVal!AValCT ret = eval(expr, stab, ctx);
 	if (ret.isErr)
 		return ret;
@@ -78,6 +93,11 @@ package SmErrsVal!AValCT eval4Val(RExpr expr, STab stab, IdentU[] ctx){
 /// ditto
 package SmErrsVal!AValCT eval4Val(Expression expr, STab stab, IdentU[] ctx,
 		AValCT[] params = null){
+	debug{
+		import std.stdio;
+		stderr.writefln!"STUB: eval4Val going to return int = 5";
+		return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 5.asBytes));
+	}
 	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, params);
 	if (resolved.isErr)
 		return SmErrsVal!AValCT(resolved.err);
@@ -87,6 +107,11 @@ package SmErrsVal!AValCT eval4Val(Expression expr, STab stab, IdentU[] ctx,
 /// Evaluates an RExpr expecting a type. See `eval`
 /// Returns: ADataType or SmErr[]
 package SmErrsVal!ADataType eval4Type(RExpr expr, STab stab, IdentU[] ctx){
+	debug{
+		import std.stdio;
+		stderr.writefln!"STUB: eval4Type going to return $int(64)";
+		return SmErrsVal!ADataType(ADataType.ofInt);
+	}
 	SmErrsVal!AValCT ret = eval(expr, stab, ctx);
 	if (ret.isErr)
 		return SmErrsVal!ADataType(ret.err);
@@ -98,6 +123,11 @@ package SmErrsVal!ADataType eval4Type(RExpr expr, STab stab, IdentU[] ctx){
 /// ditto
 package SmErrsVal!ADataType eval4Type(Expression expr, STab stab, IdentU[] ctx,
 		AValCT[] params = null){
+	debug{
+		import std.stdio;
+		stderr.writefln!"STUB: eval4Type going to return $int(64)";
+		return SmErrsVal!ADataType(ADataType.ofInt);
+	}
 	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, params);
 	if (resolved.isErr)
 		return SmErrsVal!ADataType(resolved.err);
