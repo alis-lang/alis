@@ -312,6 +312,7 @@ package SmErrsVal!STab stab1Of(ASTNode node, STab stab, ASymbol*[ASTNode] sMap,
 	st.stab = stab;
 	st.ctx = ctx.dup;
 	st.sMap = sMap;
+	st.dep = dep;
 	It.exec(node, st);
 	if (st.errs)
 		return SmErrsVal!STab(st.errs);
