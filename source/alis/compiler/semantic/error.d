@@ -30,6 +30,7 @@ public struct SmErr{
 		IncompatTypes, /// incompatible types
 		EnumMemValMis, /// enum member value missing
 		MultiInherit, /// multiple alias `this`
+		FieldThis, /// field named `this`
 	}
 	/// where error happen
 	Location pos;
@@ -137,4 +138,8 @@ package SmErr errEnumMemValMis(EnumMember member){
 /// multiple inheritence
 package SmErr errMultiInherit(Location pos){
 	return SmErr(pos, "Multiple `alias this`", SmErr.Type.MultiInherit);
+}
+
+package SmErr errFieldThis(Location pos){
+	return SmErr(pos, "Field cannot be named `this`", SmErr.Type.FieldThis);
 }
