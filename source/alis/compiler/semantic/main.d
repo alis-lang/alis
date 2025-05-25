@@ -16,11 +16,11 @@ import alis.common,
 			 alis.compiler.semantic,
 			 alis.compiler.semantic.error,
 			 alis.compiler.semantic.common,
+			 alis.compiler.semantic.sym0,
+			 alis.compiler.semantic.sym1,
 			 alis.compiler.ast;
 
 import core.stdc.stdlib;
-
-debug import alis.compiler.semantic.sym0;
 
 void main(){
 	string source;
@@ -38,11 +38,20 @@ void main(){
 	}
 	sw.start;
 	node.val.ident = "alis-main";
-	SmErrsVal!S0R stabVal = node.val.stab0Of;
+	SmErrsVal!S0R s0val = node.val.stab0Of;
 	sw.stop;
-	if (stabVal.isErr)
+	if (s0val.isErr){
+		stderr.writefln!"Errors:\n%(%s%)"(s0val.err);
+		stderr.writefln!"done in: %d msecs"(sw.peek.total!"msecs");
+		exit(1);
+	}
+
+	SmErrsVal!STab stabVal = node.val.stab1Of(s0val.val.stab, s0val.val.sMap, null);
+	if (stabVal.isErr){
 		stderr.writefln!"Errors:\n%(%s%)"(stabVal.err);
-	else
-		stabVal.val.stab.writeln;
+		stderr.writefln!"done in: %d msecs"(sw.peek.total!"msecs");
+		exit(1);
+	}
+	stabVal.val.writeln;
 	stderr.writefln!"done in: %d msecs"(sw.peek.total!"msecs");
 }
