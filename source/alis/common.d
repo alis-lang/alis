@@ -859,16 +859,16 @@ public struct ADT{
 public struct AStruct{
 	/// identifier, `ident.isNoId == true` if anonymous
 	IdentU[] ident;
-	/// data types being stored
+	/// data types for each field
 	ADataType[] types;
+	/// initialisation data for each field
+	ubyte[][] initD;
 	/// maps member names to indexes. Many to One
 	size_t[string] names;
 	/// visibility for each name
 	Visibility[string] nameVis;
 	/// Visibility of struct
 	Visibility vis;
-	/// initializing data
-	ubyte[] initD;
 
 	/// if this is unique
 	@property bool isUnique() const pure {
@@ -894,12 +894,12 @@ public struct AStruct{
 
 	string toString() const pure {
 		return format!"struct %s{%(%s,%)}%s"(ident,
-				types.length.iota.map!(i => types[i].toString.format!"%s[%(%s,%)]"(
+				types.length.iota.map!(i => types[i].toString.format!"%s[%(%s,%)]=%s"(
 						names.byKey.filter!(n => names[n] == i)
 						.map!(n => (nameVis[n] == Visibility.Default ? ""
 							: nameVis[n] == Visibility.Pub ? "pub "
 							: nameVis[n] == Visibility.IPub ? "ipub " : "idk ")
-							.format!"%s%s"(n)).array
+							.format!"%s%s"(n)).array, initD[i]
 						)), initD);
 	}
 }
