@@ -31,6 +31,7 @@ public struct SmErr{
 		EnumMemValMis, /// enum member value missing
 		MultiInherit, /// multiple alias `this`
 		FieldThis, /// field named `this`
+		AutoNoVal, /// Cannot have auto when no value provided
 	}
 	/// where error happen
 	Location pos;
@@ -140,6 +141,13 @@ package SmErr errMultiInherit(Location pos){
 	return SmErr(pos, "Multiple `alias this`", SmErr.Type.MultiInherit);
 }
 
+/// field named `this`
 package SmErr errFieldThis(Location pos){
 	return SmErr(pos, "Field cannot be named `this`", SmErr.Type.FieldThis);
+}
+
+/// Cannot have auto when no value provided
+package SmErr errAutoNoVal(Location pos){
+	return SmErr(pos, "Cannot infer auto type in absense of value",
+			SmErr.Type.AutoNoVal);
 }
