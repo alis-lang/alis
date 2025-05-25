@@ -61,6 +61,11 @@ private bool isRecDep(ASTNode node, ref St st){
 		assert (sym);
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
+
+		if (node.vt !is null){
+			st.errs ~= errUnsup(node.pos, "$vt");
+		}
+		// TODO: convert FnDef to RFn and AFn
 	}
 
 	void enumConstIter(EnumConstDef node, ref St st){
@@ -154,6 +159,111 @@ private bool isRecDep(ASTNode node, ref St st){
 		assert (sym);
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
+		AStruct* symC = &sym.structS;
+		Struct s = node.def;
+
+		/// maps aliased name to alias name
+		/// `aliasMap["alias_name"] = "the_real_thing"`
+		string[string] aliasMap;
+		void[0][string] nameSet;
+		Visibility[string] aliasVis;
+		foreach (AggMember memAbs; s.members){
+			AggMemberAlias memAls = cast(AggMemberAlias)memAbs;
+			if (memAls is null) continue;
+			nameSet[memAls.name] = (void[0]).init;
+			if (memAls.name in aliasMap){
+				if (memAls.name == "this")
+					st.errs ~= errMultiInherit(memAls.pos);
+				else
+					st.errs ~= errIdentReuse(memAls.pos, memAls.name);
+				continue;
+			}
+			aliasMap[memAls.name] = memAls.val.ident;
+			aliasVis[memAls.name] = memAls.visibility;
+		}
+
+		// remove indirect aliases
+		while (true){
+			bool done = true;
+			foreach (string name; aliasMap){
+				if (auto ptr = aliasMap[name] in aliasMap){
+					aliasMap[name] = *ptr;
+					done = false;
+				}
+			}
+		}
+
+		string bName = null;
+		if (string* ptr = "this" in aliasMap)
+			bName = *ptr;
+		AggMemberNamed[] fields = s.members
+			.map!(m => cast(AggMemberNamed)m).filter!(m => m !is null).array;
+		bool erred = false;
+		foreach (AggMemberNamed field; fields){
+			if (field.name == "_") continue;
+			if (field.name in nameSet){
+				st.errs ~= errIdentReuse(field.pos, field.name);
+				erred = true;
+				continue;
+			}
+			if (field.name == "this"){
+				st.errs ~= errFieldThis(field.pos);
+				erred = true;
+				continue;
+			}
+			nameSet[field.name] = (void[0]).init;
+		}
+		if (erred)
+			return;
+		if (bName.length){
+			immutable size_t ind = fields.countUntil!(f => f.name == bName);
+			AggMemberNamed tmp = fields[ind];
+			for (size_t i = ind; i > 0; i --)
+				fields[i] = fields[i - 1];
+			fields[0] = tmp;
+		}
+
+		foreach (AggMemberNamed field; fields){
+			immutable bool isAuto = cast(AutoExpr)field.type !is null;
+			if (isAuto && field.val is null){
+				st.errs ~= errAutoNoVal(field.pos);
+				continue;
+			}
+			SmErrsVal!ADataType typeRes = eval4Type(field.type, st.stabR, st.ctx);
+			if (typeRes.isErr){
+				st.errs ~= typeRes.err;
+				continue;
+			}
+			ADataType type = typeRes.val;
+			AValCT val;
+			if (field.val){
+				SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx);
+				if (valRes.isErr){
+					st.errs ~= valRes.err;
+					continue;
+				}
+				val = valRes.val;
+				if (isAuto){
+					if (!val.typeL.canCastTo(type)){
+						st.errs ~= errTypeMis(field, type, val.typeL);
+						continue;
+					}
+					type = val.typeL;
+				}
+				foreach (string name; aliasMap.byKey
+						.filter!(n => aliasMap[n] == field.name)){
+					symC.names[name] = symC.types.length;
+					symC.nameVis[name] = aliasVis[name];
+				}
+				symC.names[field.name] = symC.types.length;
+				symC.nameVis[field.name] = field.visibility;
+				symC.types ~= type;
+				symC.initD ~= val.dataL;
+			} else {
+				// TODO: ask ADataType for initD
+				st.errs ~= errUnsup(field.pos, "no default value for struct field");
+			}
+		}
 	}
 
 	void varIter(VarDef node, ref St st){
