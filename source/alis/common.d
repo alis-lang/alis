@@ -826,11 +826,13 @@ public struct ADataType{
 
 /// Alis data table (structure behind virtual tables & closures etc)
 public struct ADT{
+	/// ident of container (useful for visibility)
+	IdentU[] id;
+	/// visibility of fields
+	Visibility[] vis;
 	/// types of fields
 	ADataType[] types;
-	/// byte offsets for fields
-	size_t[] offsets;
-	/// names (can be null) for fields
+	/// names (can be null) of fields
 	string[] names;
 	/// table itself
 	ubyte[] tb;
@@ -842,40 +844,63 @@ public struct ADT{
 	string toString() const pure {
 		string ret = "ADT{";
 		foreach (size_t i; 0 .. types.length)
-			ret ~= format!"%d{name:%s,type:%s,tb:%s}"(
-					offsets[i] == size_t.max ? -1 : cast(ptrdiff_t)(offsets[i]),
-					names[i], types[i].toString,
-					tb[offsets[i] .. offsets[i] + types[i].sizeOf]);
-		ret ~= "}";
+			ret ~= format!"%d={%sname:%s,type:%s}"(
+					i,
+					vis[i] == Visibility.Default ? "" :
+					vis[i] == Visibility.Pub ? "pub " :
+					vis[i] == Visibility.IPub ? "ipub " : "IDK ",
+					names[i], types[i].toString);
+		ret ~= tb.format!"}%s";
 		return ret;
 	}
 }
 
 /// Alis struct
 public struct AStruct{
-	/// identifier, `_` if anonymous, which also implies not unique
+	/// identifier, `ident.isNoId == true` if anonymous
 	IdentU[] ident;
+	/// data types being stored
+	ADataType[] types;
+	/// maps member names to indexes. Many to One
+	size_t[string] names;
+	/// visibility for each name
+	Visibility[string] nameVis;
+	/// Visibility of struct
+	Visibility vis;
+	/// initializing data
+	ubyte[] initD;
+
 	/// if this is unique
 	@property bool isUnique() const pure {
-		return ident.length &&
-			ident[$ - 1].ident == "_" && !ident[$ - 1].params.length;
+		return ident.isNoId;
 	}
-	/// structure
-	ADT dt;
-	/// Virtual Table, if any
-	ADT vt;
-	/// whether this has an `alias this = X`. the member being aliased to `this`
-	/// will be at index 0 in `types` and `offsets`
-	bool hasBase = false;
-	/// Visibility outside its parent module
-	Visibility vis;
+	/// Whether a member exists and is accessible
+	bool exists(string name, IdentU[] ctx = [IdentU.init]) const pure {
+		if (name !in names)
+			return false;
+		if (!isUnique)
+			return true;
+		immutable auto len = cast(ptrdiff_t)ident.length - 1;
+		return ctx.length >= len && ident[0 .. len] == ctx[0 .. len];
+	}
+	/// whether the 0th member is aliased to `this`
+	@property bool hasBase(IdentU[] ctx = [IdentU.init]) const pure {
+		return exists("this", ctx);
+	}
 	/// Returns: size of this struct
 	@property size_t sizeOf() const pure {
-		return dt.sizeOf + (vt.tb.length > 0);
+		return types.map!(t => t.sizeOf).sum;
 	}
 
 	string toString() const pure {
-		return format!"struct %s{dt:%s,vt:%s}"(ident, dt, vt);
+		return format!"struct %s{%(%s,%)}%s"(ident,
+				types.length.iota.map!(i => types[i].toString.format!"%s[%(%s,%)]"(
+						names.byKey.filter!(n => names[n] == i)
+						.map!(n => (nameVis[n] == Visibility.Default ? ""
+							: nameVis[n] == Visibility.Pub ? "pub "
+							: nameVis[n] == Visibility.IPub ? "ipub " : "idk ")
+							.format!"%s%s"(n)).array
+						)), initD);
 	}
 }
 
@@ -884,10 +909,7 @@ public struct AUnion{
 	/// identifier, `_` if anonymous, which also implies not unique
 	IdentU[] ident;
 	/// if this is unique
-	@property bool isUnique() const pure {
-		return ident.length &&
-			ident[$ - 1].ident == "_" && !ident[$ - 1].params.length;
-	}
+	bool isUnique = false;
 	/// types of members
 	ADataType[] types;
 	/// member names
@@ -897,7 +919,7 @@ public struct AUnion{
 	/// initialized value
 	ubyte[] dt;
 	/// whether this has an `alias this = X`. the member being aliased to `this`
-	/// will be at index 0 in `types` and `offsets`
+	/// will be at index 0 in `types`
 	bool hasBase = false;
 	/// Visibility outside its parent module
 	Visibility vis;
@@ -973,7 +995,7 @@ public struct AFn{
 	IdentU[] ident;
 	/// return type
 	ADataType retT;
-	/// locals, including parameters
+	/// including parameters
 	ADT params;
 	/// mangled name
 	string uid;
