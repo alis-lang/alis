@@ -47,7 +47,7 @@ private struct St{
 /// Checks for recursive dependecy before processing an ASTNode
 /// Returns: tre if recursive dependecy will happen after an ASTNode
 private bool isRecDep(ASTNode node, ref St st){
-	if (node !in st.sMap || st.sMap[node] in st.dep)
+	if (node !in st.sMap || st.sMap[node] !in st.dep)
 		return false;
 	st.errs ~= errRecDep(node.pos, st.sMap[node].ident.toString);
 	return true;
@@ -191,6 +191,7 @@ private bool isRecDep(ASTNode node, ref St st){
 					done = false;
 				}
 			}
+			if (done) break;
 		}
 
 		string bName = null;
