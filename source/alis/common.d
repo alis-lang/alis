@@ -464,7 +464,7 @@ public struct ASymbol{
 /// an Alis Module. Aggregates all public symbols for a module
 public struct AModule{
 	/// globals
-	ADT globals;
+	// TODO: HOW TO STORE GLOBALS????
 	/// symbols (globals will be repeated in this)
 	ASymbol[IdentU] st;
 }
@@ -824,37 +824,6 @@ public struct ADataType{
 	}
 }
 
-/// Alis data table (structure behind virtual tables & closures etc)
-public struct ADT{
-	/// ident of container (useful for visibility)
-	IdentU[] id;
-	/// visibility of fields
-	Visibility[] vis;
-	/// types of fields
-	ADataType[] types;
-	/// names (can be null) of fields
-	string[] names;
-	/// table itself
-	ubyte[] tb;
-	/// Returns: size of virtual table
-	pragma(inline, true) @property size_t sizeOf() const pure {
-		return tb.length;
-	}
-
-	string toString() const pure {
-		string ret = "ADT{";
-		foreach (size_t i; 0 .. types.length)
-			ret ~= format!"%d={%sname:%s,type:%s}"(
-					i,
-					vis[i] == Visibility.Default ? "" :
-					vis[i] == Visibility.Pub ? "pub " :
-					vis[i] == Visibility.IPub ? "ipub " : "IDK ",
-					names[i], types[i].toString);
-		ret ~= tb.format!"}%s";
-		return ret;
-	}
-}
-
 /// Alis struct
 public struct AStruct{
 	/// identifier, `ident.isNoId == true` if anonymous
@@ -995,8 +964,12 @@ public struct AFn{
 	IdentU[] ident;
 	/// return type
 	ADataType retT;
-	/// including parameters
-	ADT params;
+	/// parameter names
+	string[] paramsN;
+	/// parameter types
+	ADataType[] paramsT;
+	/// parameter default values, if any
+	ubyte[][] paramsV;
 	/// mangled name
 	string uid;
 	/// whether this is an alis function (true) or an external (false)
@@ -1006,9 +979,12 @@ public struct AFn{
 
 	string toString() const pure {
 		return format!
-			"fn %s%s(%s)->%s"(
+			"fn %s%s(%(%r%))->%s"(
 					(isAlisFn ? "" : "external "),
-					ident, params, retT);
+					ident,
+					paramsN.length.iota
+						.map!(i => format!"%s %s=%s"(paramsN[i], paramsT[i], paramsV[i])),
+					retT);
 	}
 }
 
@@ -1018,6 +994,8 @@ public struct AVar{
 	IdentU[] ident;
 	/// data type
 	ADataType type;
+	/// initialisation data
+	ubyte[] initD;
 	/// offset
 	size_t offset;
 	/// whether is global or local
@@ -1026,8 +1004,8 @@ public struct AVar{
 	Visibility vis;
 
 	string toString() const pure {
-		return format!"var %s%s:%s off=%d"(isGlobal ? "global" : null, ident,
-				type, offset);
+		return format!"var %s%s:%s=%s off=%d"(isGlobal ? "global" : null, ident,
+				type, initD, offset);
 	}
 }
 
