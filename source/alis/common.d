@@ -852,7 +852,11 @@ public struct AStruct{
 		if (!isUnique)
 			return true;
 		immutable auto len = cast(ptrdiff_t)ident.length - 1;
-		return ctx.length >= len && ident[0 .. len] == ctx[0 .. len];
+		if (ctx.length < len || ident[0 .. len] != ctx[0 .. len])
+			return false;
+		if (const Visibility* vis = name in nameVis)
+			return *vis == Visibility.Pub || *vis == Visibility.IPub;
+		return false;
 	}
 	/// whether the 0th member is aliased to `this`
 	@property bool hasBase(IdentU[] ctx = [IdentU.init]) const pure {
@@ -881,17 +885,34 @@ public struct AUnion{
 	IdentU[] ident;
 	/// types of members
 	ADataType[] types;
-	/// member names
-	string[] names;
-	/// default type index
-	size_t defInd;
-	/// initialized value
-	ubyte[] dt;
-	/// whether the 0th member is aliased to `this`
-	bool hasBase = false;
+	/// maps field names to indexes in `types`. can be null, if unnamed
+	size_t[string] names;
+	/// name's visibility. can be null, if unnamed
+	Visibility[string] nameVis;
+	/// initialisation type's index
+	size_t initI;
+	/// initialisation data
+	ubyte[] initD;
 	/// Visibility outside its parent module
 	Visibility vis;
 
+	/// Whether a member exists and is accessible
+	bool exists(string name, IdentU[] ctx = [IdentU.init]) const pure {
+		if (name !in names)
+			return false;
+		if (!isUnique)
+			return true;
+		immutable auto len = cast(ptrdiff_t)ident.length - 1;
+		if (ctx.length < len || ident[0 .. len] != ctx[0 .. len])
+			return false;
+		if (const Visibility* vis = name in nameVis)
+			return *vis == Visibility.Pub || *vis == Visibility.IPub;
+		return false;
+	}
+	/// whether the 0th member is aliased to `this`
+	@property bool hasBase(IdentU[] ctx = [IdentU.init]) const pure {
+		return exists("this", ctx);
+	}
 	/// if this is unique
 	@property bool isUnique() const pure {
 		return ident.isNoId;
@@ -902,16 +923,19 @@ public struct AUnion{
 	}
 	/// Returns: size of this union
 	@property size_t sizeOf() const pure {
-		return dt.length + size_t.sizeof;
+		return types.map!(t => t.sizeOf).fold!((a, b) => max(a, b)) + uint.sizeof;
 	}
 
 	string toString() const pure {
-		string ret = format!"union %s{"(ident);
-		foreach (size_t i, ref const ADataType type; types){
-			ret ~= format!"%s%s%s,"(names.length ? (names[i] ~ " ") : null, type,
-					defInd == i ? " default" : null);
-		}
-		return ret[0 .. $ - 1] ~ "}";
+		return format!"union %s{%(%r,%)}"(ident,
+				types.length.iota.map!(i => types[i].format!"%s[%(%r,%)]%s"(
+						names.byKey.filter!(n => names[n] == i)
+						.map!(n => (nameVis[n] == Visibility.Default ? ""
+							: nameVis[n] == Visibility.Pub ? "pub "
+							: nameVis[n] == Visibility.IPub ? "ipub " : "idk ")
+							.format!"%s%s"(n)).array, initI == i ? initD.format!"=%s" : ""
+						)));
+
 	}
 }
 
