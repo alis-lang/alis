@@ -274,6 +274,34 @@ private bool isRecDep(ASTNode node, ref St st){
 		assert (sym);
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
+		AVar* symC = &sym.varS;
+		symC.isGlobal = st.ctx.length <= 1;
+		symC.offset = size_t.max;
+		immutable bool isAuto = cast(AutoExpr)node.type !is null;
+		if (!isAuto){
+			SmErrsVal!ADataType typeVal = eval4Type(node.type, st.stabR, st.ctx);
+			if (typeVal.isErr){
+				st.errs ~= typeVal.err;
+				return;
+			}
+			symC.type = typeVal.val;
+		}
+		if (node.value){
+			SmErrsVal!AValCT valVal = eval4Val(node.value, st.stabR, st.ctx);
+			if (valVal.isErr){
+				st.errs ~= valVal.err;
+				return;
+			}
+			if (isAuto){
+				symC.type = valVal.val.typeL;
+			} else if (!valVal.val.typeL.canCastTo(symC.type)){
+				st.errs ~= errTypeMis(node.value, symC.type, valVal.val.typeL);
+				return;
+			}
+		} else if (isAuto){
+			st.errs ~= errAutoNoVal(node.pos);
+			return;
+		}
 	}
 
 	void aliasIter(AliasDef node, ref St st){
