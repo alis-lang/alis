@@ -311,6 +311,13 @@ private bool isRecDep(ASTNode node, ref St st){
 		assert (sym);
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
+		AAlias* symC = &sym.aliasS;
+		SmErrsVal!RExpr exprVal = resolve(node.val, st.stabR, st.ctx);
+		if (exprVal.isErr){
+			st.errs ~= exprVal.err;
+			return;
+		}
+		symC.expr = exprVal.val;
 	}
 
 	void unionIter(UnionDef node, ref St st){

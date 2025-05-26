@@ -14,6 +14,8 @@ import std.string,
 			 std.algorithm,
 			 std.digest.crc;
 
+public import alis.compiler.rst : RExpr;
+
 debug import std.stdio;
 
 public import alis.compiler.common : Visibility; // TODO move it here
@@ -1015,10 +1017,12 @@ public struct AAlias{
 	IdentU[] ident;
 	/// Visibility outside its parent module
 	Visibility vis;
-	/// TODO: store resolved expression
+	/// expr being aliased
+	RExpr expr;
 
 	string toString() const pure {
-		return format!"alias";
+		return format!"alias %s%s=%s"(vis == Visibility.Pub ? "pub " : "",
+				ident, "<EXPR>");
 	}
 }
 
