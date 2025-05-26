@@ -123,6 +123,8 @@ public:
 
 	/// Add a new value.
 	void add(IdentU id, ASymbol* sym, IdentU[] vis) pure {
+		if (!vis.length)
+			vis = [IdentU.init];
 		if (auto ptr = id in map){
 			*ptr ~= Node!(ASymbol*)(sym, vis);
 			return;
@@ -136,6 +138,8 @@ public:
 
 	/// Add a new Symbol Table. **Will overwrite existing, if any.**
 	void add(IdentU id, STab st, IdentU[] vis) pure {
+		if (!vis.length)
+			vis = [IdentU.init];
 		next[id] = Node!STab(st, vis);
 	}
 	/// ditto

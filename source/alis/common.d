@@ -893,14 +893,14 @@ public struct AStruct{
 	}
 
 	string toString() const pure {
-		return format!"struct %s{%(%s,%)}%s"(ident,
-				types.length.iota.map!(i => types[i].toString.format!"%s[%(%s,%)]=%s"(
+		return format!"struct %s{%(%r,%)}"(ident,
+				types.length.iota.map!(i => types[i].format!"%s[%(%r,%)]=%s"(
 						names.byKey.filter!(n => names[n] == i)
 						.map!(n => (nameVis[n] == Visibility.Default ? ""
 							: nameVis[n] == Visibility.Pub ? "pub "
 							: nameVis[n] == Visibility.IPub ? "ipub " : "idk ")
 							.format!"%s%s"(n)).array, initD[i]
-						)), initD);
+						)));
 	}
 }
 
