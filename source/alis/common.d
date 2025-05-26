@@ -879,8 +879,6 @@ public struct AStruct{
 public struct AUnion{
 	/// identifier, `_` if anonymous, which also implies not unique
 	IdentU[] ident;
-	/// if this is unique
-	bool isUnique = false;
 	/// types of members
 	ADataType[] types;
 	/// member names
@@ -889,11 +887,15 @@ public struct AUnion{
 	size_t defInd;
 	/// initialized value
 	ubyte[] dt;
-	/// whether this has an `alias this = X`. the member being aliased to `this`
-	/// will be at index 0 in `types`
+	/// whether the 0th member is aliased to `this`
 	bool hasBase = false;
 	/// Visibility outside its parent module
 	Visibility vis;
+
+	/// if this is unique
+	@property bool isUnique() const pure {
+		return ident.isNoId;
+	}
 	/// Returns: true if this is an unnamed union
 	@property bool isUnnamed() const pure {
 		return names.length == 0;
