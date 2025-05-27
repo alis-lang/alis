@@ -185,7 +185,7 @@ private bool isRecDep(ASTNode node, ref St st){
 		// remove indirect aliases
 		while (true){
 			bool done = true;
-			foreach (string name; aliasMap){
+			foreach (string name; aliasMap.byKey){
 				if (auto ptr = aliasMap[name] in aliasMap){
 					aliasMap[name] = *ptr;
 					done = false;
@@ -226,16 +226,20 @@ private bool isRecDep(ASTNode node, ref St st){
 
 		foreach (AggMemberNamed field; fields){
 			immutable bool isAuto = cast(AutoExpr)field.type !is null;
-			if (isAuto && field.val is null){
-				st.errs ~= errAutoNoVal(field.pos);
-				continue;
+			ADataType type;
+			if (isAuto){
+				if (field.val is null){
+					st.errs ~= errAutoNoVal(field.pos);
+					continue;
+				}
+			} else {
+				SmErrsVal!ADataType typeRes = eval4Type(field.type, st.stabR, st.ctx);
+				if (typeRes.isErr){
+					st.errs ~= typeRes.err;
+					continue;
+				}
+				type = typeRes.val;
 			}
-			SmErrsVal!ADataType typeRes = eval4Type(field.type, st.stabR, st.ctx);
-			if (typeRes.isErr){
-				st.errs ~= typeRes.err;
-				continue;
-			}
-			ADataType type = typeRes.val;
 			AValCT val;
 			if (field.val){
 				SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx);
@@ -327,6 +331,11 @@ private bool isRecDep(ASTNode node, ref St st){
 		assert (sym);
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
+		if (NamedUnion sub = cast(NamedUnion)node)
+			unionNamedIter(sub, sym, st);
+		else
+		if (UnnamedUnion sub = cast(UnnamedUnion)node)
+			unionUnnamedIter(sub, sym, st);
 	}
 
 	void utestIter(UTest node, ref St st){
@@ -337,6 +346,114 @@ private bool isRecDep(ASTNode node, ref St st){
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
 	}
+}
+
+void unionNamedIter(NamedUnion node, ASymbol* sym, ref St st){
+	AUnion* symC = &sym.unionS;
+	/// maps aliased name to alias name
+	/// `aliasMap["alias_name"] = "the_real_thing"`
+	string[string] aliasMap;
+	void[0][string] nameSet;
+	Visibility[string] aliasVis;
+	foreach (AggMember memAbs; node.members){
+		AggMemberAlias memAls = cast(AggMemberAlias)memAbs;
+		if (memAls is null) continue;
+		nameSet[memAls.name] = (void[0]).init;
+		if (memAls.name in aliasMap){
+			if (memAls.name == "this")
+				st.errs ~= errMultiInherit(memAls.pos);
+			else
+				st.errs ~= errIdentReuse(memAls.pos, memAls.name);
+			continue;
+		}
+		aliasMap[memAls.name] = memAls.val.ident;
+		aliasVis[memAls.name] = memAls.visibility;
+	}
+
+	// remove indirect aliases
+	while (true){
+		bool done = true;
+		foreach (string name; aliasMap.byKey){
+			if (auto ptr = aliasMap[name] in aliasMap){
+				aliasMap[name] = *ptr;
+				done = false;
+			}
+		}
+		if (done) break;
+	}
+
+	bool erred = false;
+	foreach (size_t i, AggMemberNamed field; node.members
+			.map!(m => cast(AggMemberNamed)m).filter!(m => m !is null)){
+		if (field.name == "_") continue;
+		if (field.name in nameSet){
+			st.errs ~= errIdentReuse(field.pos, field.name);
+			erred = true;
+			continue;
+		}
+		if (field.name == "this"){
+			st.errs ~= errFieldThis(field.pos);
+			erred = true;
+			continue;
+		}
+		nameSet[field.name] = (void[0]).init;
+	}
+	if (erred)
+		return;
+
+	symC.initI = size_t.max;
+	foreach (AggMemberNamed field; node.members
+			.map!(m => cast(AggMemberNamed)m).filter!(m => m !is null)){
+		immutable bool isAuto = cast(AutoExpr)field.type !is null;
+		ADataType type;
+		if (isAuto){
+			if (field.val is null){
+				st.errs ~= errAutoNoVal(field.pos);
+				continue;
+			}
+		} else {
+			SmErrsVal!ADataType typeRes = eval4Type(field.type, st.stabR, st.ctx);
+			if (typeRes.isErr){
+				st.errs ~= typeRes.err;
+				continue;
+			}
+			type = typeRes.val;
+		}
+		AValCT val;
+		bool hasVal = field.val !is null;
+		if (hasVal){
+			if (symC.initI != size_t.max){
+				st.errs ~= errUnionMultiDef(field.pos);
+			}
+			symC.initI = i;
+			SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx);
+			if (valRes.isErr){
+				st.errs ~= valRes.err;
+				continue;
+			}
+			val = valRes.val;
+			if (isAuto){
+				if (!val.typeL.canCastTo(type)){
+					st.errs ~= errTypeMis(field, type, val.typeL);
+					continue;
+				}
+				type = val.typeL;
+			}
+			foreach (string name; aliasMap.byKey
+					.filter!(n => aliasMap[n] == field.name)){
+				symC.names[name] = symC.types.length;
+				symC.nameVis[name] = aliasVis[name];
+			}
+			symC.initD = val.dataL;
+		}
+		symC.names[field.name] = symC.types.length;
+		symC.nameVis[field.name] = field.visibility;
+		symC.types ~= type;
+	}
+}
+
+void unionUnnamedIter(UnnamedUnion node, ASymbol* sym, ref St st){
+	AUnion* symC = &sym.unionS;
 }
 
 /// Builds Level 1 Symbol Table
