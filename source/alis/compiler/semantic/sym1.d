@@ -331,10 +331,10 @@ private bool isRecDep(ASTNode node, ref St st){
 		assert (sym);
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
-		if (NamedUnion sub = cast(NamedUnion)node)
+		if (NamedUnion sub = cast(NamedUnion)node.def)
 			unionNamedIter(sub, sym, st);
 		else
-		if (UnnamedUnion sub = cast(UnnamedUnion)node)
+		if (UnnamedUnion sub = cast(UnnamedUnion)node.def)
 			unionUnnamedIter(sub, sym, st);
 	}
 
