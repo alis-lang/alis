@@ -383,7 +383,7 @@ void unionNamedIter(NamedUnion node, ASymbol* sym, ref St st){
 	}
 
 	bool erred = false;
-	foreach (size_t i, AggMemberNamed field; node.members
+	foreach (AggMemberNamed field; node.members
 			.map!(m => cast(AggMemberNamed)m).filter!(m => m !is null)){
 		if (field.name == "_") continue;
 		if (field.name in nameSet){
@@ -402,8 +402,8 @@ void unionNamedIter(NamedUnion node, ASymbol* sym, ref St st){
 		return;
 
 	symC.initI = size_t.max;
-	foreach (AggMemberNamed field; node.members
-			.map!(m => cast(AggMemberNamed)m).filter!(m => m !is null)){
+	foreach (size_t i, AggMemberNamed field; node.members
+			.map!(m => cast(AggMemberNamed)m).filter!(m => m !is null).enumerate){
 		immutable bool isAuto = cast(AutoExpr)field.type !is null;
 		ADataType type;
 		if (isAuto){
