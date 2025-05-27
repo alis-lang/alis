@@ -104,6 +104,9 @@ private void l0Iter(S, D)(D node, ref St st){
 		l0Iter!AAlias(node, st);
 	}
 	void unionIter(UnionDef node, ref St st){
+		if (UnkUnion sub = cast(UnkUnion)node){
+			st.errs ~= errUnsup(sub);
+		}
 		l0Iter!AUnion(node, st);
 	}
 	void utestIter(UTest node, ref St st){
