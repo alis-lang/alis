@@ -44,8 +44,8 @@ private struct St{
 	void[0][ASymbol*] dep;
 	/// RExpr for each `AUTest.uid`
 	RExpr[string] testExprs;
-	/// RFn for each `AFn.uid`
-	AFn[string] fns;
+	/// `RFn` for each `AFn.uid`
+	RFn[string] fns;
 }
 
 /// Checks for recursive dependecy before processing an ASTNode
@@ -59,6 +59,7 @@ private bool isRecDep(ASTNode node, ref St st){
 
 @ItFn @ITL(1){
 	void fnIter(FnDef node, ref St st){
+		// TODO: TEST THIS!
 		if (isRecDep(node, st))
 			return;
 		ASymbol* sym = st.sMap[node];
@@ -66,6 +67,67 @@ private bool isRecDep(ASTNode node, ref St st){
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
 		AFn* symC = &sym.fnS;
+
+		void[0][string] nameSet;
+		bool prevHadDef = false;
+		foreach (size_t i, FParam param; node.params.params){
+			if (param.name != "_" && param.name in nameSet){
+				st.errs ~= errIdentReuse(param.pos, param.name);
+				continue;
+			}
+			nameSet[param.name] = (void[0]).init;
+			immutable bool isAuto = cast(AutoExpr)param.type !is null;
+			ADataType type;
+			if (!isAuto){
+				SmErrsVal!ADataType typeRes = eval4Type(param.type, st.stabR, st.ctx);
+				if (typeRes.isErr)
+					st.errs ~= typeRes.err;
+				type = typeRes.val;
+			}
+			if (prevHadDef && param.val is null)
+				st.errs ~= errFParamNoDef(param.pos, param.name);
+			if (isAuto && param.val is null)
+				st.errs ~= errAutoNoVal(param.pos);
+			if (param.val){
+				prevHadDef = true;
+				SmErrsVal!AValCT valRes = eval4Val(param.val, st.stabR, st.ctx);
+				if (valRes.isErr){
+					st.errs ~= valRes.err;
+					continue;
+				}
+				if (isAuto)
+					type = valRes.val.typeL;
+				else
+				if (!valRes.val.typeL.canCastTo(type))
+					st.errs ~= errIncompatType(param.val.pos, type, valRes.val.typeL);
+				type = valRes.val.typeL;
+				symC.paramsV ~= valRes.val.dataL;
+			} else {
+				symC.paramsV ~= [];
+			}
+			symC.paramsN ~= param.name;
+			symC.paramsT ~= type;
+		}
+		RFn r = new RFn;
+		r.pos = node.pos;
+		r.ident = symC.ident.toString;
+		r.paramsT = symC.paramsT;
+		r.paramsN = symC.paramsN;
+		r.paramCount = r.paramsT.length; // TODO: get rid of RFn.paramCount
+
+		SmErrsVal!RExpr exprRes = resolve(node.body, st.stabR, st.ctx);
+		if (exprRes.isErr){
+			st.errs ~= exprRes.err;
+			return;
+		}
+		r.body = exprRes.val;
+		SmErrsVal!ADataType retRes = exprRes.val.typeOf(st.stabR, st.ctx);
+		if (retRes.isErr){
+			st.errs ~= exprRes.err;
+			return;
+		}
+		symC.retT = retRes.val;
+		symC.uid = fnNameEncode(symC.ident.toString, symC.paramsT);
 	}
 
 	void enumConstIter(EnumConstDef node, ref St st){
