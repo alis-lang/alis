@@ -923,7 +923,7 @@ public struct AUnion{
 	}
 	/// Returns: size of this union
 	@property size_t sizeOf() const pure {
-		return types.map!(t => t.sizeOf).fold!((a, b) => max(a, b)) + uint.sizeof;
+		return types.map!(t => t.sizeOf).fold!((a, b) => max(a, b)) + size_t.sizeof;
 	}
 
 	string toString() const pure {
