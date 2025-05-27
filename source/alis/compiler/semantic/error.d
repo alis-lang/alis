@@ -33,6 +33,7 @@ public struct SmErr{
 		FieldThis, /// field named `this`
 		AutoNoVal, /// Cannot have auto when no value provided
 		UnionMultiDef, /// Union has more than one default values
+		UnionNoDef, /// Union has no default value
 	}
 	/// where error happen
 	Location pos;
@@ -157,4 +158,9 @@ package SmErr errAutoNoVal(Location pos){
 package SmErr errUnionMultiDef(Location pos){
 	return SmErr(pos, "Union cannot have more than one default value",
 			SmErr.Type.UnionMultiDef);
+}
+/// Union has no default value
+package SmErr errUnionNoDef(Location pos){
+	return SmErr(pos, "Union has no default value",
+			SmErr.Type.UnionNoDef);
 }
