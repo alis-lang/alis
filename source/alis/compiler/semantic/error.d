@@ -32,6 +32,7 @@ public struct SmErr{
 		MultiInherit, /// multiple alias `this`
 		FieldThis, /// field named `this`
 		AutoNoVal, /// Cannot have auto when no value provided
+		UnionMultiDef, /// Union has more than one default values
 	}
 	/// where error happen
 	Location pos;
@@ -150,4 +151,10 @@ package SmErr errFieldThis(Location pos){
 package SmErr errAutoNoVal(Location pos){
 	return SmErr(pos, "Cannot infer auto type in absense of value",
 			SmErr.Type.AutoNoVal);
+}
+
+/// Union has more than one default values
+package SmErr errUnionMultiDef(Location pos){
+	return SmErr(pos, "Union cannot have more than one default value",
+			SmErr.Type.UnionMultiDef);
 }
