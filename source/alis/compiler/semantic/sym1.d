@@ -249,11 +249,11 @@ private bool isRecDep(ASTNode node, ref St st){
 				}
 				val = valRes.val;
 				if (isAuto){
-					if (!val.typeL.canCastTo(type)){
-						st.errs ~= errTypeMis(field, type, val.typeL);
-						continue;
-					}
 					type = val.typeL;
+				} else
+				if (!val.typeL.canCastTo(type)){
+					st.errs ~= errTypeMis(field, type, val.typeL);
+					continue;
 				}
 				foreach (string name; aliasMap.byKey
 						.filter!(n => aliasMap[n] == field.name)){
@@ -433,11 +433,11 @@ void unionNamedIter(NamedUnion node, ASymbol* sym, ref St st){
 			}
 			val = valRes.val;
 			if (isAuto){
-				if (!val.typeL.canCastTo(type)){
-					st.errs ~= errTypeMis(field, type, val.typeL);
-					continue;
-				}
 				type = val.typeL;
+			}	else
+			if (!val.typeL.canCastTo(type)){
+				st.errs ~= errTypeMis(field, type, val.typeL);
+				continue;
 			}
 			foreach (string name; aliasMap.byKey
 					.filter!(n => aliasMap[n] == field.name)){
@@ -449,6 +449,9 @@ void unionNamedIter(NamedUnion node, ASymbol* sym, ref St st){
 		symC.names[field.name] = symC.types.length;
 		symC.nameVis[field.name] = field.visibility;
 		symC.types ~= type;
+	}
+	if (symC.initI == size_t.max){
+		st.errs ~= errUnionNoDef(node.pos);
 	}
 }
 
