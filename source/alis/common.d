@@ -852,8 +852,8 @@ public struct AStruct{
 		if (!isUnique)
 			return true;
 		immutable auto len = cast(ptrdiff_t)ident.length - 1;
-		if (ctx.length < len || ident[0 .. len] != ctx[0 .. len])
-			return false;
+		if (ctx.length >= len && ident[0 .. len] == ctx[0 .. len])
+			return true;
 		if (const Visibility* vis = name in nameVis)
 			return *vis == Visibility.Pub || *vis == Visibility.IPub;
 		return false;
@@ -903,8 +903,8 @@ public struct AUnion{
 		if (!isUnique)
 			return true;
 		immutable auto len = cast(ptrdiff_t)ident.length - 1;
-		if (ctx.length < len || ident[0 .. len] != ctx[0 .. len])
-			return false;
+		if (ctx.length >= len && ident[0 .. len] == ctx[0 .. len])
+			return true;
 		if (const Visibility* vis = name in nameVis)
 			return *vis == Visibility.Pub || *vis == Visibility.IPub;
 		return false;
