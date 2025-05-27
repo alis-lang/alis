@@ -998,7 +998,7 @@ public struct AFn{
 	ADataType[] paramsT;
 	/// parameter default values, if any
 	ubyte[][] paramsV;
-	/// mangled name
+	/// unique id. this is also the label name in ABC
 	string uid;
 	/// whether this is an alis function (true) or an external (false)
 	bool isAlisFn = true;
@@ -1007,9 +1007,9 @@ public struct AFn{
 
 	string toString() const pure {
 		return format!
-			"fn %s%s(%(%r%))->%s"(
+			"fn %s%s[%s](%(%r%))->%s"(
 					(isAlisFn ? "" : "external "),
-					ident,
+					ident, uid,
 					paramsN.length.iota
 						.map!(i => format!"%s %s=%s"(paramsN[i], paramsT[i], paramsV[i])),
 					retT);
@@ -1087,10 +1087,11 @@ public struct AUTest{
 	@property Visibility vis(Visibility) const pure { return Visibility.Default; }
 	/// ditto
 	@property Visibility vis() const pure { return Visibility.Default; }
-	// TODO: what to store in AUTest
+	/// unique id. this is also the label name in ABC
+	string uid;
 
 	string toString() const pure {
-		return format!"utest";
+		return format!"utest %s[%s]"(ident, uid);
 	}
 }
 
