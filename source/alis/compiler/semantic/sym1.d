@@ -458,6 +458,27 @@ void unionNamedIter(NamedUnion node, ASymbol* sym, ref St st){
 
 void unionUnnamedIter(UnnamedUnion node, ASymbol* sym, ref St st){
 	AUnion* symC = &sym.unionS;
+	symC.initI = size_t.max;
+	foreach (UnnamedUnionMember member; node.members){
+		SmErrsVal!ADataType typeRes = eval4Type(member.type, st.stabR, st.ctx);
+		if (typeRes.isErr){
+			st.errs ~= typeRes.err;
+			continue;
+		}
+		symC.types ~= typeRes.val;
+		if (!member.val) continue;
+		if (symC.initI != size_t.max)
+			st.errs ~= errUnionMultiDef(member.pos);
+		SmErrsVal!AValCT valRes = eval4Val(member.val, st.stabR, st.ctx);
+		if (valRes.isErr){
+			st.errs ~= valRes.err;
+			continue;
+		}
+		symC.initI = cast(ptrdiff_t)symC.types.length - 1;
+		symC.initD = valRes.val.dataL;
+	}
+	if (symC.initI == size_t.max)
+		st.errs ~= errUnionNoDef(node.pos);
 }
 
 /// Builds Level 1 Symbol Table
