@@ -86,6 +86,9 @@ private void l0Iter(S, D)(D node, ref St st){
 	}
 
 	void fnIter(FnDef fn, ref St st){
+		if (node.vt !is null){
+			st.errs ~= errUnsup(node.pos, "$vt");
+		}
 		l0Iter!AFn(fn, st);
 	}
 	void enumConstIter(EnumConstDef node, ref St st){

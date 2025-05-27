@@ -42,6 +42,10 @@ private struct St{
 	ASymbol*[ASTNode] sMap;
 	/// set of symbols dependent on current call
 	void[0][ASymbol*] dep;
+	/// RExpr for each `AUTest.uid`
+	RExpr[string] testExprs;
+	/// RFn for each `AFn.uid`
+	AFn[string] fns;
 }
 
 /// Checks for recursive dependecy before processing an ASTNode
@@ -61,11 +65,7 @@ private bool isRecDep(ASTNode node, ref St st){
 		assert (sym);
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
-
-		if (node.vt !is null){
-			st.errs ~= errUnsup(node.pos, "$vt");
-		}
-		// TODO: convert FnDef to RFn and AFn
+		AFn* symC = &sym.fnS;
 	}
 
 	void enumConstIter(EnumConstDef node, ref St st){
