@@ -34,6 +34,7 @@ public struct SmErr{
 		AutoNoVal, /// Cannot have auto when no value provided
 		UnionMultiDef, /// Union has more than one default values
 		UnionNoDef, /// Union has no default value
+		FParamNoDef, /// Function Parameter expected to have default value
 	}
 	/// where error happen
 	Location pos;
@@ -163,4 +164,10 @@ package SmErr errUnionMultiDef(Location pos){
 package SmErr errUnionNoDef(Location pos){
 	return SmErr(pos, "Union has no default value",
 			SmErr.Type.UnionNoDef);
+}
+
+/// Function Parameter expected to have default value
+package SmErr errFParamNoDef(Location pos, string name){
+	return SmErr(pos, "Function parameter %s should have default value",
+			SmErr.Type.FParamNoDef);
 }
