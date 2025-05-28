@@ -103,7 +103,7 @@ private bool isRecDep(ASTNode node, ref St st){
 				type = valRes.val.typeL;
 				symC.paramsV ~= valRes.val.dataL;
 			} else {
-				symC.paramsV ~= [];
+				symC.paramsV ~= (ubyte[]).init;
 			}
 			symC.paramsN ~= param.name;
 			symC.paramsT ~= type;
