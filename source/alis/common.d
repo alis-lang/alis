@@ -1098,5 +1098,5 @@ public struct AUTest{
 /// Encodes function name, using function name and param types
 /// Returns: encoded name
 public string fnNameEncode(string name, ADataType[] args){
-	return format!"%s$%(_%s%)_$"(name, args.map!(a => a.toString));
+	return format!"%s$%(_%r%)_$"(name, args.map!(a => a.toString));
 }
