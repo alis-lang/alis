@@ -409,6 +409,7 @@ private bool isRecDep(ASTNode node, ref St st){
 		assert (sym);
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
+		st.errs ~= errUnsup(node);
 	}
 }
 
