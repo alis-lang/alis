@@ -62,13 +62,13 @@ package SmErrsVal!AValCT eval(RExpr expr, STab stab, IdentU[] ctx){
 
 /// ditto
 package SmErrsVal!AValCT eval(Expression expr, STab stab, IdentU[] ctx,
-		AValCT[] params = null){
+		void[0][ASymbol*] dep, AValCT[] params = null){
 	debug{
 		import std.stdio;
 		stderr.writefln!"STUB: eval(Expression) going to return int = 5";
 		return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 5.asBytes));
 	}
-	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, params);
+	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, dep, params);
 	if (resolved.isErr)
 		return SmErrsVal!AValCT(resolved.err);
 	return eval(resolved.val, stab, ctx);
@@ -92,13 +92,13 @@ package SmErrsVal!AValCT eval4Val(RExpr expr, STab stab, IdentU[] ctx){
 
 /// ditto
 package SmErrsVal!AValCT eval4Val(Expression expr, STab stab, IdentU[] ctx,
-		AValCT[] params = null){
+		void[0][ASymbol*] dep, AValCT[] params = null){
 	debug{
 		import std.stdio;
 		stderr.writefln!"STUB: eval4Val going to return int = 5";
 		return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 5.asBytes));
 	}
-	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, params);
+	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, dep, params);
 	if (resolved.isErr)
 		return SmErrsVal!AValCT(resolved.err);
 	return eval4Val(resolved.val, stab, ctx);
@@ -122,13 +122,13 @@ package SmErrsVal!ADataType eval4Type(RExpr expr, STab stab, IdentU[] ctx){
 
 /// ditto
 package SmErrsVal!ADataType eval4Type(Expression expr, STab stab, IdentU[] ctx,
-		AValCT[] params = null){
+		void[0][ASymbol*] dep, AValCT[] params = null){
 	debug{
 		import std.stdio;
 		stderr.writefln!"STUB: eval4Type going to return $int(64)";
 		return SmErrsVal!ADataType(ADataType.ofInt);
 	}
-	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, params);
+	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, dep, params);
 	if (resolved.isErr)
 		return SmErrsVal!ADataType(resolved.err);
 	return eval4Type(resolved.val, stab, ctx);
@@ -147,8 +147,8 @@ package SmErrsVal!(ASymbol*) eval4Sym(RExpr expr, STab stab, IdentU[] ctx){
 
 /// ditto
 package SmErrsVal!(ASymbol*) eval4Sym(Expression expr, STab stab, IdentU[] ctx,
-		AValCT[] params = null){
-	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, params);
+		void[0][ASymbol*] dep, AValCT[] params = null){
+	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, dep, params);
 	if (resolved.isErr)
 		return SmErrsVal!(ASymbol*)(resolved.err);
 	return eval4Sym(resolved.val, stab, ctx);

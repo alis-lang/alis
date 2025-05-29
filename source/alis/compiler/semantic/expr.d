@@ -23,6 +23,8 @@ private struct St{
 	STab stab;
 	/// context
 	IdentU[] ctx;
+	/// symbols dependent on current call
+	void[0][ASymbol*] dep;
 	/// resulting expression
 	RExpr res;
 	/// parameter types if resuslting expression is expected to be callable
@@ -65,8 +67,9 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 /// Returns: RExpr or SmErr[]
 pragma(inline, true)
 package SmErrsVal!RExpr resolve(Expression expr, STab stab, IdentU[] ctx,
-		AValCT[] params = null){
+		void[0][ASymbol*] dep, AValCT[] params = null){
 	St st;
+	st.dep = dep;
 	st.ctx = ctx.dup;
 	st.stabMain = stab;
 	st.stab = stab;
