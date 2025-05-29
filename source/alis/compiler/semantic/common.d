@@ -37,6 +37,31 @@ package template ItL(alias M, size_t L){
 	alias ItL = ASTIter!(Filter!(HasAnyUDA!(ITL(L)), ItFnsOf!M));
 }
 
+/// Semantic Analysis Context
+package struct SmCtx{
+	@disable this();
+	/// symbol table local
+	STab stab;
+	/// symbol table root
+	STab stabR;
+	/// context
+	IdentU[] ctx;
+	/// symbols dependent upon current call
+	void[0][ASymbol*] dep;
+
+	this(STab stabR, void[0][ASymbol*] dep, IdentU[] ctx){
+		this.stabR = stabR;
+		this.ctx = ctx;
+		this.dep = dep;
+	}
+	this(STab stab, STab stabR, void[0][ASymbol*] dep, IdentU[] ctx){
+		this.stab = stab;
+		this.stabR = stabR;
+		this.ctx = ctx;
+		this.dep = dep;
+	}
+}
+
 /// Symbol Table
 public final class STab{
 public:
