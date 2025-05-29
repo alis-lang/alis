@@ -79,7 +79,8 @@ private bool isRecDep(ASTNode node, ref St st){
 			immutable bool isAuto = cast(AutoExpr)param.type !is null;
 			ADataType type;
 			if (!isAuto){
-				SmErrsVal!ADataType typeRes = eval4Type(param.type, st.stabR, st.ctx);
+				SmErrsVal!ADataType typeRes = eval4Type(param.type, st.stabR, st.ctx,
+						st.dep);
 				if (typeRes.isErr)
 					st.errs ~= typeRes.err;
 				type = typeRes.val;
@@ -90,7 +91,7 @@ private bool isRecDep(ASTNode node, ref St st){
 				st.errs ~= errAutoNoVal(param.pos);
 			if (param.val){
 				prevHadDef = true;
-				SmErrsVal!AValCT valRes = eval4Val(param.val, st.stabR, st.ctx);
+				SmErrsVal!AValCT valRes = eval4Val(param.val, st.stabR, st.ctx, st.dep);
 				if (valRes.isErr){
 					st.errs ~= valRes.err;
 					continue;
@@ -115,7 +116,7 @@ private bool isRecDep(ASTNode node, ref St st){
 		r.paramsN = symC.paramsN;
 		r.paramCount = r.paramsT.length; // TODO: get rid of RFn.paramCount
 
-		SmErrsVal!RExpr exprRes = resolve(node.body, st.stabR, st.ctx);
+		SmErrsVal!RExpr exprRes = resolve(node.body, st.stabR, st.ctx, st.dep);
 		if (exprRes.isErr){
 			st.errs ~= exprRes.err;
 			return;
@@ -141,7 +142,8 @@ private bool isRecDep(ASTNode node, ref St st){
 
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
 		if (!isAuto){
-			SmErrsVal!ADataType typeRes = eval4Type(node.type, st.stabR, st.ctx);
+			SmErrsVal!ADataType typeRes = eval4Type(node.type, st.stabR, st.ctx,
+					st.dep);
 			if (typeRes.isErr){
 				st.errs ~= typeRes.err;
 				return;
@@ -149,7 +151,7 @@ private bool isRecDep(ASTNode node, ref St st){
 			symC.type = typeRes.val;
 		}
 
-		SmErrsVal!AValCT valRes = eval4Val(node.val, st.stabR, st.ctx);
+		SmErrsVal!AValCT valRes = eval4Val(node.val, st.stabR, st.ctx, st.dep);
 		if (valRes.isErr){
 			st.errs ~= valRes.err;
 			return;
@@ -174,7 +176,8 @@ private bool isRecDep(ASTNode node, ref St st){
 
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
 		if (!isAuto){
-			SmErrsVal!ADataType typeRes = eval4Type(node.type, st.stabR, st.ctx);
+			SmErrsVal!ADataType typeRes = eval4Type(node.type, st.stabR, st.ctx,
+					st.dep);
 			if (typeRes.isErr){
 				st.errs ~= typeRes.err;
 				return;
@@ -188,7 +191,8 @@ private bool isRecDep(ASTNode node, ref St st){
 				st.errs ~= errEnumMemValMis(member);
 				return;
 			}
-			SmErrsVal!AValCT valRes = eval4Val(member.value, st.stabR, st.ctx);
+			SmErrsVal!AValCT valRes = eval4Val(member.value, st.stabR, st.ctx,
+					st.dep);
 			if (valRes.isErr){
 				st.errs ~= valRes.err;
 				return;
@@ -295,7 +299,8 @@ private bool isRecDep(ASTNode node, ref St st){
 					continue;
 				}
 			} else {
-				SmErrsVal!ADataType typeRes = eval4Type(field.type, st.stabR, st.ctx);
+				SmErrsVal!ADataType typeRes = eval4Type(field.type, st.stabR, st.ctx,
+						st.dep);
 				if (typeRes.isErr){
 					st.errs ~= typeRes.err;
 					continue;
@@ -304,7 +309,7 @@ private bool isRecDep(ASTNode node, ref St st){
 			}
 			AValCT val;
 			if (field.val){
-				SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx);
+				SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx, st.dep);
 				if (valRes.isErr){
 					st.errs ~= valRes.err;
 					continue;
@@ -347,7 +352,8 @@ private bool isRecDep(ASTNode node, ref St st){
 		symC.offset = size_t.max;
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
 		if (!isAuto){
-			SmErrsVal!ADataType typeVal = eval4Type(node.type, st.stabR, st.ctx);
+			SmErrsVal!ADataType typeVal = eval4Type(node.type, st.stabR, st.ctx,
+					st.dep);
 			if (typeVal.isErr){
 				st.errs ~= typeVal.err;
 				return;
@@ -355,7 +361,7 @@ private bool isRecDep(ASTNode node, ref St st){
 			symC.type = typeVal.val;
 		}
 		if (node.value){
-			SmErrsVal!AValCT valVal = eval4Val(node.value, st.stabR, st.ctx);
+			SmErrsVal!AValCT valVal = eval4Val(node.value, st.stabR, st.ctx, st.dep);
 			if (valVal.isErr){
 				st.errs ~= valVal.err;
 				return;
@@ -380,7 +386,7 @@ private bool isRecDep(ASTNode node, ref St st){
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
 		AAlias* symC = &sym.aliasS;
-		SmErrsVal!RExpr exprVal = resolve(node.val, st.stabR, st.ctx);
+		SmErrsVal!RExpr exprVal = resolve(node.val, st.stabR, st.ctx, st.dep);
 		if (exprVal.isErr){
 			st.errs ~= exprVal.err;
 			return;
@@ -477,7 +483,8 @@ void unionNamedIter(NamedUnion node, ASymbol* sym, ref St st){
 				continue;
 			}
 		} else {
-			SmErrsVal!ADataType typeRes = eval4Type(field.type, st.stabR, st.ctx);
+			SmErrsVal!ADataType typeRes = eval4Type(field.type, st.stabR, st.ctx,
+					st.dep);
 			if (typeRes.isErr){
 				st.errs ~= typeRes.err;
 				continue;
@@ -490,7 +497,7 @@ void unionNamedIter(NamedUnion node, ASymbol* sym, ref St st){
 				st.errs ~= errUnionMultiDef(field.pos);
 			}
 			symC.initI = i;
-			SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx);
+			SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx, st.dep);
 			if (valRes.isErr){
 				st.errs ~= valRes.err;
 				continue;
@@ -523,7 +530,8 @@ void unionUnnamedIter(UnnamedUnion node, ASymbol* sym, ref St st){
 	AUnion* symC = &sym.unionS;
 	symC.initI = size_t.max;
 	foreach (UnnamedUnionMember member; node.members){
-		SmErrsVal!ADataType typeRes = eval4Type(member.type, st.stabR, st.ctx);
+		SmErrsVal!ADataType typeRes = eval4Type(member.type, st.stabR, st.ctx,
+				st.dep);
 		if (typeRes.isErr){
 			st.errs ~= typeRes.err;
 			continue;
@@ -532,7 +540,7 @@ void unionUnnamedIter(UnnamedUnion node, ASymbol* sym, ref St st){
 		if (!member.val) continue;
 		if (symC.initI != size_t.max)
 			st.errs ~= errUnionMultiDef(member.pos);
-		SmErrsVal!AValCT valRes = eval4Val(member.val, st.stabR, st.ctx);
+		SmErrsVal!AValCT valRes = eval4Val(member.val, st.stabR, st.ctx, st.dep);
 		if (valRes.isErr){
 			st.errs ~= valRes.err;
 			continue;
