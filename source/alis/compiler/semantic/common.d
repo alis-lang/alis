@@ -146,6 +146,27 @@ public:
 		return !(find(id, ctx).empty);
 	}
 
+	/// finds STab
+	/// Returns: STab or null
+	STab findSt(IdentU id, IdentU[] ctx) pure {
+		if (Node!STab* ptr = id in next){
+			if (ptr.isVis(ctx))
+				return ptr.val;
+		}
+		return null;
+	}
+
+	/// ditto
+	STab findSt(IdentU[] id, IdentU[] ctx) pure {
+		STab ret = this;
+		foreach (IdentU i; id){
+			ret = ret.findSt(i, ctx);
+			if (ret is null)
+				return null;
+		}
+		return ret is this ? null : ret;
+	}
+
 	/// Add a new value.
 	void add(IdentU id, ASymbol* sym, IdentU[] vis) pure {
 		if (!vis.length)
