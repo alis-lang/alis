@@ -201,6 +201,8 @@ public:
 
 /// a symbol
 public struct ASymbol{
+	/// Whether this is complete
+	bool isComplete = false;
 	/// Returns: whether this is a callable (template or function)
 	@property bool isCallable() const pure {
 		final switch (type){
@@ -315,31 +317,34 @@ public struct ASymbol{
 
 	/// Returns: string representation, equivalent to `ASymbol.ident.toString`
 	string toString() const pure {
+		string ret;
 		final switch (type){
 			case Type.Struct:
-				return structS.toString;
+				ret = structS.toString; break;
 			case Type.Union:
-				return unionS.toString;
+				ret = unionS.toString; break;
 			case Type.Enum:
-				return enumS.toString;
+				ret = enumS.toString; break;
 			case Type.EnumMember:
-				return enumMember.toString;
+				ret = enumMember.toString; break;
 			case Type.EnumConst:
-				return enumCS.toString;
+				ret = enumCS.toString; break;
 			case Type.Fn:
-				return fnS.toString;
+				ret = fnS.toString; break;
 			case Type.Var:
-				return varS.toString;
+				ret = varS.toString; break;
 			case Type.Alias:
-				return aliasS.toString;
+				ret = aliasS.toString; break;
 			case Type.Import:
-				return importS.toString;
+				ret = importS.toString; break;
 			case Type.Template:
-				return templateS.toString;
+				ret = templateS.toString; break;
 			case Type.UTest:
-				return utestS.toString;
+				ret = utestS.toString; break;
 		}
-		assert(false);
+		if (!isComplete)
+			ret = '#' ~ ret;
+		return ret;
 	}
 
 	bool opEquals()(auto ref const AStruct structS) const {
