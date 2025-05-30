@@ -117,8 +117,11 @@ private bool isRecDep(ASTNode node, ref St st){
 		r.paramsT = symC.paramsT;
 		r.paramsN = symC.paramsN;
 		r.paramCount = r.paramsT.length; // TODO: get rid of RFn.paramCount
+		symC.uid = fnNameEncode(symC.ident.toString, symC.paramsT);
 
-		SmErrsVal!RExpr exprRes = resolve(node.body, st.stabR, st.ctx, st.dep);
+		st.stab.add(symC.uid.IdentU, new STab, symC.vis, st.ctx);
+		SmErrsVal!RExpr exprRes = resolve(node.body, st.stabR,
+				st.ctx ~ symC.uid.IdentU, st.dep);
 		if (exprRes.isErr){
 			st.errs ~= exprRes.err;
 			return;
@@ -130,7 +133,6 @@ private bool isRecDep(ASTNode node, ref St st){
 			return;
 		}
 		symC.retT = retRes.val;
-		symC.uid = fnNameEncode(symC.ident.toString, symC.paramsT);
 	}
 
 	void enumConstIter(EnumConstDef node, ref St st){
