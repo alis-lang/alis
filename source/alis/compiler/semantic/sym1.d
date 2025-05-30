@@ -64,8 +64,10 @@ private bool isRecDep(ASTNode node, ref St st){
 			return;
 		ASymbol* sym = st.sMap[node];
 		assert (sym);
+		if (sym.isComplete) return;
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
+		scope(exit) sym.isComplete = true;
 		AFn* symC = &sym.fnS;
 
 		void[0][string] nameSet;
@@ -136,8 +138,10 @@ private bool isRecDep(ASTNode node, ref St st){
 			return;
 		ASymbol* sym = st.sMap[node];
 		assert (sym);
+		if (sym.isComplete) return;
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
+		scope(exit) sym.isComplete = true;
 		AEnumConst* symC = &sym.enumCS;
 
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
@@ -170,8 +174,10 @@ private bool isRecDep(ASTNode node, ref St st){
 			return;
 		ASymbol* sym = st.sMap[node];
 		assert (sym);
+		if (sym.isComplete) return;
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
+		scope(exit) sym.isComplete = true;
 		AEnum* symC = &sym.enumS;
 
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
@@ -223,8 +229,10 @@ private bool isRecDep(ASTNode node, ref St st){
 			return;
 		ASymbol* sym = st.sMap[node];
 		assert (sym);
+		if (sym.isComplete) return;
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
+		scope(exit) sym.isComplete = true;
 		AStruct* symC = &sym.structS;
 		Struct s = node.def;
 
@@ -345,8 +353,10 @@ private bool isRecDep(ASTNode node, ref St st){
 			return;
 		ASymbol* sym = st.sMap[node];
 		assert (sym);
+		if (sym.isComplete) return;
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
+		scope(exit) sym.isComplete = true;
 		AVar* symC = &sym.varS;
 		symC.isGlobal = st.ctx.length <= 1;
 		symC.offset = size_t.max;
@@ -383,8 +393,10 @@ private bool isRecDep(ASTNode node, ref St st){
 			return;
 		ASymbol* sym = st.sMap[node];
 		assert (sym);
+		if (sym.isComplete) return;
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
+		scope(exit) sym.isComplete = true;
 		AAlias* symC = &sym.aliasS;
 		SmErrsVal!RExpr exprVal = resolve(node.val, st.stabR, st.ctx, st.dep);
 		if (exprVal.isErr){
@@ -399,8 +411,10 @@ private bool isRecDep(ASTNode node, ref St st){
 			return;
 		ASymbol* sym = st.sMap[node];
 		assert (sym);
+		if (sym.isComplete) return;
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
+		scope(exit) sym.isComplete = true;
 		if (NamedUnion sub = cast(NamedUnion)node.def)
 			unionNamedIter(sub, sym, st);
 		else
@@ -413,8 +427,10 @@ private bool isRecDep(ASTNode node, ref St st){
 			return;
 		ASymbol* sym = st.sMap[node];
 		assert (sym);
+		if (sym.isComplete) return;
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
+		scope(exit) sym.isComplete = true;
 		st.errs ~= errUnsup(node);
 	}
 }
@@ -554,10 +570,10 @@ void unionUnnamedIter(UnnamedUnion node, ASymbol* sym, ref St st){
 
 /// Builds Level 1 Symbol Table
 /// Returns: Level 1 Symbol Table, or SmErr[]
-package SmErrsVal!STab stab1Of(ASTNode node, STab stab, ASymbol*[ASTNode] sMap,
-		void[0][ASymbol*] dep, IdentU[] ctx = null){
+package SmErrsVal!STab stab1Of(ASTNode node, STab stabR, STab stab,
+		ASymbol*[ASTNode] sMap, void[0][ASymbol*] dep, IdentU[] ctx = null){
 	St st;
-	st.stabR = stab;
+	st.stabR = stabR;
 	st.stab = stab;
 	st.ctx = ctx.dup;
 	st.sMap = sMap;

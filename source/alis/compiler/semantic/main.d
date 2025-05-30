@@ -46,7 +46,9 @@ void main(){
 		exit(1);
 	}
 
-	SmErrsVal!STab stabVal = node.val.stab1Of(s0val.val.stab, s0val.val.sMap, null);
+	STab stab = s0val.val.stab;
+	ASymbol*[ASTNode] sMap = s0val.val.sMap;
+	SmErrsVal!STab stabVal = node.val.stab1Of(stab, stab, sMap, null);
 	if (stabVal.isErr){
 		stderr.writefln!"Errors:\n%(%s%)"(stabVal.err);
 		stderr.writefln!"done in: %d msecs"(sw.peek.total!"msecs");
