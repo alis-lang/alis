@@ -206,7 +206,7 @@ private bool isRecDep(ASTNode node, ref St st){
 				return;
 			}
 			types ~= valRes.val.typeL;
-			symC.memId ~= symC.ident ~ member.name.IdentU;
+			symC.memId ~= member.name;
 			symC.memVal ~= valRes.val.dataL;
 		}
 

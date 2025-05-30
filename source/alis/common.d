@@ -933,7 +933,7 @@ public struct AEnum{
 	/// Data Type. This will be `struct{}` in case of empty emum
 	ADataType type;
 	/// member identifiers
-	IdentU[] memId;
+	string[] memId;
 	/// member values
 	ubyte[][] memVal;
 	/// Visibility outside its parent module
