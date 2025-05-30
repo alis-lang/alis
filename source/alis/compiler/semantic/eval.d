@@ -20,8 +20,8 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 struct St{
 	/// errors
 	SmErr[] errs;
-	/// main STab, for lookups
-	STab stabMain;
+	/// root STab
+	STab stabR;
 	/// local STab
 	STab stab;
 	/// context ctx
@@ -44,15 +44,15 @@ struct St{
 /// - `stab` - The root level Symbol Table
 /// - `ctx` - Context where the `expr` occurs
 /// Returns: AValCT, or SmErr[]
-package SmErrsVal!AValCT eval(RExpr expr, STab stab, IdentU[] ctx){
+package SmErrsVal!AValCT eval(RExpr expr, STab stabR, IdentU[] ctx){
 	debug{
 		import std.stdio;
 		stderr.writefln!"STUB: eval(RExpr) going to return int = 5";
 		return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 5.asBytes));
 	}
 	St st;
-	st.stab = stab;
-	st.stabMain = stab;
+	st.stabR = stabR;
+	st.stab = stabR.findSt(ctx, ctx);
 	st.ctx = ctx.dup;
 	It.exec(expr, st);
 	if (st.errs.length)

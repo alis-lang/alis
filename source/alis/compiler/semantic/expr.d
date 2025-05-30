@@ -17,8 +17,8 @@ import meta;
 private struct St{
 	/// errors
 	SmErr[] errs;
-	/// main STab, for lookups
-	STab stabMain;
+	/// root stab
+	STab stabR;
 	/// local STab
 	STab stab;
 	/// context
@@ -66,13 +66,13 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 /// - `params` - Parameters for `expr`, if any
 /// Returns: RExpr or SmErr[]
 pragma(inline, true)
-package SmErrsVal!RExpr resolve(Expression expr, STab stab, IdentU[] ctx,
+package SmErrsVal!RExpr resolve(Expression expr, STab stabR, IdentU[] ctx,
 		void[0][ASymbol*] dep, AValCT[] params = null){
 	St st;
 	st.dep = dep;
 	st.ctx = ctx.dup;
-	st.stabMain = stab;
-	st.stab = stab;
+	st.stabR = stabR;
+	st.stab = stabR.findSt(ctx, ctx);
 	st.params = params.dup;
 	It.exec(expr, st);
 	if (st.errs.length)
