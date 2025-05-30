@@ -570,11 +570,11 @@ void unionUnnamedIter(UnnamedUnion node, ASymbol* sym, ref St st){
 
 /// Builds Level 1 Symbol Table
 /// Returns: Level 1 Symbol Table, or SmErr[]
-package SmErrsVal!STab stab1Of(ASTNode node, STab stabR, STab stab,
-		ASymbol*[ASTNode] sMap, void[0][ASymbol*] dep, IdentU[] ctx = null){
+package SmErrsVal!STab stab1Of(ASTNode node, STab stabR, ASymbol*[ASTNode] sMap,
+		void[0][ASymbol*] dep, IdentU[] ctx = null){
 	St st;
 	st.stabR = stabR;
-	st.stab = stab;
+	st.stab = stabR.findSt(ctx, ctx);
 	st.ctx = ctx.dup;
 	st.sMap = sMap;
 	st.dep = dep;

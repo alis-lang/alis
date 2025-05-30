@@ -164,7 +164,7 @@ public:
 			if (ret is null)
 				return null;
 		}
-		return ret is this ? null : ret;
+		return ret;
 	}
 
 	/// Add a new value.
