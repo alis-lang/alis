@@ -206,10 +206,8 @@ private bool isRecDep(ASTNode node, ref St st){
 				return;
 			}
 			types ~= valRes.val.typeL;
-			AEnumMember amem;
-			amem.val = valRes.val.dataL;
-			amem.ident = symC.ident ~ member.name.IdentU;
-			symC.members ~= amem;
+			symC.memId ~= symC.ident ~ member.name.IdentU;
+			symC.memVal ~= valRes.val.dataL;
 		}
 
 		if (isAuto){
@@ -224,6 +222,7 @@ private bool isRecDep(ASTNode node, ref St st){
 					st.errs ~= errIncompatType(node.members[i].pos, symC.type, type);
 			}
 		}
+		// TODO: cast all symC.memVal[i] from types[i] to symC.type
 	}
 
 	void structIter(StructDef node, ref St st){

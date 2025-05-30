@@ -209,7 +209,6 @@ public struct ASymbol{
 			case Type.Struct:
 			case Type.Union:
 			case Type.Enum:
-			case Type.EnumMember:
 			case Type.Var:
 			case Type.Alias:
 			case Type.Import:
@@ -231,8 +230,6 @@ public struct ASymbol{
 				return unionS.ident;
 			case Type.Enum:
 				return enumS.ident;
-			case Type.EnumMember:
-				return enumMember.ident;
 			case Type.EnumConst:
 				return enumCS.ident;
 			case Type.Fn:
@@ -251,7 +248,7 @@ public struct ASymbol{
 		assert(false);
 	}
 
-	/// Returns: Visibility, or `Visibility.Pub` if not applicable
+	/// Returns: Visibility
 	@property Visibility vis() pure {
 		final switch (type){
 			case Type.Struct:
@@ -260,8 +257,6 @@ public struct ASymbol{
 				return unionS.vis;
 			case Type.Enum:
 				return enumS.vis;
-			case Type.EnumMember:
-				return Visibility.Pub;
 			case Type.EnumConst:
 				return enumCS.vis;
 			case Type.Fn:
@@ -285,7 +280,6 @@ public struct ASymbol{
 		Struct,
 		Union,
 		Enum,
-		EnumMember,
 		EnumConst,
 		Fn,
 		Var,
@@ -300,12 +294,7 @@ public struct ASymbol{
 	union{
 		AStruct structS; /// struct for `Type.Struct`
 		AUnion unionS; /// union for `Type.Union`
-		struct{
-			/// enum for `Type.Enum`, or `Type.EnumMember`
-			AEnum enumS;
-			/// enum member name for `Type.EnumMember`
-			AEnumMember enumMember;
-		}
+		AEnum enumS; /// enum for `Type.Enum`, or `Type.EnumMember`
 		AEnumConst enumCS; /// enum for `Type.EnumConst`
 		AFn fnS; /// function for `Type.Fn`
 		AVar varS; /// variable for `Type.Var`
@@ -325,8 +314,6 @@ public struct ASymbol{
 				ret = unionS.toString; break;
 			case Type.Enum:
 				ret = enumS.toString; break;
-			case Type.EnumMember:
-				ret = enumMember.toString; break;
 			case Type.EnumConst:
 				ret = enumCS.toString; break;
 			case Type.Fn:
@@ -430,11 +417,6 @@ public struct ASymbol{
 	this (AEnumConst enumCS){
 		this.type = Type.EnumConst;
 		this.enumCS = enumCS;
-	}
-	/// ditto
-	this (AEnumMember enumMember){
-		this.type = Type.EnumMember;
-		this.enumMember = enumMember;
 	}
 	/// ditto
 	this (AFn fnS){
@@ -950,28 +932,16 @@ public struct AEnum{
 	IdentU[] ident;
 	/// Data Type. This will be `struct{}` in case of empty emum
 	ADataType type;
-	/// members
-	AEnumMember[] members;
+	/// member identifiers
+	IdentU[] memId;
+	/// member values
+	ubyte[][] memVal;
 	/// Visibility outside its parent module
 	Visibility vis;
 
 	string toString() const pure {
-		string ret = format!"enum %s:%s{"(ident, type);
-		foreach (size_t i, const AEnumMember member; members)
-			ret ~= format!"%d:%s,"(i, member);
-		ret ~= "}";
-		return ret;
-	}
-}
-
-/// Alis Enum Members
-public struct AEnumMember{
-	/// identifier
-	IdentU[] ident;
-	/// value
-	ubyte[] val;
-	string toString() const pure {
-		return format!"enumMember %s=%s"(ident, val);
+		return format!"enum %s:%s{%(%r,%)}"(ident, type,
+				memId.length.iota.map!(i => format!"%s=%s"(memId[i], memVal[i])));
 	}
 }
 
