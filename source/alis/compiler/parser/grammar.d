@@ -188,6 +188,7 @@ CmpErrVal!AggMemberList parseAggMemberList(ref TokRange toks) {
 				return CmpErrVal!AggMemberList(keyVal.err);
 			}
 			AggMemberNamed member = new AggMemberNamed;
+			member.pos = keyVal.val.pos;
 			member.type = typeExpr.val;
 			member.name = keyVal.val.key;
 			member.val = keyVal.val.val;
