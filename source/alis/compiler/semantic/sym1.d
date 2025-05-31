@@ -194,7 +194,11 @@ private bool isRecDep(ASTNode node, ref St st){
 		}
 
 		ADataType[] types;
+		void[0][string] nameSet;
 		foreach (EnumMember member; node.members){
+			if (member.name in nameSet)
+				st.errs ~= errIdentReuse(member.pos, member.name);
+			nameSet[member.name] = (void[0]).init;
 			if (member.value is null){
 				st.errs ~= errEnumMemValMis(member);
 				return;
