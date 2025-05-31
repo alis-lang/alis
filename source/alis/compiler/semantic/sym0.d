@@ -51,7 +51,7 @@ private void l0Iter(S, D)(D node, ref St st){
 	if (__traits(compiles, symC.vis = st.visStack[$ - 1]))
 		symC.vis = st.visStack[$ - 1];
 	ASymbol* sym = new ASymbol(symC);
-	// TODO: untested name collision test
+	sym.ast = node;
 	if (sym.isCallable){
 		if (st.stab.hasLocalNonCallable(symC.ident[$ - 1], st.ctx)){
 			st.errs ~= errIdentReuse(node.pos, symC.ident[$ - 1].toString);
