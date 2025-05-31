@@ -550,6 +550,7 @@ void unionNamedIter(NamedUnion node, ASymbol* sym, ref St st){
 void unionUnnamedIter(UnnamedUnion node, ASymbol* sym, ref St st){
 	AUnion* symC = &sym.unionS;
 	symC.initI = size_t.max;
+	// TODO what about alias this???
 	foreach (UnnamedUnionMember member; node.members){
 		SmErrsVal!ADataType typeRes = eval4Type(member.type, st.stabR, st.ctx,
 				st.dep);
