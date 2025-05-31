@@ -615,3 +615,21 @@ package SmErrsVal!S1R stab1Of(ASTNode node, STab stabR, ASymbol*[ASTNode] sMap,
 	S1R ret = S1R(st.stab, st.fns, st.testExprs);
 	return SmErrsVal!S1R(ret);
 }
+
+/// Fully converts an ASTNode into a ASymbol
+/// Returns: Level 1 Symbol Table, or SmErr[]
+package SmErrsVal!S1R symDo(ASymbol* sym, STab stabR,
+		void[0][ASymbol*] dep){
+	assert (sym);
+	assert (sym.ast);
+	St st;
+	st.stabR = stabR;
+	st.ctx = sym.ident[0 .. $ - 1];
+	st.stab = stabR.findSt(st.ctx, st.ctx);
+	st.sMap = typeof(st.sMap).init; // TODO: is sMap needed in this case?
+	st.dep = dep;
+	It.exec(sym.ast, st);
+	if (st.errs)
+		return SmErrsVal!S1R(st.errs);
+	return SmErrsVal!S1R(S1R(st.stab, st.fns, st.testExprs));
+}
