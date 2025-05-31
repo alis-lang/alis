@@ -221,8 +221,7 @@ public:
 
 /// resolved Default Case statement
 public class RCaseDef : RCase{
-protected:
-
+public:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "RCaseDef";
@@ -249,8 +248,7 @@ public:
 
 /// Resolved Expression
 public abstract class RExpr : RStatement{
-protected:
-
+public:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "RExpr";

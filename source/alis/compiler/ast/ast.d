@@ -27,7 +27,6 @@ public alias ASTNodes = GetAll!();
 
 /// alis module
 public class Module : ASTNode{
-protected:
 public:
 	/// module identifier (can have dots)
 	string ident;
@@ -49,7 +48,6 @@ public:
 
 /// Key Value pair node (keyIdent = valExpr)
 public class KeyVal : ASTNode{
-protected:
 public:
 	/// key ident
 	string key;
@@ -68,7 +66,6 @@ public:
 
 /// Mixin Init
 public class MixinInit : ASTNode{
-protected:
 public:
 	/// Mixin
 	Expression mixn;
@@ -86,7 +83,6 @@ public:
 
 /// Mixin init to definition
 public class MixinInitDef : DefNode{
-protected:
 public:
 	/// underlying mixinInit
 	MixinInit mixinInit;
@@ -104,7 +100,6 @@ public:
 
 /// Attribute List
 public class AttrList : ASTNode{
-protected:
 public:
 	/// attributes
 	Expression[] attrs;
@@ -120,7 +115,6 @@ public:
 
 /// Any Block (body is just tokens)
 public class AnyBlock : ASTNode{
-protected:
 public:
 	import alis.compiler.lexer : Tok;
 	Tok[] body;
@@ -135,7 +129,6 @@ public:
 
 /// Aggregate Member List
 public class AggMemberList : ASTNode{
-protected:
 public:
 	/// aggregate members
 	AggMember[] members;
@@ -155,7 +148,6 @@ public:
 
 /// aggregate member (union/struct member)
 public abstract class AggMember : ASTNode{
-protected:
 public:
 	/// visibility
 	Visibility visibility;
@@ -175,7 +167,6 @@ public:
 
 /// AggMember in case of alias
 public class AggMemberAlias : AggMember{
-protected:
 public:
 	/// name
 	string name;
@@ -193,7 +184,6 @@ public:
 
 /// AggMember named
 public class AggMemberNamed : AggMember{
-protected:
 public:
 	/// type
 	Expression type;
@@ -215,7 +205,6 @@ public:
 
 /// AggMember unnamed
 public class UnnamedUnionMember : ASTNode{
-protected:
 public:
 	/// attributes
 	AttrList attrs;
@@ -240,7 +229,6 @@ public:
 
 /// definition node
 public abstract class DefNode : ASTNode{
-protected:
 public:
 	/// attributes
 	AttrList attrs;
@@ -259,7 +247,6 @@ public:
 
 /// global (module level) definition node
 public class GlobDef : ASTNode{
-protected:
 public:
 	/// visibility
 	Visibility visibility = Visibility.Default;
@@ -277,7 +264,6 @@ public:
 
 /// import
 public class Import : DefNode{
-protected:
 public:
 	/// module identifier (dot separated strings)
 	string[] moduleIdent;
@@ -292,7 +278,6 @@ public:
 
 /// function paramter node
 public class FParam : DefNode{
-protected:
 public:
 	/// type, can be null
 	Expression type;
@@ -312,7 +297,6 @@ public:
 
 /// function parameter list
 public class FParamList : ASTNode{
-protected:
 public:
 	/// parameterse
 	FParam[] params;
@@ -327,7 +311,6 @@ public:
 
 /// function definition
 public class FnDef : DefNode{
-protected:
 public:
 	/// vt struct, can be null
 	Expression vt;
@@ -353,7 +336,6 @@ public:
 
 /// abstract enum
 public abstract class EnumDef : DefNode{
-protected:
 public:
 	/// type
 	Expression type;
@@ -372,7 +354,6 @@ public:
 
 /// enum constant definition
 public class EnumConstDef : EnumDef{
-protected:
 public:
 	/// value
 	Expression val;
@@ -387,7 +368,6 @@ public:
 
 /// enum definition
 public class EnumSmDef : EnumDef{
-protected:
 public:
 	/// members
 	EnumMember[] members;
@@ -408,7 +388,6 @@ public:
 
 /// enum member
 public class EnumMember : DefNode{
-protected:
 public:
 	/// value. can be null
 	Expression value;
@@ -424,7 +403,6 @@ public:
 
 /// A struct
 public class Struct : ASTNode{
-protected:
 public:
 	/// members
 	AggMember[] members;
@@ -445,7 +423,6 @@ public:
 
 /// struct definition
 public class StructDef : DefNode{
-protected:
 public:
 	/// underlying struct
 	Struct def;
@@ -464,7 +441,6 @@ public:
 
 /// abstract template parameter node
 public abstract class TParam : DefNode{
-protected:
 public:
 	/// specialization
 	Expression[] specialization;
@@ -479,8 +455,7 @@ public:
 
 /// template alias paramter node
 public class TParamAlias : TParam{
-protected:
-
+public:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "TParamAlias";
@@ -490,8 +465,7 @@ protected:
 
 /// template alias sequence parameter node
 public class TParamAliasSeq : TParamAlias{
-protected:
-
+public:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "TParamAliasSeq";
@@ -501,8 +475,7 @@ protected:
 
 /// template $type paramter node
 public class TParamType : TParam{
-protected:
-
+public:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "TParamType";
@@ -512,8 +485,7 @@ protected:
 
 /// template $type sequence parameter node
 public class TParamTypeSeq : TParamType{
-protected:
-
+public:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "TParamTypeSeq";
@@ -523,7 +495,6 @@ protected:
 
 /// template parameter, typical
 public class TParamSm : TParam{
-protected:
 public:
 	/// type
 	Expression type;
@@ -538,7 +509,6 @@ public:
 
 /// template param list
 public class TParamList : ASTNode{
-protected:
 public:
 	/// parameters
 	TParam[] params;
@@ -557,7 +527,6 @@ public:
 
 /// template definition
 public class TemplateDef : DefNode{
-protected:
 public:
 	/// template paramters, can be null
 	TParamList tParams;
@@ -576,8 +545,7 @@ public:
 
 /// Mixin Definition
 public class TemplateMixinDef : TemplateDef{
-protected:
-
+public:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "TemplateMixinDef";
@@ -587,7 +555,6 @@ protected:
 
 /// variable definition
 public class VarDef : DefNode{
-protected:
 public:
 	/// type
 	Expression type;
@@ -610,8 +577,7 @@ public:
 
 /// static variable definition
 public class VarStaticDef : VarDef{
-protected:
-
+public:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "VarStaticDef";
@@ -621,7 +587,6 @@ protected:
 
 /// Variable Definition List
 public class VarDefList : DefNode{
-protected:
 public:
 	/// defs
 	VarDef[] defs;
@@ -639,7 +604,6 @@ public:
 
 /// alias definition
 public class AliasDef : DefNode{
-protected:
 public:
 	/// template paramters, can be null
 	TParamList tParams;
@@ -658,7 +622,6 @@ public:
 
 /// An union
 public abstract class Union : ASTNode{
-protected:
 public:
 	/// conditional compilation
 	CCNode[] cComp;
@@ -677,8 +640,7 @@ public:
 /// Unknown union (dont know if named or unnamed). Has zero aggMembers, outside
 // of CCNode and MixinInit
 public class UnkUnion : Union{
-protected:
-
+public:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "UnkUnion";
@@ -688,7 +650,6 @@ protected:
 
 /// Named Union
 public class NamedUnion : Union{
-protected:
 public:
 	/// members
 	AggMember[] members;
@@ -703,7 +664,6 @@ public:
 
 /// Unnamed Union
 public class UnnamedUnion : Union{
-protected:
 public:
 	/// member data types
 	UnnamedUnionMember[] members;
@@ -719,7 +679,6 @@ public:
 
 /// union definition
 public class UnionDef : DefNode{
-protected:
 public:
 	/// template paramters, can be null
 	TParamList tParams;
@@ -738,7 +697,6 @@ public:
 
 /// utest node
 public class UTest : DefNode{
-protected:
 public:
 	/// test description
 	string desc;
@@ -764,7 +722,6 @@ public:
 
 /// static if statement node
 public class StaticIf : CCNode{
-protected:
 public:
 	/// conditions
 	Expression[] conditions;
@@ -786,7 +743,6 @@ public:
 
 /// static for statement node
 public class StaticFor : CCNode{
-protected:
 public:
 	/// counter name, can be null
 	string countIdent; // TODO store VarDef instead
@@ -813,7 +769,6 @@ public:
 
 /// Static Case statement
 public class StaticCase : ASTNode{
-protected:
 public:
 	/// case value
 	Expression val;
@@ -831,7 +786,6 @@ public:
 
 /// switch case statement
 public class StaticSwitch : CCNode{
-protected:
 public:
 	/// value to switch on
 	Expression val;
@@ -855,8 +809,7 @@ public:
 
 /// Static Default Case statement
 public class StaticCaseDef : StaticCase{
-protected:
-
+public:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "StaticCaseDef";
@@ -873,7 +826,6 @@ public:
 
 /// Mixin init to definition
 public class MixinInitStmnt : Statement{
-protected:
 public:
 	/// underlying mixinInit
 	MixinInit mixinInit;
@@ -888,7 +840,6 @@ public:
 
 /// Definition as Statement
 public class DefStatement : Statement{
-protected:
 public:
 	/// definition
 	DefNode def;
@@ -903,7 +854,6 @@ public:
 
 /// statement block node
 public class Block : Statement{
-protected:
 public:
 	/// statements
 	Statement[] statements;
@@ -918,7 +868,6 @@ public:
 
 /// return statemment
 public class Return : Statement{
-protected:
 public:
 	/// return value, can be null
 	Expression val;
@@ -934,7 +883,6 @@ public:
 
 /// if statement node
 public class If : Statement{
-protected:
 public:
 	/// condition
 	Expression condition;
@@ -956,7 +904,6 @@ public:
 
 /// for statement node
 public class For : Statement{
-protected:
 public:
 	/// counter name, can be null
 	string countIdent;
@@ -983,7 +930,6 @@ public:
 
 /// while statement node
 public class While : Statement{
-protected:
 public:
 	/// condition
 	Expression condition;
@@ -1001,7 +947,6 @@ public:
 
 /// do while statement node
 public class DoWhile : Statement{
-protected:
 public:
 	/// condition
 	Expression condition;
@@ -1019,7 +964,6 @@ public:
 
 /// Case statement
 public class Case : ASTNode{
-protected:
 public:
 	/// case value
 	Expression val;
@@ -1037,8 +981,7 @@ public:
 
 /// Default Case statement
 public class CaseDef : Case{
-protected:
-
+public:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "CaseDef";
@@ -1048,7 +991,6 @@ protected:
 
 /// switch case statement
 public class Switch : Statement{
-protected:
 public:
 	/// value to switch on
 	Expression val;
@@ -1078,7 +1020,6 @@ public abstract class Expression : Statement{
 
 /// Idenfifier Expression
 public class IdentExpr : Expression{
-protected:
 public:
 	/// identifier
 	string ident;
@@ -1093,7 +1034,6 @@ public:
 
 /// block expression
 public class BlockExpr : Expression{
-protected:
 public:
 	/// return type
 	Expression type;
@@ -1111,7 +1051,6 @@ public:
 
 /// intrinsic expression
 public class IntrinsicExpr : Expression{
-protected:
 public:
 	/// intrinsic name
 	string name;
@@ -1126,7 +1065,6 @@ public:
 
 /// comma separated expressions
 public class CommaExpr : Expression{
-protected:
 public:
 	/// expressions
 	Expression[] exprs;
@@ -1143,7 +1081,6 @@ public:
 
 /// struct type expression
 public class StructAnon : Expression{
-protected:
 public:
 	/// underlying struct
 	Struct val;
@@ -1158,7 +1095,6 @@ public:
 
 /// anonymous union
 public class UnionAnon : Expression{
-protected:
 public:
 	/// underlying union
 	Union val;
@@ -1173,7 +1109,6 @@ public:
 
 /// anonymous function expression
 public class FnAnonExpr : Expression{
-protected:
 public:
 	/// parameters
 	FParamList params;
@@ -1193,7 +1128,6 @@ public:
 
 /// struct literal expression
 public class StructLiteralExpr : Expression{
-protected:
 public:
 	/// key value pairs of members
 	KeyVal[] keyVals;
@@ -1211,7 +1145,6 @@ public:
 
 /// boolean literal expression
 public class BoolLiteralExpr : Expression{
-protected:
 public:
 	/// value
 	bool val;
@@ -1226,7 +1159,6 @@ public:
 
 /// literal integer expression
 public class LiteralIntExpr : Expression{
-protected:
 public:
 	/// value
 	ptrdiff_t val;
@@ -1241,7 +1173,6 @@ public:
 
 /// literal float expression
 public class LiteralFloatExpr : Expression{
-protected:
 public:
 	/// value
 	double val;
@@ -1256,7 +1187,6 @@ public:
 
 /// literal string expression
 public class LiteralStringExpr : Expression{
-protected:
 public:
 	/// value
 	string val;
@@ -1271,7 +1201,6 @@ public:
 
 /// literal character expression
 public class LiteralCharExpr : Expression{
-protected:
 public:
 	/// value
 	char val;
@@ -1286,7 +1215,6 @@ public:
 
 /// literal array expression
 public class LiteralArrayExpr : Expression{
-protected:
 public:
 	/// elements
 	Expression[] elements;
@@ -1369,7 +1297,6 @@ public:
 
 /// postscript operator
 public abstract class OpPostExpr : Expression{
-protected:
 public:
 	/// operator
 	string op;
@@ -1387,8 +1314,7 @@ public:
 
 /// overridable postscript operator
 public abstract class OpPostExprOverridable : OpPostExpr{
-protected:
-
+public:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "OpPostExprOverridable";
@@ -1398,7 +1324,6 @@ protected:
 
 /// prefix operator
 public abstract class OpPreExpr : Expression{
-protected:
 public:
 	/// operator
 	string op;
@@ -1416,8 +1341,7 @@ public:
 
 /// overridable prefix operator
 public abstract class OpPreExprOverridable : OpPreExpr{
-protected:
-
+public:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "OpPreExprOverridable";
@@ -1427,7 +1351,6 @@ protected:
 
 /// binary operator
 public abstract class OpBinExpr : Expression{
-protected:
 public:
 	/// operator
 	string op;
@@ -1448,8 +1371,7 @@ public:
 
 /// overridable binary operator
 public abstract class OpBinExprOverridable : OpBinExpr{
-protected:
-
+public:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "OpBinExprOverridable";
@@ -1459,7 +1381,6 @@ protected:
 
 /// call expression
 public class OpCallExpr : Expression{
-protected:
 public:
 	/// callee
 	Expression callee;
@@ -1477,7 +1398,6 @@ public:
 
 /// index expression
 public class OpIndexExpr : Expression{
-protected:
 public:
 	/// lhs
 	Expression lhs;
@@ -1497,7 +1417,6 @@ public:
 
 /// OpAssign binary operator
 public class OpAssignBin : OpBinExpr{
-protected:
 public:
 	this(){
 		this.op = "=";
@@ -1512,7 +1431,6 @@ public:
 
 /// OpAssignRef binary operator
 public class OpAssignRefBin : OpBinExpr{
-protected:
 public:
 	this(){
 		this.op = "@=";
@@ -1529,7 +1447,6 @@ public:
 
 /// OpRefPost postfix operator
 public class OpRefPost : OpPostExpr{
-protected:
 public:
 	this(){
 		this.op = "@";
@@ -1544,7 +1461,6 @@ public:
 
 /// OpInc postfix operator
 public class OpIncPost : OpPostExprOverridable{
-protected:
 public:
 	this(){
 		this.op = "++";
@@ -1559,7 +1475,6 @@ public:
 
 /// OpDec postfix operator
 public class OpDecPost : OpPostExprOverridable{
-protected:
 public:
 	this(){
 		this.op = "--";
@@ -1574,7 +1489,6 @@ public:
 
 /// OpDots postfix operator
 public class OpDotsPost : OpPostExpr{
-protected:
 public:
 	this(){
 		this.op = "...";
@@ -1591,7 +1505,6 @@ public:
 
 /// OpIsPre prefix operator
 public class OpIsPre : OpPreExpr{
-protected:
 public:
 	this(){
 		this.op = "is";
@@ -1606,7 +1519,6 @@ public:
 
 /// OpNotIsPre prefix operator
 public class OpNotIsPre : OpPreExpr{
-protected:
 public:
 	this(){
 		this.op = "!is";
@@ -1621,7 +1533,6 @@ public:
 
 /// OpConst prefix operator
 public class OpConstPre : OpPreExpr{
-protected:
 public:
 	this(){
 		this.op = "const";
@@ -1636,7 +1547,6 @@ public:
 
 /// OpNot prefix operator
 public class OpNotPre : OpPreExprOverridable{
-protected:
 public:
 	this(){
 		this.op = "!";
@@ -1651,7 +1561,6 @@ public:
 
 /// OpRef prefix operator
 public class OpRefPre : OpPreExpr{
-protected:
 public:
 	this(){
 		this.op = "@";
@@ -1666,7 +1575,6 @@ public:
 
 /// OpTag prefix operator
 public class OpTagPre : OpPreExpr{
-protected:
 public:
 	this(){
 		this.op = "#";
@@ -1681,7 +1589,6 @@ public:
 
 /// OpBitNot prefix operator
 public class OpBitNotPre : OpPreExprOverridable{
-protected:
 public:
 	this(){
 		this.op = "~";
@@ -1698,7 +1605,6 @@ public:
 
 /// OpArrow binary operator
 public class OpArrowBin : OpBinExpr{
-protected:
 public:
 	this(){
 		this.op = "->";
@@ -1713,7 +1619,6 @@ public:
 
 /// OpComma binary operator
 public class OpCommaBin : OpBinExpr{
-protected:
 public:
 	this(){
 		this.op = ",";
@@ -1728,7 +1633,6 @@ public:
 
 /// OpDot binary operator
 public class OpDotBin : OpBinExpr{
-protected:
 public:
 	this(){
 		this.op = ".";
@@ -1743,7 +1647,6 @@ public:
 
 /// OpMul binary operator
 public class OpMulBin : OpBinExprOverridable{
-protected:
 public:
 	this(){
 		this.op = "*";
@@ -1758,7 +1661,6 @@ public:
 
 /// OpDiv binary operator
 public class OpDivBin : OpBinExprOverridable{
-protected:
 public:
 	this(){
 		this.op = "/";
@@ -1773,7 +1675,6 @@ public:
 
 /// OpMod binary operator
 public class OpModBin : OpBinExprOverridable{
-protected:
 public:
 	this(){
 		this.op = "%";
@@ -1788,7 +1689,6 @@ public:
 
 /// OpAdd binary operator
 public class OpAddBin : OpBinExprOverridable{
-protected:
 public:
 	this(){
 		this.op = "+";
@@ -1803,7 +1703,6 @@ public:
 
 /// OpSub binary operator
 public class OpSubBin : OpBinExprOverridable{
-protected:
 public:
 	this(){
 		this.op = "-";
@@ -1818,7 +1717,6 @@ public:
 
 /// OpLS binary operator
 public class OpLSBin : OpBinExprOverridable{
-protected:
 public:
 	this(){
 		this.op = "<<";
@@ -1833,7 +1731,6 @@ public:
 
 /// OpRS binary operator
 public class OpRSBin : OpBinExprOverridable{
-protected:
 public:
 	this(){
 		this.op = ">>";
@@ -1848,7 +1745,6 @@ public:
 
 /// OpEq binary operator
 public class OpEqBin : OpBinExprOverridable{
-protected:
 public:
 	this(){
 		this.op = "==";
@@ -1863,7 +1759,6 @@ public:
 
 /// OpNotEq binary operator
 public class OpNotEqBin : OpBinExprOverridable{
-protected:
 public:
 	this(){
 		this.op = "!=";
@@ -1878,7 +1773,6 @@ public:
 
 /// OpGrEq binary operator
 public class OpGrEqBin : OpBinExprOverridable{
-protected:
 public:
 	this(){
 		this.op = ">=";
@@ -1893,7 +1787,6 @@ public:
 
 /// OpLsEq binary operator
 public class OpLsEqBin : OpBinExprOverridable{
-protected:
 public:
 	this(){
 		this.op = "<=";
@@ -1908,7 +1801,6 @@ public:
 
 /// OpGr binary operator
 public class OpGrBin : OpBinExprOverridable{
-protected:
 public:
 	this(){
 		this.op = ">";
@@ -1923,7 +1815,6 @@ public:
 
 /// OpLs binary operator
 public class OpLsBin : OpBinExprOverridable{
-protected:
 public:
 	this(){
 		this.op = "<";
@@ -1938,7 +1829,6 @@ public:
 
 /// OpColon binary operator
 public class OpColonBin : OpBinExpr{
-protected:
 public:
 	this(){
 		this.op = ":";
@@ -1953,7 +1843,6 @@ public:
 
 /// OpIs binary operator
 public class OpIsBin : OpBinExpr{
-protected:
 public:
 	this(){
 		this.op = "is";
@@ -1968,7 +1857,6 @@ public:
 
 /// OpNotIs binary operator
 public class OpNotIsBin : OpBinExpr{
-protected:
 public:
 	this(){
 		this.op = "!is";
@@ -1983,7 +1871,6 @@ public:
 
 /// OpBitAnd binary operator
 public class OpBitAndBin : OpBinExprOverridable{
-protected:
 public:
 	this(){
 		this.op = "&";
@@ -1998,7 +1885,6 @@ public:
 
 /// OpBitOr binary operator
 public class OpBitOrBin : OpBinExprOverridable{
-protected:
 public:
 	this(){
 		this.op = "|";
@@ -2013,7 +1899,6 @@ public:
 
 /// OpBitXor binary operator
 public class OpBitXorBin : OpBinExprOverridable{
-protected:
 public:
 	this(){
 		this.op = "^";
@@ -2028,7 +1913,6 @@ public:
 
 /// OpAnd binary operator
 public class OpAndBin : OpBinExpr{
-protected:
 public:
 	this(){
 		this.op = "&&";
@@ -2043,7 +1927,6 @@ public:
 
 /// OpOr binary operator
 public class OpOrBin : OpBinExpr{
-protected:
 public:
 	this(){
 		this.op = "||";
@@ -2060,7 +1943,6 @@ public:
 
 /// OpNot postfix operator
 public class OpNotPost : OpPostExpr{
-protected:
 public:
 	this(){
 		this.op = "!";
@@ -2075,7 +1957,6 @@ public:
 
 /// OpQ postfix operator
 public class OpQPost : OpPostExpr{
-protected:
 public:
 	this(){
 		this.op = "?";
@@ -2090,7 +1971,6 @@ public:
 
 /// OpNotNot binary operator
 public class OpNotNotBin : OpBinExpr{
-protected:
 public:
 	this(){
 		this.op = "!!";
@@ -2105,7 +1985,6 @@ public:
 
 /// OpQQ binary operator
 public class OpQQBin : OpBinExpr{
-protected:
 public:
 	this(){
 		this.op = "??";
