@@ -34,6 +34,7 @@ public struct SmErr{
 		AutoNoVal, /// Cannot have auto when no value provided
 		UnionMultiDef, /// Union has more than one default values
 		UnionNoDef, /// Union has no default value
+		UnUnionTypeUnique, /// Unnamed union must have unique types
 		FParamNoDef, /// Function Parameter expected to have default value
 	}
 	/// where error happen
@@ -164,6 +165,13 @@ package SmErr errUnionMultiDef(Location pos){
 package SmErr errUnionNoDef(Location pos){
 	return SmErr(pos, "Union has no default value",
 			SmErr.Type.UnionNoDef);
+}
+
+/// Unnamed union must have unique types
+package SmErr errUnUnionTypeUnique(Location pos, ADataType a, ADataType b){
+	return SmErr(pos,
+			format!"Unnamed Union's types must be unique: %s is compatible with %s"(
+				a, b), SmErr.Type.UnUnionTypeUnique);
 }
 
 /// Function Parameter expected to have default value
