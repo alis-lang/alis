@@ -54,7 +54,8 @@ public class RFn : ASTNode{
 protected:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
-		ret["body"] = body.toJson;
+		if (body)
+			ret["body"] = body.toJson;
 		ret["ident"] = ident;
 		ret["locals"] = paramsT.length.iota
 			.map!(i => JSONValue(
