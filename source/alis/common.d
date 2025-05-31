@@ -14,6 +14,8 @@ import std.string,
 			 std.algorithm,
 			 std.digest.crc;
 
+import alis.compiler.common : ASTNode;
+
 public import alis.compiler.rst : RExpr;
 
 debug import std.stdio;
@@ -203,6 +205,8 @@ public:
 public struct ASymbol{
 	/// Whether this is complete
 	bool isComplete = false;
+	/// corresponding ASTNode (can be null)
+	ASTNode ast;
 	/// Returns: whether this is a callable (template or function)
 	@property bool isCallable() const pure {
 		final switch (type){
