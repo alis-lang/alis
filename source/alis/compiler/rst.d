@@ -254,6 +254,10 @@ public:
 		ret["_name"] = "RExpr";
 		return ret;
 	}
+
+	override string toString() const pure {
+		return "RExpr"; // TODO: implement RExpr.toString
+	}
 }
 
 /// Resolved Identifier

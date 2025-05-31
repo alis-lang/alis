@@ -27,8 +27,9 @@ public struct AValCT{
 	/// possible types
 	enum Type{
 		Literal, /// some Literal value
-		Symbol, /// an Alias to a symbol
+		Symbol, /// an alias to a symbol
 		Type, /// a Data Type
+		Expr, /// an alias to an RExpr
 	}
 	/// currently stored type
 	Type type = Type.Type;
@@ -39,6 +40,7 @@ public struct AValCT{
 		}
 		ASymbol* symS; /// symbol for `Symbol`
 		ADataType typeT; /// data type for `Type`
+		RExpr expr; /// expr in case of `Expr`
 	}
 
 	string toString() const pure {
@@ -49,6 +51,8 @@ public struct AValCT{
 				return symS.toString;
 			case Type.Type:
 				return typeT.toString;
+			case Type.Expr:
+				return expr.toString;
 		}
 		return null;
 	}
@@ -61,6 +65,8 @@ public struct AValCT{
 				return symS == rhs.symS;
 			case Type.Type:
 				return typeT == rhs.typeT;
+			case Type.Expr:
+				return expr.toString == rhs.expr.toString; // HACK
 		}
 		assert(false);
 	}
@@ -73,6 +79,8 @@ public struct AValCT{
 				return tuple(Type.Symbol, symS).toHash;
 			case Type.Type:
 				return tuple(Type.Type, typeT).toHash;
+			case Type.Expr:
+				return tuple(Type.Expr, expr.toString).toHash;
 		}
 		assert(false);
 	}
@@ -92,6 +100,11 @@ public struct AValCT{
 	this (ADataType type){
 		this.type = Type.Type;
 		this.typeT = type;
+	}
+	/// ditto
+	this (RExpr expr){
+		this.type = Type.Expr;
+		this.expr = expr;
 	}
 }
 
