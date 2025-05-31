@@ -1929,8 +1929,6 @@ CmpErrVal!BlockExpr parseOpAndBin(ref TokRange toks, Expression prev){
 									boolFalse = new BoolLiteralExpr;
 	next.pos = block.pos = boolType.pos = ifA.pos = ifB.pos = retTrue.pos =
 		retFalse.pos = boolTrue.pos = boolFalse.pos = expr.pos;
-	next.parent = expr;
-	expr.next = next;
 	next.type = boolType;
 	next.block = block;
 	block.statements = [ifA, retFalse];
@@ -1971,8 +1969,6 @@ CmpErrVal!BlockExpr parseOpOrBin(ref TokRange toks, Expression prev){
 									boolFalse = new BoolLiteralExpr;
 	next.pos = block.pos = boolType.pos = ifA.pos = ifB.pos = retTrue.pos =
 		retFalse.pos = boolTrue.pos = boolFalse.pos = expr.pos;
-	next.parent = expr;
-	expr.next = next;
 	next.type = boolType;
 	next.block = block;
 	block.statements = [ifA, ifB, retFalse];

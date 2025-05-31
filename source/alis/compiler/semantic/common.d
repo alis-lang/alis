@@ -211,14 +211,14 @@ public:
 		return localNonCallable(id, ctx) !is null;
 	}
 
-	JSONValue toJson() const {
+	JSONValue jsonOf() const {
 		JSONValue ret;
 		foreach (IdentU key; map.byKey){
 			ret[key.toString] = map[key]
 				.map!((const Node!(ASymbol*) n){
 						JSONValue obj;
-						static if (__traits(compiles, n.val.toJson)){
-							obj["val"] = n.val.toJson;
+						static if (__traits(compiles, n.val.jsonOf)){
+							obj["val"] = n.val.jsonOf;
 						} else {
 							obj["val"] = n.val.toString;
 						}
@@ -233,7 +233,7 @@ public:
 			immutable string s = key.toString;
 			const Node!STab n = next[key];
 			JSONValue obj;
-			obj["val"] = n.val.toJson;
+			obj["val"] = n.val.jsonOf;
 			obj["vis"] = n.vis.to!string;
 			if (s in ret.object)
 				ret[s] ~= obj;
@@ -244,7 +244,7 @@ public:
 	}
 
 	override string toString() const {
-		return toJson().toPrettyString;
+		return jsonOf.toPrettyString;
 	}
 }
 

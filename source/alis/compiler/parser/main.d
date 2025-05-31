@@ -24,6 +24,6 @@ void main(){
 		writeln(err.toPrettyString);
 		exit(1);
 	} else {
-		stdout.writeln(node.val.toJson.toPrettyString);
+		stdout.writeln(node.val.jsonOf.toPrettyString);
 	}
 }

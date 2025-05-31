@@ -38,17 +38,7 @@ void main(){
 	}
 	sw.start;
 	node.val.ident = "alis-main";
-	SmErrsVal!S0R s0val = node.val.stab0Of;
-	sw.stop;
-	if (s0val.isErr){
-		stderr.writefln!"Errors:\n%(%s%)"(s0val.err);
-		stderr.writefln!"done in: %d msecs"(sw.peek.total!"msecs");
-		exit(1);
-	}
-
-	STab stab = s0val.val.stab;
-	ASymbol*[ASTNode] sMap = s0val.val.sMap;
-	SmErrsVal!S1R stabVal = node.val.stab1Of(stab, sMap, null);
+	SmErrsVal!S1R stabVal = node.val.stabOf;
 	if (stabVal.isErr){
 		stderr.writefln!"Errors:\n%(%s\n%)"(stabVal.err);
 		stderr.writefln!"done in: %d msecs"(sw.peek.total!"msecs");
