@@ -37,6 +37,31 @@ package template ItL(alias M, size_t L){
 	alias ItL = ASTIter!(Filter!(HasAnyUDA!(ITL(L)), ItFnsOf!M));
 }
 
+/// Semantic Analysis Context
+package struct SmCtx{
+	@disable this();
+	/// symbol table local
+	STab stab;
+	/// symbol table root
+	STab stabR;
+	/// context
+	IdentU[] ctx;
+	/// symbols dependent upon current call
+	void[0][ASymbol*] dep;
+
+	this(STab stabR, void[0][ASymbol*] dep, IdentU[] ctx){
+		this.stabR = stabR;
+		this.ctx = ctx;
+		this.dep = dep;
+	}
+	this(STab stab, STab stabR, void[0][ASymbol*] dep, IdentU[] ctx){
+		this.stab = stab;
+		this.stabR = stabR;
+		this.ctx = ctx;
+		this.dep = dep;
+	}
+}
+
 /// Symbol Table
 public final class STab{
 public:
@@ -46,6 +71,14 @@ public:
 		this (E val, IdentU[] vis) pure {
 			this.val = val;
 			this.vis = vis.dup;
+		}
+		/// Returns: whether this is visible from a ctx
+		bool isVis(IdentU[] ctx) const pure {
+			if (ctx.isNoId)
+				return true;
+			if (ctx.length < vis.length)
+				return false;
+			return vis == ctx[0 .. vis.length];
 		}
 	}
 
@@ -70,7 +103,7 @@ public:
 				if (i !in st.next)
 					break;
 				Node!STab nextNode = st.next[i];
-				if (!nextNode.vis.isNoId && nextNode.vis != ctx)
+				if (!nextNode.isVis(ctx))
 					break;
 				_maps ~= nextNode.val.map;
 				st = nextNode.val;
@@ -96,7 +129,9 @@ public:
 			Node!(ASymbol*)[] arr;
 			if (_maps.length && (_id in _maps[$ - 1]) !is null)
 				arr = _maps[$ - 1][_id];
-			return arr.filter!(node => node.vis.isNoId || node.vis == ctx);
+			return arr
+				.filter!(node => node.isVis(ctx))
+				.map!(node => node.val);
 		}
 	}
 
@@ -111,8 +146,31 @@ public:
 		return !(find(id, ctx).empty);
 	}
 
+	/// finds STab
+	/// Returns: STab or null
+	STab findSt(IdentU id, IdentU[] ctx) pure {
+		if (Node!STab* ptr = id in next){
+			if (ptr.isVis(ctx))
+				return ptr.val;
+		}
+		return null;
+	}
+
+	/// ditto
+	STab findSt(IdentU[] id, IdentU[] ctx) pure {
+		STab ret = this;
+		foreach (IdentU i; id){
+			ret = ret.findSt(i, ctx);
+			if (ret is null)
+				return null;
+		}
+		return ret;
+	}
+
 	/// Add a new value.
 	void add(IdentU id, ASymbol* sym, IdentU[] vis) pure {
+		if (!vis.length)
+			vis = [IdentU.init];
 		if (auto ptr = id in map){
 			*ptr ~= Node!(ASymbol*)(sym, vis);
 			return;
@@ -126,11 +184,31 @@ public:
 
 	/// Add a new Symbol Table. **Will overwrite existing, if any.**
 	void add(IdentU id, STab st, IdentU[] vis) pure {
+		if (!vis.length)
+			vis = [IdentU.init];
 		next[id] = Node!STab(st, vis);
 	}
 	/// ditto
 	void add(IdentU id, STab st, Visibility vis, IdentU[] ctx) pure {
 		return add(id, st, vis == Visibility.Default ? ctx : [IdentU.init]);
+	}
+
+	/// Returns: nonCallable symbol at this level, by its IdentU. Will return
+	/// `null` if none present, or none visible.
+	ASymbol* localNonCallable(IdentU id, IdentU[] ctx) pure {
+		if (id !in map)
+			return null;
+		auto range = map[id]
+			.filter!(node => node.isVis(ctx) && !node.val.isCallable);
+		if (range.empty)
+			return null;
+		return range.front.val;
+	}
+
+	/// Returns: whether a nonCallable symbol exists by certain IdentU, at this
+	/// level
+	@property bool hasLocalNonCallable(IdentU id, IdentU[] ctx) pure {
+		return localNonCallable(id, ctx) !is null;
 	}
 
 	JSONValue toJson() const {
@@ -149,14 +227,15 @@ public:
 						})
 				.array;
 		}
+		if (ret.isNull)
+			ret = JSONValue.emptyObject;
 		foreach (IdentU key; next.byKey){
 			immutable string s = key.toString;
 			const Node!STab n = next[key];
 			JSONValue obj;
 			obj["val"] = n.val.toJson;
 			obj["vis"] = n.vis.to!string;
-			continue;
-			if (s in ret)
+			if (s in ret.object)
 				ret[s] ~= obj;
 			else
 				ret[s] = [obj];

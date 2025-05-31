@@ -34,10 +34,66 @@ public:
 /// Whether a class is inherited from `ASTNode`
 public enum IsASTNode(T) = is (T : ASTNode);
 
+/// Intrinsic Names (excluding leading `$`)
+public enum IntrN : string{
+	// types
+	Type = "type",
+	NoInit = "noinit",
+	NoInitVal = "noinitval",
+	Int = "int",
+	UInt = "uint",
+	Float = "float",
+	Char = "char",
+	Slice = "slice",
+	Array = "array",
+	Vt = "vt",
+	IsType = "isType",
+	TypeOf = "typeOf",
+
+	// ararys & sequences
+	ArrayLen = "arrLen",
+	ArrayInd = "arrInd",
+	SeqLen = "seqLen",
+	SeqInd = "seqInd",
+
+	// unions & aggregates
+	UnionIs = "unionIs",
+
+	// attributes
+	AttrsOf = "attrsOf",
+	ByAttrs = "byAttrs",
+
+	// misc
+	Debug = "debug",
+	StackTrace = "stackTrace",
+	Err = "err",
+
+	// printing
+	RTWrite = "rtWrite",
+	CTWrite = "ctWrite",
+
+	// arithmetic operations
+	ArithNeg = "arithNeg",
+	ArithBinNot = "arithBinNot",
+	ArithBinOr = "arithBinOr",
+	ArithBinAnd = "arithBinAnd",
+	ArithBinXor = "arithBinXor",
+	ArithAdd = "arithAdd",
+	ArithSub = "arithSub",
+	ArithMul = "arithMul",
+	ArithDiv = "arithDiv",
+	ArithMod = "arithMod",
+	ArithLShift = "arithLShift",
+	ArithSShift = "arithSShift",
+
+	// casting
+	Cast = "cast"
+}
+
 /// Visibility specifier
 /// first rightmost bit -> 1 if can read
 /// second rightmost bit -> 1 if can write
-enum Visibility : ubyte{
+public enum Visibility : ubyte{
 	Default = 0,
 	IPub = 1,
 	Pub = 2,

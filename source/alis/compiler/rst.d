@@ -486,6 +486,23 @@ public:
 	string member;
 }
 
+/// Resolved Enum Member Get Expression
+public class REnumMemberGetExpr : RExpr{
+protected:
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["_name"] = "REnumMemberGetExpr";
+		ret["val"] = val.toJson;
+		ret["member"] = member;
+		return ret;
+	}
+public:
+	/// the enum
+	RIdentExpr val;
+	/// member name
+	string member;
+}
+
 /// Resolved Function Expression
 public class RFnExpr : RExpr{
 protected:
