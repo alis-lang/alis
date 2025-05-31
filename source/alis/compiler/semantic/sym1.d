@@ -58,6 +58,15 @@ private bool isRecDep(ASTNode node, ref St st){
 }
 
 @ItFn @ITL(1){
+	void modIter(Module node, ref St st){
+		STab pSt = st.stab;
+		st.stab = st.stab.next[node.ident.IdentU].val;
+		st.ctx ~= node.ident.IdentU;
+		It.descend(node, st);
+		st.stab = pSt;
+		st.ctx.length --;
+	}
+
 	void fnIter(FnDef node, ref St st){
 		// TODO: TEST THIS!
 		if (isRecDep(node, st))
@@ -118,6 +127,7 @@ private bool isRecDep(ASTNode node, ref St st){
 		r.paramsN = symC.paramsN;
 		r.paramCount = r.paramsT.length; // TODO: get rid of RFn.paramCount
 		symC.uid = fnNameEncode(symC.ident.toString, symC.paramsT);
+		st.fns[symC.uid] = r;
 
 		st.stab.add(symC.uid.IdentU, new STab, symC.vis, st.ctx);
 		SmErrsVal!RExpr exprRes = resolve(node.body, st.stabR,
@@ -440,7 +450,7 @@ private bool isRecDep(ASTNode node, ref St st){
 	}
 }
 
-void unionNamedIter(NamedUnion node, ASymbol* sym, ref St st){
+private void unionNamedIter(NamedUnion node, ASymbol* sym, ref St st){
 	AUnion* symC = &sym.unionS;
 	/// maps aliased name to alias name
 	/// `aliasMap["alias_name"] = "the_real_thing"`
@@ -547,10 +557,9 @@ void unionNamedIter(NamedUnion node, ASymbol* sym, ref St st){
 	}
 }
 
-void unionUnnamedIter(UnnamedUnion node, ASymbol* sym, ref St st){
+private void unionUnnamedIter(UnnamedUnion node, ASymbol* sym, ref St st){
 	AUnion* symC = &sym.unionS;
 	symC.initI = size_t.max;
-	// TODO what about alias this???
 	foreach (UnnamedUnionMember member; node.members){
 		SmErrsVal!ADataType typeRes = eval4Type(member.type, st.stabR, st.ctx,
 				st.dep);
@@ -580,9 +589,19 @@ void unionUnnamedIter(UnnamedUnion node, ASymbol* sym, ref St st){
 	}
 }
 
+/// Result Type
+package struct S1R{
+	/// symbol table
+	STab stab;
+	/// RFn for each AFn.uid
+	RFn[string] fns;
+	/// RExpr for each `AUTest.uid`
+	RExpr[string] tests;
+}
+
 /// Builds Level 1 Symbol Table
 /// Returns: Level 1 Symbol Table, or SmErr[]
-package SmErrsVal!STab stab1Of(ASTNode node, STab stabR, ASymbol*[ASTNode] sMap,
+package SmErrsVal!S1R stab1Of(ASTNode node, STab stabR, ASymbol*[ASTNode] sMap,
 		void[0][ASymbol*] dep, IdentU[] ctx = null){
 	St st;
 	st.stabR = stabR;
@@ -592,6 +611,7 @@ package SmErrsVal!STab stab1Of(ASTNode node, STab stabR, ASymbol*[ASTNode] sMap,
 	st.dep = dep;
 	It.exec(node, st);
 	if (st.errs)
-		return SmErrsVal!STab(st.errs);
-	return SmErrsVal!STab(st.stab);
+		return SmErrsVal!S1R(st.errs);
+	S1R ret = S1R(st.stab, st.fns, st.testExprs);
+	return SmErrsVal!S1R(ret);
 }

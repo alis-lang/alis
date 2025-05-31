@@ -66,6 +66,16 @@ private void l0Iter(S, D)(D node, ref St st){
 }
 
 @ItFn @ITL(0){
+	void modIter(Module node, ref St st){
+		st.ctx ~= node.ident.IdentU;
+		STab pSt = st.stab;
+		st.stab = new STab;
+		pSt.add(node.ident.IdentU, st.stab, [IdentU.init]);
+		It.descend(node, st);
+		st.stab = pSt;
+		st.ctx.length --;
+	}
+
 	void mixinInitDefIter(MixinInitDef node, ref St st){
 		st.errs ~= errUnsup(node);
 	}
