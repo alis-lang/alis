@@ -843,7 +843,7 @@ public struct AStruct{
 			return true;
 		if (const Visibility* vis = name in nameVis)
 			return *vis == Visibility.Pub || *vis == Visibility.IPub;
-		return false;
+		return true;
 	}
 	/// whether the 0th member is aliased to `this`
 	@property bool hasBase(IdentU[] ctx = [IdentU.init]) const pure {
@@ -894,7 +894,7 @@ public struct AUnion{
 			return true;
 		if (const Visibility* vis = name in nameVis)
 			return *vis == Visibility.Pub || *vis == Visibility.IPub;
-		return false;
+		return true;
 	}
 	/// whether the 0th member is aliased to `this`
 	@property bool hasBase(IdentU[] ctx = [IdentU.init]) const pure {
