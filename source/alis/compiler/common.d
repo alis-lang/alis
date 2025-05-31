@@ -4,12 +4,14 @@ Common compiler components
 module alis.compiler.common;
 
 import std.conv,
+			 std.json,
 			 std.format;
 
 /// parent to all nodes
 public abstract class ASTNode{
-protected:
-	import std.json : JSONValue;
+public:
+	/// location in source code
+	Location pos;
 	/// returns: JSON representation
 	JSONValue jsonOf() const pure {
 		JSONValue ret;
@@ -18,16 +20,9 @@ protected:
 		ret["_name"] = "ASTNode";
 		return ret;
 	}
-public:
-	/// location in source code
-	Location pos;
-	/// returns: JSON representation
-	JSONValue toJson() const pure {
-		return this.jsonOf;
-	}
 
 	override string toString() const {
-		return toJson().toPrettyString;
+		return jsonOf.toPrettyString;
 	}
 }
 
