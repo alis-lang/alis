@@ -571,6 +571,12 @@ void unionUnnamedIter(UnnamedUnion node, ASymbol* sym, ref St st){
 	}
 	if (symC.initI == size_t.max)
 		st.errs ~= errUnionNoDef(node.pos);
+	foreach (size_t i; 0 .. symC.types.length){
+		foreach (size_t j; i + 1 .. symC.types.length){
+			if (symC.types[i] == symC.types[j])
+				st.errs ~= errUnUnionTypeUnique(node.pos, symC.types[i], symC.types[j]);
+		}
+	}
 }
 
 /// Builds Level 1 Symbol Table
