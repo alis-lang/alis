@@ -36,6 +36,7 @@ public struct SmErr{
 		UnionNoDef, /// Union has no default value
 		UnUnionTypeUnique, /// Unnamed union must have unique types
 		FParamNoDef, /// Function Parameter expected to have default value
+		Unxp, /// Unexpected error in compiler
 	}
 	/// where error happen
 	Location pos;
@@ -176,6 +177,12 @@ package SmErr errUnUnionTypeUnique(Location pos, ADataType a, ADataType b){
 
 /// Function Parameter expected to have default value
 package SmErr errFParamNoDef(Location pos, string name){
-	return SmErr(pos, "Function parameter %s should have default value",
+	return SmErr(pos,
+			name.format!"Function parameter %s should have default value",
 			SmErr.Type.FParamNoDef);
+}
+
+/// Unexpected error in compiler
+package SmErr errUnxp(Location pos, string err){
+	return SmErr(pos, err, SmErr.Type.Unxp);
 }
