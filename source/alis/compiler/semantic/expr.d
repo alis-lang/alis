@@ -34,27 +34,152 @@ private struct St{
 private alias It = ItL!(mixin(__MODULE__), 0);
 
 @ItFn @ITL(0){
-	void identIter(IdentExpr node, ref St st){
-
+	void identExprIter(IdentExpr node, ref St st){
+		// TODO: implement
 	}
-
-	void callIter(OpCallExpr node, ref St st){
-		if (auto sub = cast(IntrinsicExpr)node.callee){
-			//intrExpr(sub, node.params, st);
-			return;
-		}
+	void blockExprIter(BlockExpr node, ref St st){
+		// TODO: implement
 	}
-
-	void dotIter(OpDotBin node, ref St st){
-		if (auto sub = cast(IntrinsicExpr)node.rhs){
-			Expression[] params;
-			if (auto cExpr = cast(CommaExpr)node.lhs){
-				params = cExpr.exprs;
-			} else {
-				params = [node.lhs];
-			}
-			//intrExpr(sub, params, st);
-		}
+	void intrinsicExprIter(IntrinsicExpr node, ref St st){
+		// TODO: implement
+	}
+	void commaExprIter(CommaExpr node, ref St st){
+		// TODO: implement
+	}
+	void structAnonIter(StructAnon node, ref St st){
+		// TODO: implement
+	}
+	void unionAnonIter(UnionAnon node, ref St st){
+		// TODO: implement
+	}
+	void fnAnonExprIter(FnAnonExpr node, ref St st){
+		// TODO: implement
+	}
+	void structLiteralExprIter(StructLiteralExpr node, ref St st){
+		// TODO: implement
+	}
+	void boolLiteralExprIter(BoolLiteralExpr node, ref St st){
+		// TODO: implement
+	}
+	void literalIntExprIter(LiteralIntExpr node, ref St st){
+		// TODO: implement
+	}
+	void literalFloatExprIter(LiteralFloatExpr node, ref St st){
+		// TODO: implement
+	}
+	void literalStringExprIter(LiteralStringExpr node, ref St st){
+		// TODO: implement
+	}
+	void literalCharExprIter(LiteralCharExpr node, ref St st){
+		// TODO: implement
+	}
+	void literalArrayExprIter(LiteralArrayExpr node, ref St st){
+		// TODO: implement
+	}
+	void autoExprIter(AutoExpr node, ref St st){
+		// TODO: implement
+	}
+	void thisExprIter(ThisExpr node, ref St st){
+		// TODO: implement
+	}
+	void intExprIter(IntExpr node, ref St st){
+		// TODO: implement
+	}
+	void uIntExprIter(UIntExpr node, ref St st){
+		// TODO: implement
+	}
+	void floatExprIter(FloatExpr node, ref St st){
+		// TODO: implement
+	}
+	void charExprIter(CharExpr node, ref St st){
+		// TODO: implement
+	}
+	void stringExprIter(StringExpr node, ref St st){
+		// TODO: implement
+	}
+	void boolExprIter(BoolExpr node, ref St st){
+		// TODO: implement
+	}
+	void opPostExprIter(OpPostExpr node, ref St st){
+		// TODO: implement
+	}
+	void opPostExprOverridableIter(OpPostExprOverridable node, ref St st){
+		// TODO: implement
+	}
+	void opPreExprIter(OpPreExpr node, ref St st){
+		// TODO: implement
+	}
+	void opPreExprOverridableIter(OpPreExprOverridable node, ref St st){
+		// TODO: implement
+	}
+	void opBinExprIter(OpBinExpr node, ref St st){
+		// TODO: implement
+	}
+	void opBinExprOverridableIter(OpBinExprOverridable node, ref St st){
+		// TODO: implement
+	}
+	void opCallExprIter(OpCallExpr node, ref St st){
+		// TODO: implement
+	}
+	void opIndexExprIter(OpIndexExpr node, ref St st){
+		// TODO: implement
+	}
+	void opAssignBinIter(OpAssignBin node, ref St st){
+		// TODO: implement
+	}
+	void opAssignRefBinIter(OpAssignRefBin node, ref St st){
+		// TODO: implement
+	}
+	void opRefPostIter(OpRefPost node, ref St st){
+		// TODO: implement
+	}
+	void opDotsPostIter(OpDotsPost node, ref St st){
+		// TODO: implement
+	}
+	void opIsPreIter(OpIsPre node, ref St st){
+		// TODO: implement
+	}
+	void opNotIsPreIter(OpNotIsPre node, ref St st){
+		// TODO: implement
+	}
+	void opConstPreIter(OpConstPre node, ref St st){
+		// TODO: implement
+	}
+	void opRefPreIter(OpRefPre node, ref St st){
+		// TODO: implement
+	}
+	void opTagPreIter(OpTagPre node, ref St st){
+		st.errs ~= errUnsup(node.pos, "`#` operator in expressions");
+	}
+	void opArrowBinIter(OpArrowBin node, ref St st){
+		// TODO: implement
+	}
+	void opCommaBinIter(OpCommaBin node, ref St st){
+		// TODO: implement
+	}
+	void opDotBinIter(OpDotBin node, ref St st){
+		// TODO: implement
+	}
+	void opColonBinIter(OpColonBin node, ref St st){
+		// TODO: implement
+	}
+	void opIsBinIter(OpIsBin node, ref St st){
+		// TODO: implement
+	}
+	void opNotIsBinIter(OpNotIsBin node, ref St st){
+		// TODO: implement
+	}
+	void opNotPostIter(OpNotPost node, ref St st){
+		// TODO: implement
+	}
+	void opQPostIter(OpQPost node, ref St st){
+		// TODO: implement
+	}
+	void opNotNotBinIter(OpNotNotBin node, ref St st){
+		// TODO: implement
+	}
+	void opQQBinIter(OpQQBin node, ref St st){
+		// TODO: implement
 	}
 }
 
