@@ -14,6 +14,10 @@ import alis.common,
 
 import meta;
 
+import std.algorithm,
+			 std.array,
+			 std.range;
+
 private struct St{
 	/// errors
 	SmErr[] errs;
@@ -35,10 +39,10 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 
 @ItFn @ITL(0){
 	void identExprIter(IdentExpr node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void blockExprIter(BlockExpr node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void intrinsicExprIter(IntrinsicExpr node, ref St st){
 		RIntrinsicExpr r = new RIntrinsicExpr;
@@ -100,74 +104,88 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	void thisExprIter(ThisExpr node, ref St st){
 		st.errs ~= errUnsup(node); // TODO: what to do with `this`
 	}
-	void intExprIter(IntExpr node, ref St st){
+	void intExprIter(IntExpr, ref St st){
 		RDTypeExpr r = new RDTypeExpr;
 		r.type = ADataType.ofInt;
 		st.res = r;
 	}
-	void uIntExprIter(UIntExpr node, ref St st){
+	void uIntExprIter(UIntExpr, ref St st){
 		RDTypeExpr r = new RDTypeExpr;
 		r.type = ADataType.ofUInt;
 		st.res = r;
 	}
-	void floatExprIter(FloatExpr node, ref St st){
+	void floatExprIter(FloatExpr, ref St st){
 		RDTypeExpr r = new RDTypeExpr;
 		r.type = ADataType.ofFloat;
 		st.res = r;
 	}
-	void charExprIter(CharExpr node, ref St st){
+	void charExprIter(CharExpr, ref St st){
 		RDTypeExpr r = new RDTypeExpr;
 		r.type = ADataType.ofChar(1);
 		st.res = r;
 	}
-	void stringExprIter(StringExpr node, ref St st){
+	void stringExprIter(StringExpr, ref St st){
 		RDTypeExpr r = new RDTypeExpr;
 		r.type = ADataType.ofString;
 		st.res = r;
 	}
-	void boolExprIter(BoolExpr node, ref St st){
+	void boolExprIter(BoolExpr, ref St st){
 		RDTypeExpr r = new RDTypeExpr;
 		r.type = ADataType.ofBool;
 		st.res = r;
 	}
 	void opPostExprOverridableIter(OpPostExprOverridable node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void opPreExprOverridableIter(OpPreExprOverridable node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void opBinExprOverridableIter(OpBinExprOverridable node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void opCallExprIter(OpCallExpr node, ref St st){
-		// TODO: implement
+		if (IntrinsicExpr intr = cast(IntrinsicExpr)node.callee){
+			RIntrinsicCallExpr r = new RIntrinsicCallExpr;
+			r.name = intr.name;
+			r.params = node.params
+				.map!(p => resolve(p, st.stabR, st.ctx, st.dep))
+				.tee!((SmErrsVal!RExpr p){
+						if (p.isErr)
+							st.errs ~= p.err;
+						})
+				.filter!(p => !p.isErr)
+				.map!(p => p.val).array;
+			st.res = r;
+			return;
+		}
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void opIndexExprIter(OpIndexExpr node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void opAssignBinIter(OpAssignBin node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void opAssignRefBinIter(OpAssignRefBin node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void opRefPostIter(OpRefPost node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void opDotsPostIter(OpDotsPost node, ref St st){
 		st.errs ~= errUnsup(node);
 	}
 	void opIsPreIter(OpIsPre node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void opNotIsPreIter(OpNotIsPre node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void opConstPreIter(OpConstPre node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void opRefPreIter(OpRefPre node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void opTagPreIter(OpTagPre node, ref St st){
 		st.errs ~= errUnsup(node.pos, "`#` operator in expressions");
@@ -179,28 +197,28 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 		st.errs ~= errUnxp(node.pos, "OpCommaBin should not have happened");
 	}
 	void opDotBinIter(OpDotBin node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void opColonBinIter(OpColonBin node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void opIsBinIter(OpIsBin node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void opNotIsBinIter(OpNotIsBin node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void opNotPostIter(OpNotPost node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void opQPostIter(OpQPost node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void opNotNotBinIter(OpNotNotBin node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void opQQBinIter(OpQQBin node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 }
 
