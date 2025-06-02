@@ -41,78 +41,99 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 		// TODO: implement
 	}
 	void intrinsicExprIter(IntrinsicExpr node, ref St st){
-		// TODO: implement
+		RIntrinsicExpr r = new RIntrinsicExpr;
+		r.name = node.name;
+		st.res = r;
 	}
+
 	void commaExprIter(CommaExpr node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void structAnonIter(StructAnon node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void unionAnonIter(UnionAnon node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void fnAnonExprIter(FnAnonExpr node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void structLiteralExprIter(StructLiteralExpr node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void boolLiteralExprIter(BoolLiteralExpr node, ref St st){
-		// TODO: implement
+		RLiteralExpr r = new RLiteralExpr;
+		r.type = ADataType.ofBool;
+		r.value = node.val.asBytes;
+		st.res = r;
 	}
 	void literalIntExprIter(LiteralIntExpr node, ref St st){
-		// TODO: implement
+		RLiteralExpr r = new RLiteralExpr;
+		r.type = ADataType.ofInt;
+		r.value = node.val.asBytes;
+		st.res = r;
 	}
 	void literalFloatExprIter(LiteralFloatExpr node, ref St st){
-		// TODO: implement
+		RLiteralExpr r = new RLiteralExpr;
+		r.type = ADataType.ofFloat;
+		r.value = node.val.asBytes;
+		st.res = r;
 	}
 	void literalStringExprIter(LiteralStringExpr node, ref St st){
-		// TODO: implement
+		RLiteralExpr r = new RLiteralExpr;
+		r.type = ADataType.ofString;
+		r.value = cast(ubyte[])(node.val.dup);
+		st.res = r;
 	}
 	void literalCharExprIter(LiteralCharExpr node, ref St st){
-		// TODO: implement
+		RLiteralExpr r = new RLiteralExpr;
+		r.type = ADataType.ofChar(8);
+		r.value = [cast(ubyte)node.val];
+		st.res = r;
 	}
 	void literalArrayExprIter(LiteralArrayExpr node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 	void autoExprIter(AutoExpr node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // what even is `auto` doing here
 	}
 	void thisExprIter(ThisExpr node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node); // TODO: what to do with `this`
 	}
 	void intExprIter(IntExpr node, ref St st){
-		// TODO: implement
+		RDTypeExpr r = new RDTypeExpr;
+		r.type = ADataType.ofInt;
+		st.res = r;
 	}
 	void uIntExprIter(UIntExpr node, ref St st){
-		// TODO: implement
+		RDTypeExpr r = new RDTypeExpr;
+		r.type = ADataType.ofUInt;
+		st.res = r;
 	}
 	void floatExprIter(FloatExpr node, ref St st){
-		// TODO: implement
+		RDTypeExpr r = new RDTypeExpr;
+		r.type = ADataType.ofFloat;
+		st.res = r;
 	}
 	void charExprIter(CharExpr node, ref St st){
-		// TODO: implement
+		RDTypeExpr r = new RDTypeExpr;
+		r.type = ADataType.ofChar(1);
+		st.res = r;
 	}
 	void stringExprIter(StringExpr node, ref St st){
-		// TODO: implement
+		RDTypeExpr r = new RDTypeExpr;
+		r.type = ADataType.ofString;
+		st.res = r;
 	}
 	void boolExprIter(BoolExpr node, ref St st){
-		// TODO: implement
-	}
-	void opPostExprIter(OpPostExpr node, ref St st){
-		// TODO: implement
+		RDTypeExpr r = new RDTypeExpr;
+		r.type = ADataType.ofBool;
+		st.res = r;
 	}
 	void opPostExprOverridableIter(OpPostExprOverridable node, ref St st){
 		// TODO: implement
 	}
-	void opPreExprIter(OpPreExpr node, ref St st){
-		// TODO: implement
-	}
 	void opPreExprOverridableIter(OpPreExprOverridable node, ref St st){
-		// TODO: implement
-	}
-	void opBinExprIter(OpBinExpr node, ref St st){
 		// TODO: implement
 	}
 	void opBinExprOverridableIter(OpBinExprOverridable node, ref St st){
@@ -134,7 +155,7 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 		// TODO: implement
 	}
 	void opDotsPostIter(OpDotsPost node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node);
 	}
 	void opIsPreIter(OpIsPre node, ref St st){
 		// TODO: implement
@@ -152,10 +173,10 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 		st.errs ~= errUnsup(node.pos, "`#` operator in expressions");
 	}
 	void opArrowBinIter(OpArrowBin node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnsup(node.pos, "vtable");
 	}
 	void opCommaBinIter(OpCommaBin node, ref St st){
-		// TODO: implement
+		st.errs ~= errUnxp(node.pos, "OpCommaBin should not have happened");
 	}
 	void opDotBinIter(OpDotBin node, ref St st){
 		// TODO: implement
@@ -202,5 +223,7 @@ package SmErrsVal!RExpr resolve(Expression expr, STab stabR, IdentU[] ctx,
 	It.exec(expr, st);
 	if (st.errs.length)
 		return SmErrsVal!RExpr(st.errs);
+	if (st.res is null)
+		return SmErrsVal!RExpr([errUnxp(expr.pos, "resolve expr -> null")]);
 	return SmErrsVal!RExpr(st.res);
 }
