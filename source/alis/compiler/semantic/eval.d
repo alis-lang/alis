@@ -7,15 +7,25 @@ import alis.common,
 			 alis.compiler.common,
 			 alis.compiler.semantic.common,
 			 alis.compiler.semantic.error,
+			 alis.compiler.semantic.types,
 			 alis.compiler.ast,
 			 alis.compiler.ast.iter,
-			 alis.compiler.rst;
+			 alis.compiler.ast.rst;
 
 import alis.compiler.semantic.expr : resolve;
 
 import meta;
 
-private alias It = ItL!(mixin(__MODULE__), 0);
+import std.algorithm,
+			 std.range,
+			 std.format;
+
+debug import std.stdio,
+			std.conv;
+
+private alias It = RtL!(mixin(__MODULE__), 0);
+
+pragma(msg, ItFnsOf!(mixin(__MODULE__)));
 
 struct St{
 	/// errors
@@ -31,8 +41,90 @@ struct St{
 }
 
 @ItFn @ITL(0) {
-	@ItFn void rIdentIter(RIdentExpr expr, ref St st){
-		st.errs ~= errUnsup(expr);
+	void literalIter(RLiteralExpr node, ref St st){
+		st.res = AValCT(node.type, node.value.dup);
+	}
+	void dataTypeIter(RDTypeExpr node, ref St st){
+		st.res = AValCT(node.type);
+	}
+
+	void intrExpr(RIntrinsicExpr node, ref St st){
+		switch (node.name){
+			case IntrN.NoInit:
+				st.res = AValCT(ADataType.ofNoInit); return;
+			case IntrN.NoInitVal:
+				st.res = AValCT(ADataType.ofNoInit, cast(ubyte[])null); return;
+			case IntrN.Debug:
+				debug{
+					st.res = AValCT(ADataType.ofBool, true.asBytes);
+				} else {
+					st.res = AValCT(ADataType.ofBool, false.asBytes);
+				}
+				return;
+			default:
+				st.errs ~= errUnsup(node.pos, node.name.format!"intrinsic $%s");
+		}
+	}
+
+	void intrCallExpr(RIntrinsicCallExpr node, ref St st){
+		switch (node.name){
+			case IntrN.Int, IntrN.UInt, IntrN.Float, IntrN.Char:
+				intrXBitType(node, st); break;
+			case IntrN.CTWrite:
+				intrCTWrite(node, st); break;
+			default:
+				st.errs ~= errUnsup(node.pos, node.name.format!"intrinsic call $%s");
+		}
+	}
+
+	void exprIter(RExpr node, ref St st){
+		st.errs ~= errUnsup(node);
+	}
+}
+
+private void intrXBitType(RIntrinsicCallExpr node, ref St st){
+	AValCT[] params;
+	params = node.params
+		.map!(p => eval(p, st.stabR, st.ctx))
+		.tee!((SmErrsVal!AValCT p){
+				if (p.isErr)
+					st.errs ~= p.err;
+				})
+		.filter!(p => !p.isErr)
+		.map!(p => p.val).array;
+	if (params.length != node.params.length)
+		return;
+	switch (node.name){
+		case IntrN.Int:
+			st.res = ADataType.ofInt(cast(ubyte)params[0].dataL.as!int).AValCT;
+			break;
+		case IntrN.UInt:
+			st.res = ADataType.ofUInt(cast(ubyte)params[0].dataL.as!int).AValCT;
+			break;
+		case IntrN.Float:
+			st.res = ADataType.ofFloat(cast(ubyte)params[0].dataL.as!int).AValCT;
+			break;
+		case IntrN.Char:
+			st.res = ADataType.ofChar(cast(ubyte)params[0].dataL.as!int).AValCT;
+			break;
+		default:
+			st.errs ~= errUnsup(node.pos, node.name.format!"intrinsic call $%s");
+	}
+}
+
+private void intrCTWrite(RIntrinsicCallExpr node, ref St st){
+	AValCT[] params;
+	params = node.params
+		.map!(p => eval(p, st.stabR, st.ctx))
+		.tee!((SmErrsVal!AValCT p){
+				if (p.isErr)
+					st.errs ~= p.err;
+				})
+		.filter!(p => !p.isErr)
+		.map!(p => p.val).array;
+	foreach (AValCT p; params){
+		import std.stdio : writefln;
+		writefln!"CTWRITE: %s"(p);
 	}
 }
 
