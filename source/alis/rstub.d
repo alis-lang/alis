@@ -6,7 +6,7 @@ module alis.rstub;
 import alis.common,
 			 alis.utils,
 			 alis.compiler.common,
-			 alis.compiler.rst;
+			 alis.compiler.ast.rst;
 
 /// Returns: hello world program
 package RModule rstub_helloWorld(){

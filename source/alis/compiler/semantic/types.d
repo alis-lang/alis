@@ -8,7 +8,7 @@ import alis.common,
 			 alis.compiler.semantic.common,
 			 alis.compiler.semantic.error,
 			 alis.compiler.ast,
-			 alis.compiler.rst;
+			 alis.compiler.ast.rst;
 
 debug import std.stdio;
 
@@ -39,11 +39,4 @@ package ADataType commonType(ADataType[] types){
 			return types[i];
 	}
 	return ADataType.ofNoInit;
-}
-
-/// finds data type of RExpr
-/// Returns: data type or SmErr[]
-package SmErrsVal!ADataType typeOf(RExpr expr, STab stab, IdentU[] ctx){
-	debug stderr.writefln!"STUB: typeOf returning type = int";
-	return SmErrsVal!ADataType(ADataType.ofInt);
 }

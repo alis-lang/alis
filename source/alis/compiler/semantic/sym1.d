@@ -21,9 +21,10 @@ import alis.common,
 			 alis.compiler.semantic.expr,
 			 alis.compiler.semantic.eval,
 			 alis.compiler.semantic.types,
+			 alis.compiler.semantic.typeofexpr,
 			 alis.compiler.ast,
 			 alis.compiler.ast.iter,
-			 alis.compiler.rst;
+			 alis.compiler.ast.rst;
 
 import meta;
 
@@ -137,7 +138,7 @@ private bool isRecDep(ASTNode node, ref St st){
 			return;
 		}
 		r.body = exprRes.val;
-		SmErrsVal!ADataType retRes = exprRes.val.typeOf(st.stabR, st.ctx);
+		SmErrsVal!ADataType retRes = r.body.typeOf(st.stabR, st.ctx);
 		if (retRes.isErr){
 			st.errs ~= exprRes.err;
 			return;

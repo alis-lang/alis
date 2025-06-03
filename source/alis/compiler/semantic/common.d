@@ -5,6 +5,7 @@ module alis.compiler.semantic.common;
 
 import alis.common,
 			 alis.compiler.ast,
+			 alis.compiler.ast.rst,
 			 meta;
 
 import std.algorithm,
@@ -35,6 +36,18 @@ package template ItL(alias M, size_t L){
 		}
 	}
 	alias ItL = ASTIter!(Filter!(HasAnyUDA!(ITL(L)), ItFnsOf!M));
+}
+
+/// RST Iterator, using ItFns from module `M`, that are tagged with `ITL(L)`
+package template RtL(alias M, size_t L){
+	// yes, I know Fns not used. go ahead, remove it, I dare you.
+	alias Fns = AliasSeq!();
+	static foreach (F; ItFnsOf!M){
+		static if (hasUDA!(F, ITL(L))){
+			Fns = AliasSeq!(Fns, F);
+		}
+	}
+	alias RtL = RSTIter!(Filter!(HasAnyUDA!(ITL(L)), ItFnsOf!M));
 }
 
 /// Semantic Analysis Context
@@ -74,7 +87,7 @@ public:
 		}
 		/// Returns: whether this is visible from a ctx
 		bool isVis(IdentU[] ctx) const pure {
-			if (ctx.isNoId)
+			if (ctx.isNoId || vis.isNoId)
 				return true;
 			if (ctx.length < vis.length)
 				return false;
