@@ -63,9 +63,11 @@ private template IsRel(T){
 		alias IsRel = IsRel!(ForeachType!T);
 	} else {
 		static if (isAssociativeArray!T){
-			static assert(false, "assoc_array not yet supported sadly");
+			pragma(msg, "assoc_array not yet supported sadly");
+			enum IsRel = false;
+		} else {
+			enum IsRel = is (T : ASTNode);
 		}
-		enum IsRel = is (T : ASTNode);
 	}
 }
 
@@ -140,7 +142,10 @@ package template ASTIter(N...) if (allSatisfy!(IsASTNode, N)){
 			//static foreach (C; LDC!N){
 			static foreach (C; LDC_all!N){ // HACK: LDC_all is not efficient for this.
 				if (auto sub = cast(C)node){
+					//debug stderr.writefln!"%s -> %s yes"(typeid(N).to!string, typeid(C).to!string);
 					return exec(sub, state);
+				} else {
+					//debug stderr.writefln!"%s -> %s no"(typeid(N).to!string, typeid(C).to!string);
 				}
 			}
 
