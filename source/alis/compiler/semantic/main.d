@@ -26,16 +26,15 @@ void main(){
 	string source;
 	while (!stdin.eof) source ~= stdin.readln;
 	StopWatch sw = StopWatch(AutoStart.yes);
-	CmpErrVal!Module node = source.tokenize.parse;
+	CmpErrVal!Module node = source.tokenize.parse("alis-main");
 	sw.stop;
 	stderr.writefln!"parsed stdin in: %d msecs"(sw.peek.total!"msecs");
 	sw.reset;
 	if (node.isErr){
-		JSONValue err;
-		err["_error"] = node.err.toString;
-		writeln(err.toPrettyString);
+		stderr.writefln!"Errors:\n%s"(node.err.toString);
 		exit(1);
 	}
+
 	sw.start;
 	node.val.ident = "alis-main";
 	SmErrsVal!S1R stabVal = node.val.stabOf;

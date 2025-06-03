@@ -277,8 +277,12 @@ public:
 }
 
 /// function paramter node
-public class FParam : DefNode{
+public class FParam : ASTNode{
 public:
+	/// attributes
+	AttrList attrs;
+	/// name
+	string name;
 	/// type, can be null
 	Expression type;
 	/// default value, can be null
@@ -387,8 +391,12 @@ public:
 }
 
 /// enum member
-public class EnumMember : DefNode{
+public class EnumMember : ASTNode{
 public:
+	/// attributes
+	AttrList attrs;
+	/// name
+	string name;
 	/// value. can be null
 	Expression value;
 
@@ -440,8 +448,12 @@ public:
 }
 
 /// abstract template parameter node
-public abstract class TParam : DefNode{
+public abstract class TParam : ASTNode{
 public:
+	/// attributes
+	AttrList attrs;
+	/// name
+	string name;
 	/// specialization
 	Expression[] specialization;
 
