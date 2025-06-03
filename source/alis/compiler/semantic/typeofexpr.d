@@ -23,7 +23,15 @@ private struct St{
 }
 
 @ItFn @ITL(0){
-	void iter(RIntrinsicCallExpr node, ref St st){
+	void iterLiteral(RLiteralExpr node, ref St st){
+		st.res = node.type;
+	}
+	void iterIntrCall(RIntrinsicCallExpr, ref St st){
+		debug stderr.writefln!"STUB: RIntrinsicCallExpr typeOf -> struct{}";
+		st.res = ADataType.init;
+	}
+	void iterExpr(RExpr node, ref St st){
+		st.errs ~= errUnsup(node);
 	}
 }
 

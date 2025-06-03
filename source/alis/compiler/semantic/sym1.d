@@ -138,7 +138,7 @@ private bool isRecDep(ASTNode node, ref St st){
 			return;
 		}
 		r.body = exprRes.val;
-		SmErrsVal!ADataType retRes = exprRes.val.typeOf(st.stabR, st.ctx);
+		SmErrsVal!ADataType retRes = r.body.typeOf(st.stabR, st.ctx);
 		if (retRes.isErr){
 			st.errs ~= exprRes.err;
 			return;
