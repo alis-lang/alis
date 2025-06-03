@@ -46,6 +46,7 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 	void intrinsicExprIter(IntrinsicExpr node, ref St st){
 		RIntrinsicExpr r = new RIntrinsicExpr;
+		r.pos = node.pos;
 		r.name = node.name;
 		st.res = r;
 	}
@@ -67,30 +68,35 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 	void boolLiteralExprIter(BoolLiteralExpr node, ref St st){
 		RLiteralExpr r = new RLiteralExpr;
+		r.pos = node.pos;
 		r.type = ADataType.ofBool;
 		r.value = node.val.asBytes;
 		st.res = r;
 	}
 	void literalIntExprIter(LiteralIntExpr node, ref St st){
 		RLiteralExpr r = new RLiteralExpr;
+		r.pos = node.pos;
 		r.type = ADataType.ofInt;
 		r.value = node.val.asBytes;
 		st.res = r;
 	}
 	void literalFloatExprIter(LiteralFloatExpr node, ref St st){
 		RLiteralExpr r = new RLiteralExpr;
+		r.pos = node.pos;
 		r.type = ADataType.ofFloat;
 		r.value = node.val.asBytes;
 		st.res = r;
 	}
 	void literalStringExprIter(LiteralStringExpr node, ref St st){
 		RLiteralExpr r = new RLiteralExpr;
+		r.pos = node.pos;
 		r.type = ADataType.ofString;
 		r.value = cast(ubyte[])(node.val.dup);
 		st.res = r;
 	}
 	void literalCharExprIter(LiteralCharExpr node, ref St st){
 		RLiteralExpr r = new RLiteralExpr;
+		r.pos = node.pos;
 		r.type = ADataType.ofChar(8);
 		r.value = [cast(ubyte)node.val];
 		st.res = r;
@@ -104,33 +110,39 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	void thisExprIter(ThisExpr node, ref St st){
 		st.errs ~= errUnsup(node); // TODO: what to do with `this`
 	}
-	void intExprIter(IntExpr, ref St st){
+	void intExprIter(IntExpr node, ref St st){
 		RDTypeExpr r = new RDTypeExpr;
+		r.pos = node.pos;
 		r.type = ADataType.ofInt;
 		st.res = r;
 	}
-	void uIntExprIter(UIntExpr, ref St st){
+	void uIntExprIter(UIntExpr node, ref St st){
 		RDTypeExpr r = new RDTypeExpr;
+		r.pos = node.pos;
 		r.type = ADataType.ofUInt;
 		st.res = r;
 	}
-	void floatExprIter(FloatExpr, ref St st){
+	void floatExprIter(FloatExpr node, ref St st){
 		RDTypeExpr r = new RDTypeExpr;
+		r.pos = node.pos;
 		r.type = ADataType.ofFloat;
 		st.res = r;
 	}
-	void charExprIter(CharExpr, ref St st){
+	void charExprIter(CharExpr node, ref St st){
 		RDTypeExpr r = new RDTypeExpr;
+		r.pos = node.pos;
 		r.type = ADataType.ofChar(1);
 		st.res = r;
 	}
-	void stringExprIter(StringExpr, ref St st){
+	void stringExprIter(StringExpr node, ref St st){
 		RDTypeExpr r = new RDTypeExpr;
+		r.pos = node.pos;
 		r.type = ADataType.ofString;
 		st.res = r;
 	}
-	void boolExprIter(BoolExpr, ref St st){
+	void boolExprIter(BoolExpr node, ref St st){
 		RDTypeExpr r = new RDTypeExpr;
+		r.pos = node.pos;
 		r.type = ADataType.ofBool;
 		st.res = r;
 	}
@@ -146,6 +158,7 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	void opCallExprIter(OpCallExpr node, ref St st){
 		if (IntrinsicExpr intr = cast(IntrinsicExpr)node.callee){
 			RIntrinsicCallExpr r = new RIntrinsicCallExpr;
+			r.pos = node.pos;
 			r.name = intr.name;
 			r.params = node.params
 				.map!(p => resolve(p, st.stabR, st.ctx, st.dep))
