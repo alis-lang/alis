@@ -698,7 +698,7 @@ public struct ADataType{
 	static ADataType ofString(size_t sizeOnStack = 0) pure {
 		ADataType str;
 		str.type = Type.Slice;
-		str.refT = [ADataType.ofChar(1)].ptr;
+		str.refT = [ADataType.ofChar(8)].ptr;
 		str.refT.isConst = true;
 		str.sizeOnStack = sizeOnStack;
 		return str; // $slice(const char)
@@ -751,7 +751,7 @@ public struct ADataType{
 			return ofString;
 		} else
 		static if (is (T == char[])){
-			return ofArray(ADataType.ofChar(1));
+			return ofArray(ADataType.ofChar(8));
 		} else
 		static if (isUnsigned!T) {
 			return ofUInt(T.sizeof * 8);

@@ -25,8 +25,6 @@ debug import std.stdio,
 
 private alias It = RtL!(mixin(__MODULE__), 0);
 
-pragma(msg, ItFnsOf!(mixin(__MODULE__)));
-
 struct St{
 	/// errors
 	SmErr[] errs;
