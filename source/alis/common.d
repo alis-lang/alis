@@ -808,7 +808,7 @@ public struct ADataType{
 			case Type.Slice:
 			case Type.Array:
 			case Type.Ref:
-				return refT == rhs.refT;
+				return *refT == *rhs.refT;
 			case Type.Fn:
 				if (retT != rhs.retT || paramT.length != rhs.paramT.length)
 					return false;
