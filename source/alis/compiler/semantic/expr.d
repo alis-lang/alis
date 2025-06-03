@@ -10,7 +10,7 @@ import alis.common,
 			 alis.compiler.semantic.sym0,
 			 alis.compiler.ast,
 			 alis.compiler.ast.iter,
-			 alis.compiler.rst;
+			 alis.compiler.ast.rst;
 
 import meta;
 

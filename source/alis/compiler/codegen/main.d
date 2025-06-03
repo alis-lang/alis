@@ -1,14 +1,14 @@
 module alis.compiler.codegen.main;
 import alis.compiler.common;
 import alis.common;
-import alis.compiler.rst;
+import alis.compiler.ast.rst;
 import std.stdio;
 import std.file;
 
 import std.array;
 import std.conv;
 import std.format;
-import std.algorithm; 
+import std.algorithm;
 
 const string testFolder = "tests/codegen/";
 
@@ -19,7 +19,7 @@ class BytecodeGenerator {
 
 
 	/// Generates bytecode of a statement
-	/// 
+	///
 	/// Params:
 	///   statement = A Resolved statement like `RIf`, `RFn`
 	/// Returns: Bytecode
@@ -38,12 +38,12 @@ class BytecodeGenerator {
 	/// 	statements = An array of statements to process.
 	private void generateStatementsBytecode(RStatement[] statements){
 		foreach (statement ; statements){
-			generateStatementBytecode(statement);				
+			generateStatementBytecode(statement);
 		}
 	}
 
 	/// Pushes an instruction.
-	/// 
+	///
 	/// Params:
 	/// instruction = The instruction to be added.
 	/// params = Additional parameters for the instruction (optional).
@@ -56,13 +56,13 @@ class BytecodeGenerator {
 	}
 
 
-	/// Determines the type of the statement and dispatches it 
+	/// Determines the type of the statement and dispatches it
 	/// to the appropriate bytecode generation function.
 	///
 	/// Params:
 	///    statement = The statement to generate bytecode for.
 	private void generateStatementBytecode(RStatement statement) {
-	
+
 		if (auto block = cast(RBlock)statement) {
 			generateBlockBytecode(block);
 		} else if (auto returnStmt = cast(RReturn)statement) {
@@ -84,7 +84,7 @@ class BytecodeGenerator {
 		}
 	}
 
-	/// Determines the type of the expression and dispatches it 
+	/// Determines the type of the expression and dispatches it
 	/// to the appropriate bytecode generation function.
 	///
 	/// Params:
@@ -121,7 +121,7 @@ class BytecodeGenerator {
 
 	private void generateBlockBytecode(RBlock block) {
 		writeln("Mock: generateBlockBytecode called") ;
-		
+
 	}
 
 	private void generateReturnBytecode(RReturn returnStmt) {
@@ -134,31 +134,31 @@ class BytecodeGenerator {
 
 		string endLabel = generateLabel("if_end");
 		string elseLabel = generateLabel("if_else");
-		
+
 		// Generate condition expression bytecode
 		generateExpressionBytecode(ifStmt.condition);
-		
+
 		// Jump to else branch if condition is false
 		if (ifStmt.onFalse) {
 			addInstruction("\tjmpC", "@" ~ [elseLabel]);
-			
+
 			// Generate true branch code
 			generateStatementBytecode(ifStmt.onTrue);
-			
+
 			// Skip over else branch
 			addInstruction("\tjmp", "@" ~[endLabel]);
-			
+
 			// Else branch
 			addInstruction(elseLabel ~ ":");
 			generateStatementBytecode(ifStmt.onFalse);
 		} else {
 			// If there's no else branch and condition is false, just skip the true branch
 			addInstruction("\tjmpC", "@" ~ [endLabel]);
-			
+
 			// Generate true branch code
 			generateStatementBytecode(ifStmt.onTrue);
 		}
-		
+
 		// End of if statement
 		addInstruction(endLabel ~ ":");
 	}
@@ -184,20 +184,20 @@ class BytecodeGenerator {
 	/// Params:
 	///    literalExpr = The literal expression to generate bytecode for.
 	private void generateLiteralBytecode(RLiteralExpr literalExpr) {
-		
+
 		size_t size = literalExpr.type.sizeOf;
 		addInstruction("\tpshN", [size.to!string]);
 
-		// Commenting out the part ahead which was pushing values. 
+		// Commenting out the part ahead which was pushing values.
 		// TODO: Probably delete this becuase we need to push space, not values
 
 		// ADataType.Type type = (literalExpr.type).type;
 
 		// if (type == ADataType.Type.IntX) {
 		// 	// Convert the byte array to the appropriate IntX type
-			
-		// 	instruction = "\tpshI" ~ to!string(size);			
-			
+
+		// 	instruction = "\tpshI" ~ to!string(size);
+
 		// 	if (size == 1) {
 		// 		byte value = as!byte(literalExpr.value);
 		// 		params = [to!string(value)];
@@ -216,7 +216,7 @@ class BytecodeGenerator {
 
 		// 	size_t size = literalExpr.type.x;
 		// 	instruction = "\tpshF" ~ to!string(size/8);
-			
+
 		// 	if (size == 4) {
 		// 		float value = as!float(literalExpr.value);
 		// 		params = [to!string(value)];
@@ -225,13 +225,13 @@ class BytecodeGenerator {
 		// 		params = [to!string(value)];
 		// 	}
 		// }
-		
+
 		// addInstruction(instruction, params);
 	}
 
-	
+
 	private void generateIdentExprBytecode(RIdentExpr identExpr){
-		
+
 	}
 
 	/// Generates bytecode for a block expression.
@@ -244,7 +244,7 @@ class BytecodeGenerator {
 	private void generateBlockExprBytecode(RBlockExpr blockExpr){
 		size_t returnAddressSize = blockExpr.type.sizeOf/8;
 		string instruction = returnAddressSize.format!"\tpshN %d";
-		addInstruction(instruction); // Instruction for Return Address 
+		addInstruction(instruction); // Instruction for Return Address
 		RBlock block = blockExpr.block;
 
 		foreach (localT ; block.localsT){
@@ -253,7 +253,7 @@ class BytecodeGenerator {
 		}
 
 		generateStatementsBytecode(block.statements);
-		
+
 	}
 
 	/// Generates bytecode for an intrinsic function call.
@@ -275,7 +275,7 @@ class BytecodeGenerator {
 			string numStr = name[4 .. $]; // Get the number after "cmpI"
 			int X;
 			try {
-				X = numStr.to!int/8; 
+				X = numStr.to!int/8;
 			} catch (ConvException) {
 				throw new FormatException("Invalid intrinsic name: " ~ name);
 			}
@@ -284,7 +284,7 @@ class BytecodeGenerator {
 			// Push space return address
 			addInstruction("\tpshN", [X.to!string]);
 
-			RExpr leftOperand = intrinsicCallExpr.params[0]; 
+			RExpr leftOperand = intrinsicCallExpr.params[0];
 			RExpr rightOperand = intrinsicCallExpr.params[1];
 			size_t offsetLeft, offsetRight;
 
@@ -308,27 +308,27 @@ class BytecodeGenerator {
 			addInstruction("\tgetR", [offsetRight.to!string]);
 			addInstruction("\tcmpI" ~ X.to!string);
 			addInstruction("\tret");
-		} 
+		}
 		else if (name.startsWith("isI")) {
 
 			// Extract the number X from isIX
 			string numStr = name[3 .. $]; // Get the number after "isI"
 			int X;
 			try {
-				X = numStr.to!int/8; 
+				X = numStr.to!int/8;
 			} catch (ConvException) {
 				throw new FormatException("Invalid intrinsic name: " ~ name);
 			}
-			
+
 			assert(intrinsicCallExpr.params.length == 2, name ~ " expects 2 parameters.");
 			addInstruction("\tjmp", ["@intrinsic_isI" ~ ((X*8).to!string)]);
 
 			// Left Param will be $cmp. Its output will be on top of the stack
 			RIntrinsicCallExpr cmpIntrinsic = cast(RIntrinsicCallExpr)intrinsicCallExpr.params[0];
 			generateIntrinsicCallExprBytecode(cmpIntrinsic);
-				
+
 			// Create return address space. Then Jump to $cmp
-			//addInstruction("\tjmp", ["@intrinsic_isI" ~ ((X*8).to!string)]); 
+			//addInstruction("\tjmp", ["@intrinsic_isI" ~ ((X*8).to!string)]);
 			addInstruction(intrinsicLabel ~ ":");  //  Generate $cmp bytecode first. Then $isI.
 			addInstruction("\tpshN", [X.to!string]); // Push space return address
 			addInstruction("\tjmp", ["@intrinsic_cmp" ~ ((X*8).to!string)]);
@@ -341,10 +341,10 @@ class BytecodeGenerator {
 			size_t offsetCmp, offsetVal;
 			// cmpLeftOperand can be an identifier or a LiteralExpr
 			if (auto lit = cast(RLiteralExpr) cmpLeftOperand) {
-				offsetCmp = lit.type.sizeOf/8 * size_t(1); 
+				offsetCmp = lit.type.sizeOf/8 * size_t(1);
 			} else {
 				// TODO: generate identifier bytecode
-				offsetCmp = 0; 
+				offsetCmp = 0;
 			}
 
 			offsetVal = expectedValue.type.sizeOf/8 * size_t(2);
@@ -353,7 +353,7 @@ class BytecodeGenerator {
 			addInstruction("\tgetR", [offsetVal.to!string]);
 			addInstruction("\tcmpI" ~ X.to!string);
 			addInstruction("\tret");
-		} 
+		}
 		else if (name.startsWith("incI")) {
 			// Extract the number X from incIX
 			string numStr = name[4 .. $]; // Get the number after "incI"
@@ -375,7 +375,7 @@ class BytecodeGenerator {
 			addInstruction("\tpshN", [X.to!string]);
 			addInstruction("\taddI" ~ X.to!string);
 			addInstruction("\tput", [offset.to!string]);
-		} 
+		}
 		else if (name == "writeln") {
 			assert(intrinsicCallExpr.params.length == 1, "writeln expects 1 parameter.");
 
@@ -384,7 +384,7 @@ class BytecodeGenerator {
 
 			addInstruction("\tgetR", [offset.to!string]);
 			addInstruction("writeS");
-		} 
+		}
 		else {
 			throw new Exception("Unsupported intrinsic: " ~ name);
 		}
@@ -394,7 +394,7 @@ class BytecodeGenerator {
 
 		// Generate the right-hand side expression first
 		// This will push the value onto the stack
-		generateExpressionBytecode(assignExpr.rhs);	
+		generateExpressionBytecode(assignExpr.rhs);
 
 		// Calculate the offset for storing the value
 		size_t offset = 0;
@@ -412,7 +412,7 @@ class BytecodeGenerator {
 			addInstruction("\tput", [offset.to!string]);
 		}
 
-		
+
 
 		else if (auto memberGetExpr = cast(RMemberGetExpr)assignExpr.lhs) {
 			// TODO
@@ -445,7 +445,7 @@ void printBytecode(string[][] bytecodeInstructions) {
 		}
 	}
 	writeln("------------------");
-	
+
 }
 
 void printBytecodeToFile(string filename, string[][] bytecodeInstructions) {
@@ -467,9 +467,9 @@ void printBytecodeToFile(string filename, string[][] bytecodeInstructions) {
 
 }
 
-// Tesing conversion of literals to bytes and then back to values 
+// Tesing conversion of literals to bytes and then back to values
 unittest{
-	
+
 	auto generator = new BytecodeGenerator;
 
 	// Integer literal
@@ -517,7 +517,7 @@ unittest{
 
 	RReturn floatReturnStmt = new RReturn;
 	floatReturnStmt.val = floatLiteral;
-	
+
 	auto intBytecode = generator.generateBytecode(intReturnStmt);
 	printBytecodeToFile(testFolder ~ "generated_int_code.txt", intBytecode);
 
@@ -556,25 +556,25 @@ unittest {
 	// Test for 8-byte long literal
 	auto longLiteral = new RLiteralExpr;
 	longLiteral.type = ADataType.ofInt(8);
-	longLiteral.value = asBytes!long(123456789L);	
+	longLiteral.value = asBytes!long(123456789L);
 	generator.generateLiteralBytecode(longLiteral);
 
 	// Test for 32-bit float literal
 	auto floatLiteral = new RLiteralExpr;
 	floatLiteral.type = ADataType.ofFloat(4);
-	floatLiteral.value = asBytes!float(3.14f);	
+	floatLiteral.value = asBytes!float(3.14f);
 	generator.generateLiteralBytecode(floatLiteral);
 
 	// // Test for 64-bit double literal
 	auto doubleLiteral = new RLiteralExpr;
 	doubleLiteral.type = ADataType.ofInt(8);
-	doubleLiteral.value = asBytes!double(2.717);	
+	doubleLiteral.value = asBytes!double(2.717);
 	generator.generateLiteralBytecode(doubleLiteral);
 
 	printBytecodeToFile(testFolder ~  "literal_code.txt", generator.bytecodeInstructions);
 	//printBytecode(generator.bytecodeInstructions);
 
-} 
+}
 
 // Testing Function Bytecode Generator
 unittest{
@@ -722,5 +722,3 @@ version (codegen) {
 		writeln("Testing Bytecode Generator...");
 	}
 }
-
-

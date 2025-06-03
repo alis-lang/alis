@@ -8,7 +8,7 @@ import alis.common,
 			 alis.compiler.semantic.common,
 			 alis.compiler.semantic.error,
 			 alis.compiler.ast,
-			 alis.compiler.rst;
+			 alis.compiler.ast.rst;
 
 debug import std.stdio;
 

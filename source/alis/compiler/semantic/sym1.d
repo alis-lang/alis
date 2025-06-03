@@ -24,7 +24,7 @@ import alis.common,
 			 alis.compiler.semantic.typeofexpr,
 			 alis.compiler.ast,
 			 alis.compiler.ast.iter,
-			 alis.compiler.rst;
+			 alis.compiler.ast.rst;
 
 import meta;
 

@@ -16,7 +16,7 @@ import std.string,
 
 import alis.compiler.common : ASTNode;
 
-public import alis.compiler.rst : RExpr;
+public import alis.compiler.ast.rst : RExpr;
 
 debug import std.stdio;
 

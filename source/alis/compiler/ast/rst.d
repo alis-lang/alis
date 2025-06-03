@@ -1,7 +1,7 @@
 /++
 Resolved AST nodes
 +/
-module alis.compiler.rst;
+module alis.compiler.ast.rst;
 
 import alis.common,
 			 alis.compiler.common,
@@ -12,6 +12,23 @@ import std.json,
 			 std.range,
 			 std.array,
 			 std.algorithm;
+
+import std.meta;
+
+public alias RSTIter(Fns...) =
+	Instantiate!(alis.compiler.ast.iter.ASTIter!RSTNodes, Fns);
+
+private template GetAll(){
+	alias GetAll = AliasSeq!();
+	static foreach (string name; __traits(allMembers, mixin(__MODULE__))){
+		static if (is (__traits(getMember, mixin(__MODULE__), name) : RStatement)){
+			GetAll = AliasSeq!(GetAll, __traits(getMember, mixin(__MODULE__), name));
+		}
+	}
+}
+
+/// Sequence of all Nodes in this module that are children of RStatement
+public alias RSTNodes = GetAll!();
 
 /// Resolved Module
 public class RModule : ASTNode{
