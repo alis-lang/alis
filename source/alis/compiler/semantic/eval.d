@@ -136,6 +136,7 @@ private void intrCTWrite(RIntrinsicCallExpr node, ref St st){
 		}
 		writefln!"CTWRITE: %s"(s);
 	}
+	st.res = ADataType.ofNoInit.AValCT;
 }
 
 /// Evaluates an `expr`. Resulting AVAlCT can be any of 3 `AValCT.Type`,
