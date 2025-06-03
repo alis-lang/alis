@@ -131,7 +131,7 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	void charExprIter(CharExpr node, ref St st){
 		RDTypeExpr r = new RDTypeExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofChar(1);
+		r.type = ADataType.ofChar(8);
 		st.res = r;
 	}
 	void stringExprIter(StringExpr node, ref St st){
