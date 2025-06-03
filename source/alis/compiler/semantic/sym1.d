@@ -21,6 +21,7 @@ import alis.common,
 			 alis.compiler.semantic.expr,
 			 alis.compiler.semantic.eval,
 			 alis.compiler.semantic.types,
+			 alis.compiler.semantic.typeofexpr,
 			 alis.compiler.ast,
 			 alis.compiler.ast.iter,
 			 alis.compiler.rst;
