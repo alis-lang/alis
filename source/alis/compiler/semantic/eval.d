@@ -124,7 +124,17 @@ private void intrCTWrite(RIntrinsicCallExpr node, ref St st){
 		.map!(p => p.val).array;
 	foreach (AValCT p; params){
 		import std.stdio : writefln;
-		writefln!"CTWRITE: %s"(p);
+		string s;
+		if (p.typeL == ADataType.ofString){
+			s = cast(immutable char[])p.dataL;
+		} else
+		if (p.typeL == ADataType.ofInt){
+			s = p.dataL.as!int.to!string;
+		} else {
+			st.errs ~= errUnsup(node.params[0].pos, "$ctWrite on non-string non-int");
+			return;
+		}
+		writefln!"CTWRITE: %s"(s);
 	}
 }
 
