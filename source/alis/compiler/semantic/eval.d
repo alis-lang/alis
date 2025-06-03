@@ -45,46 +45,50 @@ struct St{
 /// - `ctx` - Context where the `expr` occurs
 /// Returns: AValCT, or SmErr[]
 package SmErrsVal!AValCT eval(RExpr expr, STab stabR, IdentU[] ctx){
-	debug{
-		import std.stdio;
-		stderr.writefln!"STUB: eval(RExpr) going to return int = 5";
-		return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 5.asBytes));
-	}
 	St st;
 	st.stabR = stabR;
 	st.stab = stabR.findSt(ctx, ctx);
 	st.ctx = ctx.dup;
 	It.exec(expr, st);
-	if (st.errs.length)
+	if (st.errs.length){
+		debug{
+			import std.stdio;
+			stderr.writefln!"STUB: eval(RExpr) errored %s, returning 5.int"(st.errs);
+			return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 5.asBytes));
+		}
 		return SmErrsVal!AValCT(st.errs);
+	}
 	return SmErrsVal!AValCT(st.res);
 }
 
 /// ditto
 package SmErrsVal!AValCT eval(Expression expr, STab stab, IdentU[] ctx,
 		void[0][ASymbol*] dep, AValCT[] params = null){
-	debug{
-		import std.stdio;
-		stderr.writefln!"STUB: eval(Expression) going to return int = 5";
-		return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 5.asBytes));
-	}
 	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, dep, params);
-	if (resolved.isErr)
+	if (resolved.isErr){
+		debug{
+			import std.stdio;
+			stderr.writefln!"STUB: eval(Expression) errored %s, returning 5.int"(
+					resolved.err);
+			return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 5.asBytes));
+		}
 		return SmErrsVal!AValCT(resolved.err);
+	}
 	return eval(resolved.val, stab, ctx);
 }
 
 /// Evaluates an RExpr expecting a value. See `eval`
 /// Returns: AValCT with Type.Literal, or SmErr[]
 package SmErrsVal!AValCT eval4Val(RExpr expr, STab stab, IdentU[] ctx){
-	debug{
-		import std.stdio;
-		stderr.writefln!"STUB: eval4Val going to return int = 5";
-		return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 5.asBytes));
-	}
 	SmErrsVal!AValCT ret = eval(expr, stab, ctx);
-	if (ret.isErr)
+	if (ret.isErr){
+		debug{
+			import std.stdio;
+			stderr.writefln!"STUB: eval4Val errored %s, returning 5.int"(ret.err);
+			return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 5.asBytes));
+		}
 		return ret;
+	}
 	if (ret.val.type != AValCT.Type.Literal)
 		return SmErrsVal!AValCT([errExprValExpected(expr)]);
 	return ret;
@@ -93,28 +97,31 @@ package SmErrsVal!AValCT eval4Val(RExpr expr, STab stab, IdentU[] ctx){
 /// ditto
 package SmErrsVal!AValCT eval4Val(Expression expr, STab stab, IdentU[] ctx,
 		void[0][ASymbol*] dep, AValCT[] params = null){
-	debug{
-		import std.stdio;
-		stderr.writefln!"STUB: eval4Val going to return int = 5";
-		return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 5.asBytes));
-	}
 	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, dep, params);
-	if (resolved.isErr)
+	if (resolved.isErr){
+		debug{
+			import std.stdio;
+			stderr.writefln!"STUB: eval4Val errored %s, returning 5.int"(
+					resolved.err);
+			return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 5.asBytes));
+		}
 		return SmErrsVal!AValCT(resolved.err);
+	}
 	return eval4Val(resolved.val, stab, ctx);
 }
 
 /// Evaluates an RExpr expecting a type. See `eval`
 /// Returns: ADataType or SmErr[]
 package SmErrsVal!ADataType eval4Type(RExpr expr, STab stab, IdentU[] ctx){
-	debug{
-		import std.stdio;
-		stderr.writefln!"STUB: eval4Type going to return $int(64)";
-		return SmErrsVal!ADataType(ADataType.ofInt);
-	}
 	SmErrsVal!AValCT ret = eval(expr, stab, ctx);
-	if (ret.isErr)
+	if (ret.isErr){
+		debug{
+			import std.stdio;
+			stderr.writefln!"STUB: eval4Type errored %s, returning $int(64)"(ret.err);
+			return SmErrsVal!ADataType(ADataType.ofInt);
+		}
 		return SmErrsVal!ADataType(ret.err);
+	}
 	if (ret.val.type != AValCT.Type.Type)
 		return SmErrsVal!ADataType([errExprTypeExpected(expr)]);
 	return SmErrsVal!ADataType(ret.val.typeT);
@@ -123,14 +130,16 @@ package SmErrsVal!ADataType eval4Type(RExpr expr, STab stab, IdentU[] ctx){
 /// ditto
 package SmErrsVal!ADataType eval4Type(Expression expr, STab stab, IdentU[] ctx,
 		void[0][ASymbol*] dep, AValCT[] params = null){
-	debug{
-		import std.stdio;
-		stderr.writefln!"STUB: eval4Type going to return $int(64)";
-		return SmErrsVal!ADataType(ADataType.ofInt);
-	}
 	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, dep, params);
-	if (resolved.isErr)
+	if (resolved.isErr){
+		debug{
+			import std.stdio;
+			stderr.writefln!"STUB: eval4Type errored %s, returning $int(64)"(
+					resolved.err);
+			return SmErrsVal!ADataType(ADataType.ofInt);
+		}
 		return SmErrsVal!ADataType(resolved.err);
+	}
 	return eval4Type(resolved.val, stab, ctx);
 }
 
