@@ -4,12 +4,14 @@ Common compiler components
 module alis.compiler.common;
 
 import std.conv,
+			 std.json,
 			 std.format;
 
 /// parent to all nodes
 public abstract class ASTNode{
-protected:
-	import std.json : JSONValue;
+public:
+	/// location in source code
+	Location pos;
 	/// returns: JSON representation
 	JSONValue jsonOf() const pure {
 		JSONValue ret;
@@ -18,22 +20,75 @@ protected:
 		ret["_name"] = "ASTNode";
 		return ret;
 	}
-public:
-	/// location in source code
-	Location pos;
-	/// returns: JSON representation
-	JSONValue toJson() const pure {
-		return this.jsonOf;
+
+	override string toString() const {
+		return jsonOf.toPrettyString;
 	}
 }
 
 /// Whether a class is inherited from `ASTNode`
 public enum IsASTNode(T) = is (T : ASTNode);
 
+/// Intrinsic Names (excluding leading `$`)
+public enum IntrN : string{
+	// types
+	Type = "type",
+	NoInit = "noinit",
+	NoInitVal = "noinitval",
+	Int = "int",
+	UInt = "uint",
+	Float = "float",
+	Char = "char",
+	Slice = "slice",
+	Array = "array",
+	Vt = "vt",
+	IsType = "isType",
+	TypeOf = "typeOf",
+
+	// ararys & sequences
+	ArrayLen = "arrLen",
+	ArrayInd = "arrInd",
+	SeqLen = "seqLen",
+	SeqInd = "seqInd",
+
+	// unions & aggregates
+	UnionIs = "unionIs",
+
+	// attributes
+	AttrsOf = "attrsOf",
+	ByAttrs = "byAttrs",
+
+	// misc
+	Debug = "debug",
+	StackTrace = "stackTrace",
+	Err = "err",
+
+	// printing
+	RTWrite = "rtWrite",
+	CTWrite = "ctWrite",
+
+	// arithmetic operations
+	ArithNeg = "arithNeg",
+	ArithBinNot = "arithBinNot",
+	ArithBinOr = "arithBinOr",
+	ArithBinAnd = "arithBinAnd",
+	ArithBinXor = "arithBinXor",
+	ArithAdd = "arithAdd",
+	ArithSub = "arithSub",
+	ArithMul = "arithMul",
+	ArithDiv = "arithDiv",
+	ArithMod = "arithMod",
+	ArithLShift = "arithLShift",
+	ArithSShift = "arithSShift",
+
+	// casting
+	Cast = "cast"
+}
+
 /// Visibility specifier
 /// first rightmost bit -> 1 if can read
 /// second rightmost bit -> 1 if can write
-enum Visibility : ubyte{
+public enum Visibility : ubyte{
 	Default = 0,
 	IPub = 1,
 	Pub = 2,
@@ -43,6 +98,9 @@ enum Visibility : ubyte{
 public struct Location{
 	size_t line;
 	size_t col;
+	string toString() const pure {
+		return format!"%d,%d"(line, col);
+	}
 }
 
 /// A possibly erroneous value.

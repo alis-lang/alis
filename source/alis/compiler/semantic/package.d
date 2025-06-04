@@ -4,44 +4,34 @@ Semantic Analysis Package
 module alis.compiler.semantic;
 
 import alis.common,
-			 alis.compiler.ast;
+			 alis.compiler.common,
+			 alis.compiler.semantic.common,
+			 alis.compiler.semantic.error,
+			 alis.compiler.semantic.eval,
+			 alis.compiler.semantic.expr,
+			 alis.compiler.semantic.sym0,
+			 alis.compiler.semantic.sym1,
+			 alis.compiler.semantic.types;
 
-/// Alis Template Resolution Node. TODO: move this to semantic package
-public struct ATResN{
-private:
-	ATResN* _leaf;
-	ATResN* _next;
-	ATResN* _prev;
+/// Builds symbol table for ASTNode.
+/// Returns: Symbol Table, mapping of AFn.uid to RFn, and test expressions, or
+/// SmErr[]
+public SmErrsVal!S1R stabOf(ASTNode node, STab stabR = null,
+		IdentU[] ctx = null){
+	SmErrsVal!S0R s0Res = node.stab0Of(stabR, ctx);
+	if (s0Res.isErr)
+		return SmErrsVal!S1R(s0Res.err);
+	if (stabR is null)
+		stabR = s0Res.val.stab;
+	return node.stab1Of(stabR, s0Res.val.sMap, null, ctx);
+}
 
-public:
-	/// what is being resolved
-	Ident* subject;
-	/// result from resolution
-	ASymbol sym;
-
-	/// previous resolution, if any
-	@property ATResN* prev() const pure {
-		return cast(ATResN*)_prev;
-	}
-	/// next resolution, if any
-	@property ATResN* next() const pure {
-		return cast(ATResN*)_next;
-	}
-	/// Returns: most resolved Resolution. will be `this` if `next is null`
-	@property ATResN* leaf() pure {
-		if (_leaf is null){
-			if (_next is null)
-				return _leaf = &this;
-			return _leaf = next.leaf;
-		}
-		if (_leaf.next){
-			_leaf._leaf = null;
-			return _leaf = _leaf.leaf;
-		}
-		return _leaf;
-	}
-	/// pushes a new resolution at end of this list
-	void push(ATResN* r) pure {
-		leaf._next = r;
-	}
+/// Fully converts an ASymbol. Intended to be called in middle of `stabOf`, to
+/// build an ASymbol out-of-normal-order.
+/// Returns: SmErr[], which will be zero length or null if success
+public SmErr[] symDo(ASymbol* sym, STab stabR, void[0][ASymbol*] dep){
+	SmErrsVal!S1R ret = alis.compiler.semantic.sym1.symDo(sym, stabR, dep);
+	if (ret.isErr)
+		return ret.err;
+	return null;
 }

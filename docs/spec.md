@@ -2121,3 +2121,7 @@ required:
 
 - `arithLShift(X, Y)` - returns `X << Y`
 - `arithRShift(X, Y)` - returns `X >> Y`
+
+## Type Casting
+
+- `cast(X, T)` - casts `X` to type `T`. Works only for primitives.

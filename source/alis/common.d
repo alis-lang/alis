@@ -3,20 +3,33 @@ Alis Common Data Types
 +/
 module alis.common;
 
+import alis.utils;
+
 import std.string,
 			 std.traits,
 			 std.range,
+			 std.conv,
 			 std.format,
 			 std.typecons,
-			 std.algorithm;
+			 std.algorithm,
+			 std.digest.crc;
+
+import alis.compiler.common : ASTNode;
+
+public import alis.compiler.ast.rst : RExpr;
+
+debug import std.stdio;
+
+public import alis.compiler.common : Visibility; // TODO move it here
 
 /// an Alis CompileTime Value
 public struct AValCT{
 	/// possible types
 	enum Type{
 		Literal, /// some Literal value
-		Symbol, /// an Alias to a symbol
+		Symbol, /// an alias to a symbol
 		Type, /// a Data Type
+		Expr, /// an alias to an RExpr
 	}
 	/// currently stored type
 	Type type = Type.Type;
@@ -25,8 +38,9 @@ public struct AValCT{
 			ubyte[] dataL; /// data for `Literal`
 			ADataType typeL; /// data type for `Literal`
 		}
-		ASymbol symS; /// symbol for `Symbol`
+		ASymbol* symS; /// symbol for `Symbol`
 		ADataType typeT; /// data type for `Type`
+		RExpr expr; /// expr in case of `Expr`
 	}
 
 	string toString() const pure {
@@ -37,8 +51,38 @@ public struct AValCT{
 				return symS.toString;
 			case Type.Type:
 				return typeT.toString;
+			case Type.Expr:
+				return expr.toString;
 		}
 		return null;
+	}
+
+	bool opEquals()(const auto ref AValCT rhs) const pure {
+		final switch (type){
+			case Type.Literal:
+				return typeL == rhs.typeL && dataL == rhs.dataL;
+			case Type.Symbol:
+				return symS == rhs.symS;
+			case Type.Type:
+				return typeT == rhs.typeT;
+			case Type.Expr:
+				return expr.toString == rhs.expr.toString; // HACK
+		}
+		assert(false);
+	}
+
+	size_t toHash() const {
+		final switch (type){
+			case Type.Literal:
+				return tuple(Type.Literal, dataL, typeL).toHash;
+			case Type.Symbol:
+				return tuple(Type.Symbol, symS).toHash;
+			case Type.Type:
+				return tuple(Type.Type, typeT).toHash;
+			case Type.Expr:
+				return tuple(Type.Expr, expr.toString).toHash;
+		}
+		assert(false);
 	}
 
 	/// constructor
@@ -48,7 +92,7 @@ public struct AValCT{
 		this.typeL = type;
 	}
 	/// ditto
-	this (ASymbol sym){
+	this (ASymbol* sym){
 		this.type = Type.Symbol;
 		this.symS = sym;
 	}
@@ -57,66 +101,318 @@ public struct AValCT{
 		this.type = Type.Type;
 		this.typeT = type;
 	}
+	/// ditto
+	this (RExpr expr){
+		this.type = Type.Expr;
+		this.expr = expr;
+	}
 }
 
-/// an identifier node
-public struct Ident{
-	/// the identifier
-	string ident;
+/// identifier node unit
+public struct IdentU{
+public:
+	/// identifier
+	string ident = "_";
 	/// parameters, if any
 	AValCT[] params;
-	/// next Ident, if any, otherwise `null`
-	Ident* next;
-	/// Returns: string representation
-	@property string toString() const pure {
-		string ret = ident;
+	/// constructor
+	this (string ident, AValCT[] params = null) pure {
+		this.ident = ident;
+		this.params = params.dup;
+	}
+	string toString() const pure {
 		if (params)
-			ret = format!"%s(%s)"(ident, params.map!(p => p.toString).join(","));
-		if (next)
-			return format!"%s.%s"(ret, next.toString);
+			return format!"%s(%s)"(ident,
+					params.map!(p => p.toString).join(","));
+		return ident;
+	}
+	//bool opEquals(const IdentU rhs) const pure {
+	bool opEquals()(auto ref const IdentU rhs) const pure {
+		if (ident != rhs.ident || params.length != rhs.params.length)
+			return false;
+		foreach (i, param; params){
+			if (param != rhs.params[i])
+				return false;
+		}
+		return true;
+	}
+	size_t toHash() const {
+		return tuple(ident, params).toHash;
+	}
+}
+
+/// Whether an IdentU[] is to [IdentU.init]
+public bool isNoId()(auto ref const IdentU[] ident){
+	return ident.length == 1 && ident[0] == IdentU.init;
+}
+
+/// Returns: IdentU[] as a human readable string
+public string toString()(const auto ref IdentU[] id) pure {
+	return id.map!(i => i.toString).join(".");
+}
+
+/// complete identifier
+/*public final class Ident{
+public:
+	/// identifier
+	IdentU ident;
+	/// previous, if any, otherwise `null`
+	Ident prev;
+	/// constructor
+	this (string ident, AValCT[] params, Ident prev = null){
+		this.ident = IdentU(ident, params);
+		this.prev = prev;
+	}
+	/// ditto
+	this (string ident, Ident prev = null){
+		this.ident = ident.IdentU;
+		this.prev = prev;
+	}
+	/// ditto
+	this (IdentU ident, Ident prev = null){
+		this.ident = ident;
+		this.prev = prev;
+	}
+	/// Returns: string representation
+	override string toString() const pure {
+		if (prev)
+			return format!"%s.%s"(prev.toString, ident.toString);
+		return ident.toString;
+	}
+	bool opEquals()(const Ident rhs) const pure {
+		return this is rhs || toString == rhs.toString;
+	}
+
+	/// Returns: IdentU[] representation
+	IdentU[] array() pure {
+		// count length
+		size_t len;
+		Ident c = this;
+		while (c !is null)
+			len++, c = c.prev;
+		IdentU[] ret = new IdentU[len];
+		c = this;
+		while (len)
+			ret[--len] = c.ident, c = c.prev;
 		return ret;
+	}
+}*/
+///
+/*unittest{
+	Ident id = new Ident("foo".IdentU, new Ident("main".IdentU));
+	assert(id.array.map!(e => e.toString).array == ["main", "foo"]);
+}*/
+
+/// a reference to a symbol (use STab to lookup)
+public struct ASymRef{
+public:
+	/// identifier for symbol
+	IdentU[] ident;
+	alias ident this;
+	string toString() const pure {
+		return ident.to!string;
 	}
 }
 
 /// a symbol
 public struct ASymbol{
-public:
-	/// identifier
-	string ident;
+	/// Whether this is complete
+	bool isComplete = false;
+	/// corresponding ASTNode (can be null)
+	ASTNode ast;
+	/// Returns: whether this is a callable (template or function)
+	@property bool isCallable() const pure {
+		final switch (type){
+			case Type.Struct:
+			case Type.Union:
+			case Type.Enum:
+			case Type.Var:
+			case Type.Alias:
+			case Type.Import:
+			case Type.EnumConst:
+			case Type.UTest:
+				return false;
+			case Type.Template:
+			case Type.Fn:
+				return true;
+		}
+	}
+
+	/// Returns: identifier, `_` if anonymous
+	@property inout(IdentU[]) ident() pure inout {
+		final switch (type){
+			case Type.Struct:
+				return structS.ident;
+			case Type.Union:
+				return unionS.ident;
+			case Type.Enum:
+				return enumS.ident;
+			case Type.EnumConst:
+				return enumCS.ident;
+			case Type.Fn:
+				return fnS.ident;
+			case Type.Var:
+				return varS.ident;
+			case Type.Alias:
+				return aliasS.ident;
+			case Type.Import:
+				return importS.ident;
+			case Type.Template:
+				return templateS.ident;
+			case Type.UTest:
+				return utestS.ident;
+		}
+		assert(false);
+	}
+
+	/// Returns: Visibility
+	@property Visibility vis() pure {
+		final switch (type){
+			case Type.Struct:
+				return structS.vis;
+			case Type.Union:
+				return unionS.vis;
+			case Type.Enum:
+				return enumS.vis;
+			case Type.EnumConst:
+				return enumCS.vis;
+			case Type.Fn:
+				return fnS.vis;
+			case Type.Var:
+				return varS.vis;
+			case Type.Alias:
+				return aliasS.vis;
+			case Type.Import:
+				return importS.vis;
+			case Type.Template:
+				return templateS.vis;
+			case Type.UTest:
+				return utestS.vis;
+		}
+		assert(false);
+	}
+
 	/// possible Symbol types
 	enum Type{
 		Struct,
 		Union,
 		Enum,
-		EnumMember,
 		EnumConst,
 		Fn,
 		Var,
 		Alias,
 		Import,
 		Template,
+		UTest,
 	}
 	/// type of this symbol
 	Type type;
+
 	union{
 		AStruct structS; /// struct for `Type.Struct`
 		AUnion unionS; /// union for `Type.Union`
-		struct{
-			/// enum for `Type.Enum`, or `Type.EnumMember`
-			AEnum enumS;
-			/// enum member name for `Type.EnumMember`
-			string enumMember;
-		}
+		AEnum enumS; /// enum for `Type.Enum`, or `Type.EnumMember`
 		AEnumConst enumCS; /// enum for `Type.EnumConst`
 		AFn fnS; /// function for `Type.Fn`
 		AVar varS; /// variable for `Type.Var`
 		AAlias aliasS; /// alias for `Type.Alias`
 		AImport importS; /// import for `Type.Import`
-		ATemplate templateS;
+		ATemplate templateS; /// template for `Type.Template`
+		AUTest utestS; /// utest for `Type.UTest`
 	}
+
 	/// Returns: string representation, equivalent to `ASymbol.ident.toString`
 	string toString() const pure {
-		return ident;
+		string ret;
+		final switch (type){
+			case Type.Struct:
+				ret = structS.toString; break;
+			case Type.Union:
+				ret = unionS.toString; break;
+			case Type.Enum:
+				ret = enumS.toString; break;
+			case Type.EnumConst:
+				ret = enumCS.toString; break;
+			case Type.Fn:
+				ret = fnS.toString; break;
+			case Type.Var:
+				ret = varS.toString; break;
+			case Type.Alias:
+				ret = aliasS.toString; break;
+			case Type.Import:
+				ret = importS.toString; break;
+			case Type.Template:
+				ret = templateS.toString; break;
+			case Type.UTest:
+				ret = utestS.toString; break;
+		}
+		if (!isComplete)
+			ret = '#' ~ ret;
+		return ret;
+	}
+
+	bool opEquals()(auto ref const AStruct structS) const {
+		return this.type == Type.Struct && this.structS == structS;
+	}
+	bool opEquals()(auto ref const AUnion unionS) const {
+		return this.type == Type.Union && this.unionS == unionS;
+	}
+	bool opEquals()(auto ref const AEnum enumS) const {
+		return (this.type == Type.Enum || this.type == Type.EnumMember) &&
+			this.enumS == enumS;
+	}
+	bool opEquals()(auto ref const AEnumMember enumS) const {
+		return (this.type == Type.Enum || this.type == Type.EnumMember) &&
+			this.enumS == enumS;
+	}
+	bool opEquals()(auto ref const AEnumConst enumCS) const {
+		return this.type == Type.EnumConst && this.enumCS == enumCS;
+	}
+	bool opEquals()(auto ref const AFn fnS) const {
+		return this.type == Type.Fn && this.fnS == fnS;
+	}
+	bool opEquals()(auto ref const AVar varS) const {
+		return this.type == Type.Var && this.varS == varS;
+	}
+	bool opEquals()(auto ref const AAlias aliasS) const {
+		return this.type == Type.Alias && this.aliasS == aliasS;
+	}
+	bool opEquals()(auto ref const AImport importS) const {
+		return this.type == Type.Import && this.importS == importS;
+	}
+	bool opEquals()(auto ref const ATemplate templateS) const {
+		return this.type == Type.Template && this.templateS == templateS;
+	}
+	bool opEquals()(auto ref const AUTest utestS) const {
+		return this.type == Type.UTest && this.utestS == utestS;
+	}
+
+	bool opEquals()(auto ref const ASymbol rhs) const {
+		if (rhs.type != this.type || this.ident != ident)
+			return false;
+		final switch (type){
+			case Type.Struct:
+				return rhs == this.structS;
+			case Type.Union:
+				return rhs == this.unionS;
+			case Type.Enum:
+				return rhs == this.enumS;
+			case Type.EnumMember:
+				return rhs == this.enumS && rhs.enumMember == this.enumMember;
+			case Type.EnumConst:
+				return rhs == this.enumCS;
+			case Type.Fn:
+				return rhs == this.fnS;
+			case Type.Var:
+				return rhs == this.varS;
+			case Type.Alias:
+				return rhs == this.aliasS;
+			case Type.Import:
+				return rhs == this.importS;
+			case Type.Template:
+				return this == this.templateS;
+		}
+		assert (false);
 	}
 
 	/// constructor
@@ -138,12 +434,6 @@ public:
 	this (AEnumConst enumCS){
 		this.type = Type.EnumConst;
 		this.enumCS = enumCS;
-	}
-	/// ditto
-	this (AEnum enumS, string enumMember){
-		this.type = Type.EnumMember;
-		this.enumS = enumS;
-		this.enumMember = enumMember;
 	}
 	/// ditto
 	this (AFn fnS){
@@ -170,33 +460,22 @@ public:
 		this.type = Type.Template;
 		this.templateS = templateS;
 	}
+	/// ditto
+	this (AUTest utestS){
+		this.type = Type.UTest;
+		this.utestS = utestS;
+	}
 }
 
 /// an Alis Module. Aggregates all public symbols for a module
 public struct AModule{
 	/// globals
-	ADT globals;
-	/// structs
-	AStruct[] structs;
-	/// unions
-	AUnion[] unions;
-	/// enums
-	AEnum[] enums;
-	/// enum consts
-	AEnumConst[] enumConsts;
-	/// functions
-	AFn[] fns;
-	/// variables
-	AVar[] vars;
-	/// aliases
-	AAlias[] aliases;
-	/// imports
-	AImport[] imports;
-	/// templates
-	ATemplate[] templates;
+	// TODO: HOW TO STORE GLOBALS????
+	/// symbols (globals will be repeated in this)
+	ASymbol[IdentU] st;
 }
 
-/// Alis Data Type
+/// Alis Data Type.
 public struct ADataType{
 	/// possible Data Types
 	enum Type{
@@ -213,7 +492,6 @@ public struct ADataType{
 		Struct, /// a struct
 		Union, /// a union
 		Enum, /// an enum
-		EnumConst, /// an enumConst
 		NoInit, /// `$noinit`
 	}
 	/// whether it is a const
@@ -232,20 +510,12 @@ public struct ADataType{
 		}
 		/// type sequence, for `Seq`
 		ADataType[] seqT;
-		struct{
-			/// whether it is a unique type, for `Struct` or `Union`
-			bool isUnique;
-			union{
-				/// struct type, for `Struct`
-				AStruct structT;
-				/// union type, for `Union`
-				AUnion unionT;
-			}
-		}
-		/// enum type, for `Enum`
-		AEnum* enumT;
-		/// EnumConst type, for `EnumConst`
-		AEnumConst* enumConstT;
+		/// Struct reference for `Struct`
+		AStruct* structS;
+		/// Union reference for `Union`
+		AUnion* unionS;
+		/// Enum reference for `Enum`
+		AEnum* enumS;
 		struct{
 			/// return type, for `Fn`
 			ADataType* retT;
@@ -255,12 +525,12 @@ public struct ADataType{
 	}
 
 	/// Returns: whether this is a primitive type
-	@property isPrimitive() const pure {
+	@property isPrimitive() const {
 		switch (type){
 			case Type.IntX, Type.UIntX, Type.FloatX, Type.CharX, Type.Bool:
 				return true;
 			case Type.Slice:
-				return this == ofString;
+				return this == ADataType.ofString;
 			default:
 				return false;
 		}
@@ -286,18 +556,22 @@ public struct ADataType{
 			case Type.Array:
 				return (*refT).toString.format!"$array(%s)"; // cannot be const
 			case Type.Fn:
-				return format!"fn (%s) -> %s"(
+				return format!"fn(%s)->%s"(
 						paramT.map!(p => p.toString).join(","), retT.toString);
 			case Type.Ref:
 				return ret ~ (*refT).toString.format!"@%s";
 			case Type.Struct:
-				return structT.toString;
+				if (structS is null)
+					return "struct(NULL)";
+				return structS.ident.format!"struct(%s)";
 			case Type.Union:
-				return unionT.toString;
+				if (unionS is null)
+					return "union(NULL)";
+				return unionS.ident.format!"union(%s)";
 			case Type.Enum:
-				return enumT.toString;
-			case Type.EnumConst:
-				return enumConstT.toString;
+				if (enumS is null)
+					return "enum(NULL)";
+				return enumS.ident.format!"enum(%s)";
 			case Type.NoInit:
 				return "$noinit";
 		}
@@ -326,12 +600,17 @@ public struct ADataType{
 			case Type.Ref:
 				return null.sizeof;
 			case Type.Struct:
-				return structT.sizeOf;
+				assert (structS !is null);
+				return structS.sizeOf;
+				//assert (false, "thou shall not call ADataType.sizeOf on Struct!");
 			case Type.Union:
-				return unionT.sizeOf;
+				assert (unionS !is null);
+				return unionS.sizeOf;
+				//assert (false, "thou shall not call ADataType.sizeOf on Union!");
 			case Type.Enum:
-				return enumT.type.sizeOf;
-			case Type.EnumConst:
+				assert(enumS !is null);
+				return enumS.type.sizeOf;
+				//assert (false, "thou shall not call ADataType.sizeOf on Enum!");
 			case Type.NoInit:
 				return 0;
 		}
@@ -342,6 +621,13 @@ public struct ADataType{
 	string decodeStr(const ubyte[] data) const pure {
 		// TODO: implement ADataType.decodeStr
 		return format!"{type: %s, data: %s}"(this.toString, data);
+	}
+
+	/// Returns: `$noinit` data type
+	static ADataType ofNoInit() pure {
+		ADataType ret;
+		ret.type = ADataType.Type.NoInit;
+		return ret;
 	}
 
 	/// Returns: Sequence data type
@@ -412,7 +698,7 @@ public struct ADataType{
 	static ADataType ofString(size_t sizeOnStack = 0) pure {
 		ADataType str;
 		str.type = Type.Slice;
-		str.refT = [ADataType.ofChar(1)].ptr;
+		str.refT = [ADataType.ofChar(8)].ptr;
 		str.refT.isConst = true;
 		str.sizeOnStack = sizeOnStack;
 		return str; // $slice(const char)
@@ -436,34 +722,26 @@ public struct ADataType{
 	}
 
 	/// Returns: struct type
-	static ADataType of(AStruct structT) pure {
+	static ADataType of(AStruct* structT) pure {
 		ADataType ret;
 		ret.type = Type.Struct;
-		ret.structT = structT;
+		ret.structS = structT;
 		return ret;
 	}
 
 	/// Returns: union type
-	static ADataType of(AUnion unionT) pure {
+	static ADataType of(AUnion* unionT) pure {
 		ADataType ret;
 		ret.type = Type.Union;
-		ret.unionT = unionT;
+		ret.unionS = unionT;
 		return ret;
 	}
 
 	/// Returns: enum type
-	static ADataType of(AEnum enumT) pure {
+	static ADataType of(AEnum* enumT) pure {
 		ADataType ret;
 		ret.type = Type.Enum;
-		ret.enumT = [enumT].ptr;
-		return ret;
-	}
-
-	/// Returns: enum const type
-	static ADataType of(AEnumConst enumConstT) pure {
-		ADataType ret;
-		ret.type = Type.EnumConst;
-		ret.enumConstT = [enumConstT].ptr;
+		ret.enumS = enumT;
 		return ret;
 	}
 
@@ -473,7 +751,7 @@ public struct ADataType{
 			return ofString;
 		} else
 		static if (is (T == char[])){
-			return ofArray(ADataType.ofChar(1));
+			return ofArray(ADataType.ofChar(8));
 		} else
 		static if (isUnsigned!T) {
 			return ofUInt(T.sizeof * 8);
@@ -494,18 +772,21 @@ public struct ADataType{
 			return ofFn(ReturnType!T, [staticMap!(of, Parameters!T)]);
 		} else
 		static if (is (T == struct)){
+			static assert (false, "creating ADataType of D struct not implemented");
 			// TODO: convert D struct to AStruct
 		} else
 		static if (is (T == union)){
+			static assert (false, "creating ADataType of D union not implemented");
 			// TODO: convert D union to AUnion
 		} else
 		static if (is (T == enum)){
+			static assert (false, "creating ADataType of D enum not implemented");
 			// TODO: convert D enum to AEnum or AEnumConst
 		}
 		return ADataType;
 	}
 
-	bool opEquals(const ADataType rhs) const pure {
+	bool opEquals()(auto ref const ADataType rhs) const pure {
 		if (type != rhs.type)
 			return false;
 		final switch (type){
@@ -527,7 +808,7 @@ public struct ADataType{
 			case Type.Slice:
 			case Type.Array:
 			case Type.Ref:
-				return refT == rhs.refT;
+				return *refT == *rhs.refT;
 			case Type.Fn:
 				if (retT != rhs.retT || paramT.length != rhs.paramT.length)
 					return false;
@@ -537,13 +818,11 @@ public struct ADataType{
 				}
 				return true;
 			case Type.Struct:
-				return structT == rhs.structT;
+				return structS !is null && structS == rhs.structS;
 			case Type.Union:
-				return unionT == rhs.unionT;
+				return unionS !is null && unionS == rhs.unionS;
 			case Type.Enum:
-				return enumT == rhs.enumT;
-			case Type.EnumConst:
-				return enumConstT == rhs.enumConstT;
+				return enumS !is null && enumS == rhs.enumS;
 			case Type.NoInit:
 				return true;
 		}
@@ -551,172 +830,217 @@ public struct ADataType{
 	}
 }
 
-/// Alis data table (structure behind virtual tables & closures etc)
-public struct ADT{
-	/// types of fields
-	ADataType[] types;
-	/// byte offsets for fields
-	size_t[] offsets;
-	/// names (can be null) for fields
-	string[] names;
-	/// table itself
-	ubyte[] tb;
-	/// Returns: size of virtual table
-	pragma(inline, true) @property size_t sizeOf() const pure {
-		return tb.length;
-	}
-
-	string toString() const pure {
-		string ret = "ADT {\n#\ttype\toffset\tname\tval\n";
-		size_t off;
-		foreach (size_t i; 0 .. types.length){
-			ret ~= format!"%d\t%s\t%d\t%s\t%s\n"(i, types[i].toString, offsets[i],
-					names[i], types[i].decodeStr(tb[off .. off + types[i].sizeOf]));
-			off += types[i].sizeOf;
-		}
-		ret ~= "}";
-		return ret;
-	}
-}
-
 /// Alis struct
 public struct AStruct{
-	/// identifier
-	string ident;
-	/// structure
-	ADT dt;
-	/// Virtual Table, if any
-	ADT vt;
-	/// whether this has an `alias this = X`. the member being aliased to `this`
-	/// will be at index 0 in `types` and `offsets`
-	bool hasBase = false;
+	/// identifier, `ident.isNoId == true` if anonymous
+	IdentU[] ident;
+	/// data types for each field
+	ADataType[] types;
+	/// initialisation data for each field
+	ubyte[][] initD;
+	/// maps member names to indexes. Many to One
+	size_t[string] names;
+	/// visibility for each name
+	Visibility[string] nameVis;
+	/// Visibility of struct
+	Visibility vis;
+
+	/// if this is unique
+	@property bool isUnique() const pure {
+		return ident.isNoId;
+	}
+	/// Whether a member exists and is accessible
+	bool exists(string name, IdentU[] ctx = [IdentU.init]) const pure {
+		if (name !in names)
+			return false;
+		if (!isUnique)
+			return true;
+		immutable auto len = cast(ptrdiff_t)ident.length - 1;
+		if (ctx.length >= len && ident[0 .. len] == ctx[0 .. len])
+			return true;
+		if (const Visibility* vis = name in nameVis)
+			return *vis == Visibility.Pub || *vis == Visibility.IPub;
+		return true;
+	}
+	/// whether the 0th member is aliased to `this`
+	@property bool hasBase(IdentU[] ctx = [IdentU.init]) const pure {
+		return exists("this", ctx);
+	}
 	/// Returns: size of this struct
 	@property size_t sizeOf() const pure {
-		return dt.sizeOf + (vt.tb.length > 0);
+		return types.map!(t => t.sizeOf).sum;
 	}
 
 	string toString() const pure {
-		return format!"struct %s{\nDataTable:\n%s\nVirtualTable:\n%s}"(ident, dt,
-				vt);
+		return format!"struct %s{%(%r,%)}"(ident,
+				types.length.iota.map!(i => types[i].format!"%s[%(%r,%)]=%s"(
+						names.byKey.filter!(n => names[n] == i)
+						.map!(n => (nameVis[n] == Visibility.Default ? ""
+							: nameVis[n] == Visibility.Pub ? "pub "
+							: nameVis[n] == Visibility.IPub ? "ipub " : "idk ")
+							.format!"%s%s"(n)).array, initD[i]
+						)));
 	}
 }
 
 /// Alis union
 public struct AUnion{
-	/// identifier
-	string ident;
+	/// identifier, `_` if anonymous, which also implies not unique
+	IdentU[] ident;
 	/// types of members
 	ADataType[] types;
-	/// member names
-	string[] names;
-	/// default type index
-	size_t defInd;
-	/// initialized value
-	ubyte[] dt;
-	/// whether this has an `alias this = X`. the member being aliased to `this`
-	/// will be at index 0 in `types` and `offsets`
-	bool hasBase = false;
+	/// maps field names to indexes in `types`. can be null, if unnamed
+	size_t[string] names;
+	/// name's visibility. can be null, if unnamed
+	Visibility[string] nameVis;
+	/// initialisation type's index
+	size_t initI;
+	/// initialisation data
+	ubyte[] initD;
+	/// Visibility outside its parent module
+	Visibility vis;
+
+	/// Whether a member exists and is accessible
+	bool exists(string name, IdentU[] ctx = [IdentU.init]) const pure {
+		if (name !in names)
+			return false;
+		if (!isUnique)
+			return true;
+		immutable auto len = cast(ptrdiff_t)ident.length - 1;
+		if (ctx.length >= len && ident[0 .. len] == ctx[0 .. len])
+			return true;
+		if (const Visibility* vis = name in nameVis)
+			return *vis == Visibility.Pub || *vis == Visibility.IPub;
+		return true;
+	}
+	/// whether the 0th member is aliased to `this`
+	@property bool hasBase(IdentU[] ctx = [IdentU.init]) const pure {
+		return exists("this", ctx);
+	}
+	/// if this is unique
+	@property bool isUnique() const pure {
+		return ident.isNoId;
+	}
 	/// Returns: true if this is an unnamed union
 	@property bool isUnnamed() const pure {
 		return names.length == 0;
 	}
 	/// Returns: size of this union
 	@property size_t sizeOf() const pure {
-		return dt.length + size_t.sizeof;
+		return types.map!(t => t.sizeOf).fold!((a, b) => max(a, b)) + size_t.sizeof;
 	}
 
 	string toString() const pure {
-		string ret = format!"union %s{\n#\ttype\tname\tval\n"(ident);
-		foreach (size_t i, ref const ADataType type; types){
-			ret ~= format!"%d\t%s\t%s\t%s\n"(i,
-					types[i].toString, names.length ? names[i] : null,
-					defInd == i ? types[i].decodeStr(dt) : null);
-		}
-		ret ~= "}";
-		return ret;
+		return format!"union %s{%(%r,%)}"(ident,
+				types.length.iota.map!(i => types[i].format!"%s[%(%r,%)]%s"(
+						names.byKey.filter!(n => names[n] == i)
+						.map!(n => (nameVis[n] == Visibility.Default ? ""
+							: nameVis[n] == Visibility.Pub ? "pub "
+							: nameVis[n] == Visibility.IPub ? "ipub " : "idk ")
+							.format!"%s%s"(n)).array, initI == i ? initD.format!"=%s" : ""
+						)));
+
 	}
 }
 
 /// Alis Enum
 public struct AEnum{
 	/// identifier
-	string ident;
+	IdentU[] ident;
 	/// Data Type. This will be `struct{}` in case of empty emum
 	ADataType type;
-	/// member names, mapped to their values
-	string[] names;
+	/// member identifiers
+	string[] memId;
 	/// member values
-	ubyte[][] values;
+	ubyte[][] memVal;
+	/// Visibility outside its parent module
+	Visibility vis;
 
 	string toString() const pure {
-		string ret = format!"enum %s %s{\n#\tname\tval\n"(type, ident);
-		foreach (size_t i, string name; names){
-			ret ~= format!"%d\t%s\t%s\n"(i, name, type.decodeStr(values[i]));
-		}
-		ret ~= "}";
-		return ret;
+		return format!"enum %s:%s{%(%r,%)}"(ident, type,
+				memId.length.iota.map!(i => format!"%s=%s"(memId[i], memVal[i])));
 	}
 }
 
 /// Alis Enum Constant
 public struct AEnumConst{
 	/// identifier
-	string ident;
+	IdentU[] ident;
 	/// type
 	ADataType type;
 	/// value bytes
 	ubyte[] data;
+	/// Visibility outside its parent module
+	Visibility vis;
 
 	string toString() const pure {
-		return format!"enum %s %s = %s;"(type.toString, ident,
-				type.decodeStr(data));
+		return format!"enum %s:%s=%s;"(ident, type, data);
 	}
 }
 
 /// Alis Function Information
 public struct AFn{
-	/// identifier
-	string ident;
+	/// identifier, `_` if anonymous
+	IdentU[] ident;
 	/// return type
 	ADataType retT;
-	/// locals, including parameters
-	ADT locals;
-	/// label name in ABC
-	string labN;
-	/// how many parameters must be provided
-	size_t paramRequired;
-	/// stack frame size
-	size_t stackFrameSize;
+	/// parameter names
+	string[] paramsN;
+	/// parameter types
+	ADataType[] paramsT;
+	/// parameter default values, if any
+	ubyte[][] paramsV;
+	/// unique id. this is also the label name in ABC
+	string uid;
+	/// whether this is an alis function (true) or an external (false)
+	bool isAlisFn = true;
+	/// Visibility outside its parent module
+	Visibility vis;
 
 	string toString() const pure {
-		return format!"fn %s->%s paramReq=%d, stackFrameSize=%d, locals={\n%s\n}"(
-				ident, retT, paramRequired, stackFrameSize, locals);
+		return format!
+			"fn %s%s[%s](%(%r%))->%s"(
+					(isAlisFn ? "" : "external "),
+					ident, uid,
+					paramsN.length.iota
+						.map!(i => format!"%s %s=%s"(paramsN[i], paramsT[i], paramsV[i])),
+					retT);
 	}
 }
 
 /// Alis Variable
 public struct AVar{
 	/// identifier
-	string ident;
+	IdentU[] ident;
 	/// data type
 	ADataType type;
+	/// initialisation data
+	ubyte[] initD;
 	/// offset
 	size_t offset;
 	/// whether is global or local
-	bool isGlobal;
+	bool isGlobal = false;
+	/// Visibility outside its parent module
+	Visibility vis;
 
 	string toString() const pure {
-		return format!"var %s%s %s ,off=%d"(isGlobal ? "global" : null, type,
-				ident, offset);
+		return format!"var %s%s:%s=%s off=%d"(isGlobal ? "global" : null, ident,
+				type, initD, offset);
 	}
 }
 
 /// Alis Alias
 public struct AAlias{
-	// TODO: what to store in AAlias
+	/// identifier
+	IdentU[] ident;
+	/// Visibility outside its parent module
+	Visibility vis;
+	/// expr being aliased
+	RExpr expr;
 
 	string toString() const pure {
-		return format!"alias";
+		return format!"alias %s%s=%s"(vis == Visibility.Pub ? "pub " : "",
+				ident, "<EXPR>");
 	}
 }
 
@@ -725,18 +1049,46 @@ public struct AImport{
 	/// module being imported
 	string[] modIdent;
 	/// aliased name, if any
-	string name;
+	IdentU[] ident;
+	/// Visibility outside its parent module
+	Visibility vis;
 
 	string toString() const pure {
-		return format!"import %s as %s"(modIdent.join("."), name);
+		return format!"import %s as %s"(modIdent, ident);
 	}
 }
 
 /// Alis Template
 public struct ATemplate{
+	/// identifier
+	IdentU[] ident;
+	/// Visibility outside its parent module
+	Visibility vis;
 	// TODO: what to store in ATemplate
 
 	string toString() const pure {
 		return format!"template";
 	}
+}
+
+/// Alis Unit Test
+public struct AUTest{
+	/// identifier
+	IdentU[] ident;
+	/// Visibility (always default)
+	@property Visibility vis(Visibility) const pure { return Visibility.Default; }
+	/// ditto
+	@property Visibility vis() const pure { return Visibility.Default; }
+	/// unique id. this is also the label name in ABC
+	string uid;
+
+	string toString() const pure {
+		return format!"utest %s[%s]"(ident, uid);
+	}
+}
+
+/// Encodes function name, using function name and param types
+/// Returns: encoded name
+public string fnNameEncode(string name, ADataType[] args){
+	return format!"%s$%(_%r%)_$"(name, args.map!(a => a.toString));
 }

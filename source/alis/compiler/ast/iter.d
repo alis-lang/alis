@@ -9,22 +9,18 @@ import meta,
 import std.meta,
 			 std.traits;
 
-/// UDA for tagging as pre-order iteration
-public enum ItPre;
-/// UDA for tagging as post-order iteration
-public enum ItPost;
-/// UDA for tagging as iteration terminator
-public enum ItTerm;
+debug import std.stdio, std.conv;
+
+/// UDA for tagging as iterator function
+package enum ItFn;
 
 /// Sequence of Iterator Functions in a container (module etc)
 /// Template Params:
-/// `S` - State Type
 /// `M` - container
-public template ItFnsOf(S, alias M){
+package template ItFnsOf(alias M){
 	alias ItFnsOf = AliasSeq!();
-	alias Checker = IsItFn!S;
 	static foreach (string N; __traits(allMembers, M)){
-		static if (Checker!(__traits(getMember, M, N))){
+		static if (IsItFn!(__traits(getMember, M, N))){
 			ItFnsOf = AliasSeq!(ItFnsOf, __traits(getMember, M, N));
 		}
 	}
@@ -33,7 +29,7 @@ public template ItFnsOf(S, alias M){
 /// Whether something is a ItFn, for state type `S`
 template IsItFn(alias F){
 	static if (isCallable!F &&
-			(hasUDA!(F, ItPre) || hasUDA!(F, ItPost)) &&
+			(hasUDA!(F, ItFn)) &&
 			Parameters!F.length == 2 &&
 			is (Parameters!F[0] : ASTNode) &&
 			is (Parameters!F[1] == struct)){
@@ -67,9 +63,11 @@ private template IsRel(T){
 		alias IsRel = IsRel!(ForeachType!T);
 	} else {
 		static if (isAssociativeArray!T){
-			static assert(false, "assoc_array not yet supported sadly");
+			pragma(msg, "assoc_array not yet supported sadly");
+			enum IsRel = false;
+		} else {
+			enum IsRel = is (T : ASTNode);
 		}
-		enum IsRel = is (T : ASTNode);
 	}
 }
 
@@ -93,16 +91,15 @@ private template FieldTypesRel(N) if (is (N : ASTNode)){
 /// Template Params:
 /// `N...` - AST Node Types
 /// `F...` - Iterator Functions
-public template ASTIter(N...) if (allSatisfy!(IsASTNode, N)){
+package template ASTIter(N...) if (allSatisfy!(IsASTNode, N)){
 	struct ASTIter(Fns...) if (allSatisfy!(IsItFn, Fns)){
-		/// types being handles
+		/// types being handled
 		private alias RelT = NoDuplicates!(FirstParamsOf!Fns);
 		/// least derived children, where children are only relevant ones
 		alias LDC = LeastDerivedChildren!RelT;
 		/// least derived children
 		alias LDC_all = LeastDerivedChildren!N;
 
-		/// iterates over array
 		pragma(inline, true)
 		private static void _arrayHandle(N, S)(N nodes, auto ref S state){
 			static if (isArray!N){
@@ -110,13 +107,13 @@ public template ASTIter(N...) if (allSatisfy!(IsASTNode, N)){
 					_arrayHandle(n, state);
 				}
 			} else static if (!isArray!N){
-				return iterate(nodes, state);
+				return exec(nodes, state);
 			}
 		}
 
-		/// Descends down on node
 		pragma(inline, true)
 		private static void _descend(N, S)(N node, auto ref S state){
+			//debug stderr.writefln!"_descend(%s) -> %s"(typeid(N).to!string, LDC_all!N.stringof);
 			static foreach (C; LDC_all!N){
 				if (auto sub = cast(C)node){
 					return _descend(sub, state);
@@ -127,27 +124,34 @@ public template ASTIter(N...) if (allSatisfy!(IsASTNode, N)){
 			}
 		}
 
-		/// Default iterator for any non-array type `N` with state of type `S`
-		public static void iterate(N, S)(N node, auto ref S state){
+		/// calls exec on data members of a node
+		public static void descend(N, S)(N node, auto ref S state){
+			_descend(node, state);
+		}
+
+		/// executes appropriate iterator function
+		/// if none exists, `descend` is called
+		public static void exec(N, S)(N node, auto ref S state){
+			//debug stderr.writefln!"exec(%s) -> %s"(typeid(N).to!string, LDC!N.stringof);
 			if (node is null)
 				return;
+			//debug stderr.writefln!"exec(%s) -> %s"(typeid(N).to!string, LDC!N.stringof);
 			static if (RelT.length == 0){
 				return _descend(node, state);
 			}
-			static foreach (C; LDC!N){
+			//static foreach (C; LDC!N){
+			static foreach (C; LDC_all!N){ // HACK: LDC_all is not efficient for this.
 				if (auto sub = cast(C)node){
-					return iterate(sub, state);
+					//debug stderr.writefln!"%s -> %s yes"(typeid(N).to!string, typeid(C).to!string);
+					return exec(sub, state);
+				} else {
+					//debug stderr.writefln!"%s -> %s no"(typeid(N).to!string, typeid(C).to!string);
 				}
 			}
 
 			alias F = ItFnsFor!(N, Fns);
 			static if (F.length){
-				static if (hasUDA!(F[0], ItPre))
-					F[0](node, state);
-				static if (!hasUDA!(F[0], ItTerm))
-					_descend(node, state);
-				static if (hasUDA!(F[0], ItPost))
-					F[0](node, state);
+				F[0](node, state);
 				return;
 			}
 			return _descend(node, state);
