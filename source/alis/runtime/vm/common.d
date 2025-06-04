@@ -6,15 +6,6 @@ import std.meta,
 
 package import alis.utils;
 
-/// Label Type
-struct Label{
-	size_t id;
-	alias id this;
-}
-
-pragma(msg, Label.sizeof);
-pragma(msg, is (Label : size_t));
-
 /// Whether an instruction is stateful
 package template InstIsStateful(alias T) if (isCallable!T){
 	enum InstIsStateful = getInstIsStateful;
