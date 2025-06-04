@@ -126,6 +126,7 @@ public:
 	}
 }
 
+///
 unittest{
 	ubyte x;
 	ABC code;
