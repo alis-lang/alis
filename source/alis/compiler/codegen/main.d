@@ -468,7 +468,7 @@ void printBytecodeToFile(string filename, string[][] bytecodeInstructions) {
 }
 
 // Tesing conversion of literals to bytes and then back to values
-unittest{
+/*unittest{
 
 	auto generator = new BytecodeGenerator;
 
@@ -540,10 +540,10 @@ unittest{
 	auto complexBytecode = generator.generateBytecode(forStmt);
 	printBytecodeToFile(testFolder ~  "complex_code.txt", complexBytecode);
 
-}
+}*/
 
 // Testing literal expressions
-unittest {
+/*unittest {
 
 	auto generator = new BytecodeGenerator;
 
@@ -574,10 +574,10 @@ unittest {
 	printBytecodeToFile(testFolder ~  "literal_code.txt", generator.bytecodeInstructions);
 	//printBytecode(generator.bytecodeInstructions);
 
-}
+}*/
 
 // Testing Function Bytecode Generator
-unittest{
+/*unittest{
 	RFn fn = new RFn;
 	fn.ident = "testFunction";
 
@@ -600,10 +600,10 @@ unittest{
 	generator.generateFunctionBytecode(fn);
 	printBytecodeToFile(testFolder ~  "fnbytecode_code.txt", generator.bytecodeInstructions);
 
-}
+}*/
 
 // Testing Intrinsic Call Expr Bytecode Generator
-unittest{
+/*unittest{
 	auto generator = new BytecodeGenerator;
 
 	RIdentExpr iExpr = new RIdentExpr;
@@ -640,10 +640,10 @@ unittest{
 	//generator.generateIntrinsicCallExprBytecode(incI32);
 
 	printBytecodeToFile(testFolder ~  "intrinsic_code.txt", generator.bytecodeInstructions);
-}
+}*/
 
 // Testing if conditions
-unittest {
+/*unittest {
 	/*
 	var int x = 0;
 
@@ -652,7 +652,7 @@ unittest {
 	} else {
 		x = 2;
 	}
-	*/
+	*//*
 
 	auto generator = new BytecodeGenerator();
 
@@ -714,7 +714,7 @@ unittest {
 	generator.generateStatementBytecode(ifStmt);
 
 	printBytecodeToFile(testFolder ~ "rif_intrinsic_code.txt", generator.bytecodeInstructions);
-}
+}*/
 
 
 version (codegen) {

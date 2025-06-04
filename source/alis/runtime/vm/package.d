@@ -9,7 +9,7 @@ public import alis.runtime.vm.bytecode;
 
 /// Execute a Code
 public void execute(S, T...)(
-		ref ByteCode code,
+		ref ABC code,
 		ref S state,
 		size_t label = size_t.max) if (allSatisfy!(isCallable, T)){
 	size_t ic;
@@ -54,7 +54,7 @@ unittest{
 	void inc2(ref State _state){
 		_state.i += 2;
 	}
-	ByteCode code = parseByteCode!(inc1, inc2)([
+	ABC code = parseABC!(inc1, inc2)([
 		"inc1", "inc2", "inc1"
 	]);
 	State state;
@@ -63,7 +63,7 @@ unittest{
 }
 
 /// ditto
-public void execute(T...)(ref ByteCode code, size_t label = size_t.max) if (
+public void execute(T...)(ref ABC code, size_t label = size_t.max) if (
 		allSatisfy!(isCallable, T) && !InstsIsStateful!T){
 	ubyte dummyState;
 	execute!(ubyte, T)(code, dummyState, label);
@@ -78,7 +78,7 @@ unittest{
 	void inc2(){
 		i += 2;
 	}
-	ByteCode code = parseByteCode!(inc1, inc2)([
+	ABC code = parseABC!(inc1, inc2)([
 		"inc1", "inc2", "inc1"
 	]);
 	execute!(inc1, inc2)(code);
