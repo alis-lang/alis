@@ -565,10 +565,7 @@ private void structDo(Struct s, AStruct* symC, ref St1 st){
 				}
 			symC.initD ~= val.dataL;
 		} else {
-			// TODO: ask ADataType for initD
-			symC.initD ~= [];
-			// TODO: remove this "fake" error
-			st.errs ~= errUnsup(field.pos, "no default value for struct field");
+			symC.initD ~= type.initB;
 		}
 		foreach (string name; aliasMap.byKey
 				.filter!(n => aliasMap[n] == field.name)){
