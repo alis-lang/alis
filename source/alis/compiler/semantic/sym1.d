@@ -244,6 +244,15 @@ private bool isRecDep(ASTNode node, ref St st){
 					st.errs ~= errIncompatType(node.members[i].pos, symC.type, type);
 			}
 		}
+
+		foreach (size_t i; 0 .. symC.memVal.length){
+			SmErrsVal!AValCT valRes = AValCT(types[i], symC.memVal[i]).to(symC.type);
+			if (valRes.isErr){
+				st.errs ~= valRes.err;
+				continue;
+			}
+			symC.memVal[i] = valRes.val.dataL;
+		}
 		// TODO: cast all symC.memVal[i] from types[i] to symC.type
 	}
 
