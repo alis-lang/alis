@@ -105,7 +105,22 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void unionAnonIter(UnionAnon node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
+		immutable string name = format!"union$_%d_%d_$"(
+				node.pos.line, node.pos.col);
+		ASymbol *sym = new ASymbol(AUnion(st.ctx ~ name.IdentU));
+		st.stab.add(name.IdentU, sym, st.ctx);
+		sym.structS.vis = Visibility.Default;
+		SmErr[] errs;
+		if (NamedUnion sub = cast(NamedUnion)node.val){
+			errs = unionNamedDo(sub, sym, st.stabR, st.ctx, st.dep);
+		} else
+		if (UnnamedUnion sub = cast(UnnamedUnion)node.val){
+			errs = unionUnnamedDo(sub, sym, st.stabR, st.ctx, st.dep);
+		}
+		if (errs.length){
+			st.errs ~= errs;
+		}
+		sym.isComplete = true;
 	}
 
 	void fnAnonExprIter(FnAnonExpr node, ref St st){
