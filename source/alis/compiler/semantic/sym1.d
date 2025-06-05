@@ -69,7 +69,6 @@ private bool isRecDep(ASTNode node, ref St st){
 	}
 
 	void fnIter(FnDef node, ref St st){
-		// TODO: TEST THIS!
 		if (isRecDep(node, st))
 			return;
 		ASymbol* sym = st.sMap[node];
@@ -130,7 +129,15 @@ private bool isRecDep(ASTNode node, ref St st){
 		symC.uid = fnNameEncode(symC.ident.toString, symC.paramsT);
 		st.fns[symC.uid] = r;
 
-		st.stab.add(symC.uid.IdentU, new STab, symC.vis, st.ctx);
+		STab subSt = new STab;
+		foreach (size_t i; 0 .. symC.paramsN.length){
+			ASymbol* param = new ASymbol(
+					AVar([symC.uid.IdentU, symC.paramsN[i].IdentU],
+						symC.paramsT[i], symC.paramsV[i]));
+			subSt.add(symC.paramsN[i].IdentU, param, param.ident[0 .. 1]);
+		}
+
+		st.stab.add(symC.uid.IdentU, subSt, symC.vis, st.ctx);
 		SmErrsVal!RExpr exprRes = resolve(node.body, st.stabR,
 				st.ctx ~ symC.uid.IdentU, st.dep);
 		if (exprRes.isErr){
