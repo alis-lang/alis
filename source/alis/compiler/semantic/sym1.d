@@ -30,7 +30,7 @@ import meta;
 
 private alias It = ItL!(mixin(__MODULE__), 1);
 
-private struct St{
+private struct St1{
 	/// errors
 	SmErr[] errs;
 	/// symbol table root
@@ -51,7 +51,7 @@ private struct St{
 
 /// Checks for recursive dependecy before processing an ASTNode
 /// Returns: tre if recursive dependecy will happen after an ASTNode
-private bool isRecDep(ASTNode node, ref St st){
+private bool isRecDep(ASTNode node, ref St1 st){
 	if (node !in st.sMap || st.sMap[node] !in st.dep)
 		return false;
 	st.errs ~= errRecDep(node.pos, st.sMap[node].ident.toString);
@@ -59,7 +59,7 @@ private bool isRecDep(ASTNode node, ref St st){
 }
 
 @ItFn @ITL(1){
-	void modIter(Module node, ref St st){
+	void modIter(Module node, ref St1 st){
 		STab pSt = st.stab;
 		st.stab = st.stab.next[node.ident.IdentU].val;
 		st.ctx ~= node.ident.IdentU;
@@ -68,7 +68,7 @@ private bool isRecDep(ASTNode node, ref St st){
 		st.ctx.length --;
 	}
 
-	void fnIter(FnDef node, ref St st){
+	void fnIter(FnDef node, ref St1 st){
 		if (isRecDep(node, st))
 			return;
 		ASymbol* sym = st.sMap[node];
@@ -153,7 +153,7 @@ private bool isRecDep(ASTNode node, ref St st){
 		symC.retT = retRes.val;
 	}
 
-	void enumConstIter(EnumConstDef node, ref St st){
+	void enumConstIter(EnumConstDef node, ref St1 st){
 		if (node.isRecDep(st))
 			return;
 		ASymbol* sym = st.sMap[node];
@@ -189,7 +189,7 @@ private bool isRecDep(ASTNode node, ref St st){
 		}
 	}
 
-	void enumSmIter(EnumSmDef node, ref St st){
+	void enumSmIter(EnumSmDef node, ref St1 st){
 		if (node.isRecDep(st))
 			return;
 		ASymbol* sym = st.sMap[node];
@@ -256,7 +256,7 @@ private bool isRecDep(ASTNode node, ref St st){
 		// TODO: cast all symC.memVal[i] from types[i] to symC.type
 	}
 
-	void structIter(StructDef node, ref St st){
+	void structIter(StructDef node, ref St1 st){
 		if (node.isRecDep(st))
 			return;
 		ASymbol* sym = st.sMap[node];
@@ -380,7 +380,7 @@ private bool isRecDep(ASTNode node, ref St st){
 		}
 	}
 
-	void varIter(VarDef node, ref St st){
+	void varIter(VarDef node, ref St1 st){
 		if (node.isRecDep(st))
 			return;
 		ASymbol* sym = st.sMap[node];
@@ -420,7 +420,7 @@ private bool isRecDep(ASTNode node, ref St st){
 		}
 	}
 
-	void aliasIter(AliasDef node, ref St st){
+	void aliasIter(AliasDef node, ref St1 st){
 		if (node.isRecDep(st))
 			return;
 		ASymbol* sym = st.sMap[node];
@@ -438,7 +438,7 @@ private bool isRecDep(ASTNode node, ref St st){
 		symC.expr = exprVal.val;
 	}
 
-	void unionIter(UnionDef node, ref St st){
+	void unionIter(UnionDef node, ref St1 st){
 		if (node.isRecDep(st))
 			return;
 		ASymbol* sym = st.sMap[node];
@@ -448,13 +448,13 @@ private bool isRecDep(ASTNode node, ref St st){
 		scope(exit) st.dep.remove(sym);
 		scope(exit) sym.isComplete = true;
 		if (NamedUnion sub = cast(NamedUnion)node.def)
-			unionNamedIter(sub, sym, st);
+			unionNamedDo(sub, sym, st);
 		else
 		if (UnnamedUnion sub = cast(UnnamedUnion)node.def)
-			unionUnnamedIter(sub, sym, st);
+			unionUnnamedDo(sub, sym, st);
 	}
 
-	void utestIter(UTest node, ref St st){
+	void utestIter(UTest node, ref St1 st){
 		if (node.isRecDep(st))
 			return;
 		ASymbol* sym = st.sMap[node];
@@ -467,7 +467,133 @@ private bool isRecDep(ASTNode node, ref St st){
 	}
 }
 
-private void unionNamedIter(NamedUnion node, ASymbol* sym, ref St st){
+/// converts a Struct to a given AStruct, provided sym1 state
+private void structDo(Struct s, AStruct* symC, ref St1 st){
+	/// maps aliased name to alias name
+	/// `aliasMap["alias_name"] = "the_real_thing"`
+	string[string] aliasMap;
+	void[0][string] nameSet;
+	Visibility[string] aliasVis;
+	foreach (AggMember memAbs; s.members){
+		AggMemberAlias memAls = cast(AggMemberAlias)memAbs;
+		if (memAls is null) continue;
+		nameSet[memAls.name] = (void[0]).init;
+		if (memAls.name in aliasMap){
+			if (memAls.name == "this")
+				st.errs ~= errMultiInherit(memAls.pos);
+			else
+				st.errs ~= errIdentReuse(memAls.pos, memAls.name);
+			continue;
+		}
+		aliasMap[memAls.name] = memAls.val.ident;
+		aliasVis[memAls.name] = memAls.visibility;
+	}
+
+	// remove indirect aliases
+	while (true){
+		bool done = true;
+		foreach (string name; aliasMap.byKey){
+			if (auto ptr = aliasMap[name] in aliasMap){
+				aliasMap[name] = *ptr;
+				done = false;
+			}
+		}
+		if (done) break;
+	}
+
+	string bName = null;
+	if (string* ptr = "this" in aliasMap)
+		bName = *ptr;
+	AggMemberNamed[] fields = s.members
+		.map!(m => cast(AggMemberNamed)m).filter!(m => m !is null).array;
+	bool erred = false;
+	foreach (AggMemberNamed field; fields){
+		if (field.name == "_") continue;
+		if (field.name in nameSet){
+			st.errs ~= errIdentReuse(field.pos, field.name);
+			erred = true;
+			continue;
+		}
+		if (field.name == "this"){
+			st.errs ~= errFieldThis(field.pos);
+			erred = true;
+			continue;
+		}
+		nameSet[field.name] = (void[0]).init;
+	}
+	if (erred)
+		return;
+	if (bName.length){
+		immutable size_t ind = fields.countUntil!(f => f.name == bName);
+		AggMemberNamed tmp = fields[ind];
+		for (size_t i = ind; i > 0; i --)
+			fields[i] = fields[i - 1];
+		fields[0] = tmp;
+	}
+
+	foreach (AggMemberNamed field; fields){
+		immutable bool isAuto = cast(AutoExpr)field.type !is null;
+		ADataType type;
+		if (isAuto){
+			if (field.val is null){
+				st.errs ~= errAutoNoVal(field.pos);
+				continue;
+			}
+		} else {
+			SmErrsVal!ADataType typeRes = eval4Type(field.type, st.stabR, st.ctx,
+					st.dep);
+			if (typeRes.isErr){
+				st.errs ~= typeRes.err;
+				continue;
+			}
+			type = typeRes.val;
+		}
+		AValCT val;
+		if (field.val){
+			SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx, st.dep);
+			if (valRes.isErr){
+				st.errs ~= valRes.err;
+				continue;
+			}
+			val = valRes.val;
+			if (isAuto){
+				type = val.typeL;
+			} else
+				if (!val.typeL.canCastTo(type)){
+					st.errs ~= errTypeMis(field, type, val.typeL);
+					continue;
+				}
+			symC.initD ~= val.dataL;
+		} else {
+			// TODO: ask ADataType for initD
+			symC.initD ~= [];
+			// TODO: remove this "fake" error
+			st.errs ~= errUnsup(field.pos, "no default value for struct field");
+		}
+		foreach (string name; aliasMap.byKey
+				.filter!(n => aliasMap[n] == field.name)){
+			symC.names[name] = symC.types.length;
+			symC.nameVis[name] = aliasVis[name];
+		}
+		symC.names[field.name] = symC.types.length;
+		symC.nameVis[field.name] = field.visibility;
+		symC.types ~= type;
+	}
+}
+
+/// ditto
+package SmErr[] structDo(Struct s, AStruct* sym, STab stabR, IdentU[] ctx,
+		void[0][ASymbol*] dep){
+	St1 st;
+	st.stabR = stabR;
+	st.stab = stabR.findSt(ctx, ctx);
+	st.dep = dep;
+	structDo(s, sym, st);
+	return st.errs;
+}
+
+/// converts a NamedUnion to a given AUnion, provided sym1 state
+package void unionNamedDo(NamedUnion node, ASymbol* sym, ref St1 st){
 	AUnion* symC = &sym.unionS;
 	/// maps aliased name to alias name
 	/// `aliasMap["alias_name"] = "the_real_thing"`
@@ -574,7 +700,19 @@ private void unionNamedIter(NamedUnion node, ASymbol* sym, ref St st){
 	}
 }
 
-private void unionUnnamedIter(UnnamedUnion node, ASymbol* sym, ref St st){
+/// ditto
+package SmErr[] unionNamedDo(NamedUnion u, ASymbol* sym, STab stabR,
+		IdentU[] ctx, void[0][ASymbol*] dep){
+	St1 st;
+	st.stabR = stabR;
+	st.stab = stabR.findSt(ctx, ctx);
+	st.dep = dep;
+	unionNamedDo(u, sym, st);
+	return st.errs;
+}
+
+/// converts a UnnamedUnion to a given AUnion, provided sym1 state
+package void unionUnnamedDo(UnnamedUnion node, ASymbol* sym, ref St1 st){
 	AUnion* symC = &sym.unionS;
 	symC.initI = size_t.max;
 	foreach (UnnamedUnionMember member; node.members){
@@ -606,6 +744,17 @@ private void unionUnnamedIter(UnnamedUnion node, ASymbol* sym, ref St st){
 	}
 }
 
+/// ditto
+package SmErr[] unionUnnamedDo(UnnamedUnion u, ASymbol* sym, STab stabR,
+		IdentU[] ctx, void[0][ASymbol*] dep){
+	St1 st;
+	st.stabR = stabR;
+	st.stab = stabR.findSt(ctx, ctx);
+	st.dep = dep;
+	unionUnnamedDo(u, sym, st);
+	return st.errs;
+}
+
 /// Result Type
 package struct S1R{
 	/// symbol table
@@ -620,7 +769,7 @@ package struct S1R{
 /// Returns: Level 1 Symbol Table, or SmErr[]
 package SmErrsVal!S1R stab1Of(ASTNode node, STab stabR, ASymbol*[ASTNode] sMap,
 		void[0][ASymbol*] dep, IdentU[] ctx = null){
-	St st;
+	St1 st;
 	st.stabR = stabR;
 	st.stab = stabR.findSt(ctx, ctx);
 	st.ctx = ctx.dup;
@@ -639,7 +788,7 @@ package SmErrsVal!S1R symDo(ASymbol* sym, STab stabR,
 		void[0][ASymbol*] dep){
 	assert (sym);
 	assert (sym.ast);
-	St st;
+	St1 st;
 	st.stabR = stabR;
 	st.ctx = sym.ident[0 .. $ - 1];
 	st.stab = stabR.findSt(st.ctx, st.ctx);
