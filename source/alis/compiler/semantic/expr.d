@@ -12,11 +12,14 @@ import alis.common,
 			 alis.compiler.ast.iter,
 			 alis.compiler.ast.rst;
 
+import alis.compiler.semantic.sym1 : unionNamedDo, unionUnnamedDo, structDo;
+
 import meta;
 
 import std.algorithm,
 			 std.array,
-			 std.range;
+			 std.range,
+			 std.format;
 
 debug import std.stdio;
 
@@ -75,7 +78,6 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void commaExprIter(CommaExpr node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
 		RCommaExpr r = new RCommaExpr;
 		r.pos = node.pos;
 		foreach (Expression expr; node.exprs){
@@ -90,7 +92,16 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void structAnonIter(StructAnon node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
+		immutable string name = format!"struct$_%d_%d_$"(
+				node.pos.line, node.pos.col);
+		ASymbol *sym = new ASymbol(AStruct(st.ctx ~ name.IdentU));
+		st.stab.add(name.IdentU, sym, st.ctx);
+		sym.structS.vis = Visibility.Default;
+		SmErr[] errs = structDo(node.val, &sym.structS, st.stabR, st.ctx, st.dep);
+		if (errs.length){
+			st.errs ~= errs;
+		}
+		sym.isComplete = true;
 	}
 
 	void unionAnonIter(UnionAnon node, ref St st){
