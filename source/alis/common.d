@@ -872,7 +872,7 @@ public struct AStruct{
 
 	/// if this is unique
 	@property bool isUnique() const pure {
-		return ident.isNoId;
+		return ident.length && ident[$ - 1].ident.canFind('$');
 	}
 	/// Whether a member exists and is accessible
 	bool exists(string name, IdentU[] ctx = [IdentU.init]) const pure {
@@ -944,7 +944,7 @@ public struct AUnion{
 	}
 	/// if this is unique
 	@property bool isUnique() const pure {
-		return ident.isNoId;
+		return ident.length && ident[$ - 1].ident.canFind('$');
 	}
 	/// Returns: true if this is an unnamed union
 	@property bool isUnnamed() const pure {
