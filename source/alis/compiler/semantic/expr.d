@@ -18,6 +18,8 @@ import std.algorithm,
 			 std.array,
 			 std.range;
 
+debug import std.stdio;
+
 private struct St{
 	/// errors
 	SmErr[] errs;
@@ -56,10 +58,12 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 				r.id = sym.ident;
 			}
 		}
-		st.errs ~= errUnsup(node); // TODO: implement
+		st.res = r;
 	}
 
 	void blockExprIter(BlockExpr node, ref St st){
+		RBlockExpr r = new RBlockExpr;
+		r.pos = node.pos;
 		st.errs ~= errUnsup(node); // TODO: implement
 	}
 
