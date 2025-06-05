@@ -555,6 +555,12 @@ public struct ADataType{
 		}
 	}
 
+	/// Gets initializing bytes for this type
+	ubyte[] initB() const pure {
+		debug stderr.writefln!"STUB: ADataType(%s).initB returning zeroes"(this);
+		return new ubyte[sizeOf / 8]; // TODO: implement initB
+	}
+
 	string toString() const pure {
 		string ret = isConst ? "const " : null;
 		final switch (type){
