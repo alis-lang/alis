@@ -8,7 +8,9 @@ import alis.compiler.common,
 			 alis.common;
 
 import std.format,
-			 std.conv;
+			 std.conv,
+			 std.traits,
+			 std.range;
 
 /// Value or SmErr
 alias SmErrVal(T) = ErrVal!(T, SmErr);
@@ -37,6 +39,7 @@ public struct SmErr{
 		UnUnionTypeUnique, /// Unnamed union must have unique types
 		FParamNoDef, /// Function Parameter expected to have default value
 		Unxp, /// Unexpected error in compiler
+		IdentAmbig, /// Ambiguous identifier
 	}
 	/// where error happen
 	Location pos;
@@ -185,4 +188,12 @@ package SmErr errFParamNoDef(Location pos, string name){
 /// Unexpected error in compiler
 package SmErr errUnxp(Location pos, string err){
 	return SmErr(pos, err, SmErr.Type.Unxp);
+}
+
+/// Ambiguous identifier
+package SmErr errIdentAmbig(R)(Location pos, string ident, R matches) if (
+		isInputRange!R && is (ForeachType!R : string)){
+	return SmErr(pos,
+			format!"Identifier %s is ambiguous, matches with: %(%r,%)"(
+				ident, matches), SmErr.Type.IdentAmbig);
 }
