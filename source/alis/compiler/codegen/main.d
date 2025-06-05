@@ -403,7 +403,7 @@ class BytecodeGenerator {
 		if (auto identExpr = cast(RIdentExpr)assignExpr.lhs) {
 
 			// Find the variable in the current scope
-			string varName = identExpr.ident;
+			string varName = identExpr.id.toString;
 			bool found = false;
 
 			// TODO: Find variable offset
