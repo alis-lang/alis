@@ -30,6 +30,7 @@ public struct AValCT{
 		Symbol, /// an alias to a symbol
 		Type, /// a Data Type
 		Expr, /// an alias to an RExpr
+		Seq, /// alias (sequence)
 	}
 	/// currently stored type
 	Type type = Type.Type;
@@ -41,6 +42,7 @@ public struct AValCT{
 		ASymbol* symS; /// symbol for `Symbol`
 		ADataType typeT; /// data type for `Type`
 		RExpr expr; /// expr in case of `Expr`
+		AValCT[] seq; /// sequence in case of `Seq`
 	}
 
 	string toString() const pure {
@@ -53,6 +55,8 @@ public struct AValCT{
 				return typeT.toString;
 			case Type.Expr:
 				return expr.toString;
+			case Type.Seq:
+				return seq.format!"(%(%r,%))";
 		}
 		return null;
 	}
@@ -67,11 +71,19 @@ public struct AValCT{
 				return typeT == rhs.typeT;
 			case Type.Expr:
 				return expr.toString == rhs.expr.toString; // HACK
+			case Type.Seq:
+				if (seq.length != rhs.seq.length)
+					return false;
+				foreach (size_t i; 0 .. seq.length){
+					if (seq[i] != rhs.seq[i])
+						return false;
+				}
+				return true;
 		}
 		assert(false);
 	}
 
-	size_t toHash() const {
+	/*size_t toHash() const {
 		final switch (type){
 			case Type.Literal:
 				return tuple(Type.Literal, dataL, typeL).toHash;
@@ -81,9 +93,11 @@ public struct AValCT{
 				return tuple(Type.Type, typeT).toHash;
 			case Type.Expr:
 				return tuple(Type.Expr, expr.toString).toHash;
+			case Type.Seq:
+				return tuple(toString.toHash;
 		}
 		assert(false);
-	}
+	}*/
 
 	/// constructor
 	this (ADataType type, ubyte[] data){
@@ -105,6 +119,11 @@ public struct AValCT{
 	this (RExpr expr){
 		this.type = Type.Expr;
 		this.expr = expr;
+	}
+	/// ditto
+	this (AValCT[] seq){
+		this.type = Type.Seq;
+		this.seq = seq.dup;
 	}
 }
 
