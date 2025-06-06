@@ -176,7 +176,24 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void structLiteralExprIter(StructLiteralExpr node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
+		RStructLiteralExpr r = new RStructLiteralExpr;
+		r.pos = node.pos;
+		void[0][string] nameSet;
+		foreach (KeyVal kv; node.keyVals){
+			if (kv.key in nameSet){
+				st.errs ~= errIdentReuse(kv.pos, kv.key);
+				continue;
+			}
+			nameSet[kv.key] = (void[0]).init;
+			SmErrsVal!RExpr exprRes = resolve(kv.val, st.stabR, st.ctx, st.dep,
+					st.fns);
+			if (exprRes.isErr){
+				st.errs ~= exprRes.err;
+				continue;
+			}
+			r.members[kv.key] = exprRes.val;
+		}
+		st.res = r;
 	}
 
 	void boolLiteralExprIter(BoolLiteralExpr node, ref St st){
