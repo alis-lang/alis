@@ -8,6 +8,7 @@ import alis.common,
 			 alis.compiler.semantic.common,
 			 alis.compiler.semantic.error,
 			 alis.compiler.semantic.sym0,
+			 alis.compiler.semantic.eval,
 			 alis.compiler.ast,
 			 alis.compiler.ast.iter,
 			 alis.compiler.ast.rst;
@@ -38,6 +39,8 @@ private struct St{
 	RExpr res;
 	/// parameter types if resuslting expression is expected to be callable
 	AValCT[] params;
+	/// `RFn` for each `AFn.uid`
+	RFn[string] fns;
 }
 
 private alias It = ItL!(mixin(__MODULE__), 0);
@@ -81,7 +84,8 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 		RCommaExpr r = new RCommaExpr;
 		r.pos = node.pos;
 		foreach (Expression expr; node.exprs){
-			SmErrsVal!RExpr exprRes = resolve(expr, st.stabR, st.ctx, st.dep);
+			SmErrsVal!RExpr exprRes = resolve(expr, st.stabR, st.ctx, st.dep,
+					st.fns);
 			if (exprRes.isErr){
 				st.errs ~= exprRes.err;
 				return;
@@ -124,7 +128,51 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void fnAnonExprIter(FnAnonExpr node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
+		immutable string name = format!"fn$_%d_%d_$"(node.pos.line, node.pos.col);
+		ASymbol *sym = new ASymbol(AFn(st.ctx ~ name.IdentU));
+		AFn *symC = &sym.fnS;
+		symC.vis = Visibility.Default;
+		symC.uid = st.ctx.toString ~ name;
+		symC.isAlisFn = true;
+
+		void[0][string] nameSet;
+		foreach (size_t i, FParam param; node.params.params){
+			if (param.name != "_" && param.name in nameSet){
+				st.errs ~= errIdentReuse(param.pos, param.name);
+				continue;
+			}
+			nameSet[param.name] = (void[0]).init;
+			immutable bool isAuto =
+				cast(AutoExpr)param.type !is null || param.type is null;
+			ADataType type;
+			if (!isAuto){
+				SmErrsVal!ADataType typeRes = eval4Type(param.type, st.stabR, st.ctx,
+						st.dep, st.fns);
+				if (typeRes.isErr)
+					st.errs ~= typeRes.err;
+				type = typeRes.val;
+			}
+			if (param.val !is null){
+				st.errs ~= errFnAnonParamDef(param.pos, param.name);
+				continue;
+			}
+			if (isAuto){
+				st.errs ~= errUnsup(param.pos,
+						"inferring type for anonymous function params");
+				continue;
+			}
+			symC.paramsV ~= type.initB;
+			symC.paramsN ~= param.name;
+			symC.paramsT ~= type;
+		}
+		RFn r = new RFn;
+		r.pos = node.pos;
+		r.ident = symC.ident.toString;
+		r.paramsT = symC.paramsT;
+		r.paramsN = symC.paramsN;
+		r.paramCount = r.paramsT.length; // TODO: get rid of RFn.paramCount
+		symC.uid = fnNameEncode(symC.ident.toString, symC.paramsT);
+		st.fns[symC.uid] = r;
 	}
 
 	void structLiteralExprIter(StructLiteralExpr node, ref St st){
@@ -175,7 +223,8 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 		RArrayLiteralExpr r = new RArrayLiteralExpr;
 		r.pos = node.pos;
 		foreach (Expression elem; node.elements){
-			SmErrsVal!RExpr exprRes = resolve(elem, st.stabR, st.ctx, st.dep);
+			SmErrsVal!RExpr exprRes = resolve(elem, st.stabR, st.ctx, st.dep,
+					st.fns);
 			if (exprRes.isErr){
 				st.errs ~= exprRes.err;
 				return;
@@ -253,7 +302,7 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 			r.pos = node.pos;
 			r.name = intr.name;
 			r.params = node.params
-				.map!(p => resolve(p, st.stabR, st.ctx, st.dep))
+				.map!(p => resolve(p, st.stabR, st.ctx, st.dep, st.fns))
 				.tee!((SmErrsVal!RExpr p){
 						if (p.isErr)
 							st.errs ~= p.err;
@@ -263,7 +312,7 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 			st.res = r;
 			return;
 		}
-		st.errs ~= errUnsup(node); // TODO: implement
+		st.errs ~= errUnsup(node.pos, "calling function"); // TODO: implement
 	}
 
 	void opIndexExprIter(OpIndexExpr node, ref St st){
@@ -356,12 +405,14 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 /// Returns: RExpr or SmErr[]
 pragma(inline, true)
 package SmErrsVal!RExpr resolve(Expression expr, STab stabR, IdentU[] ctx,
-		void[0][ASymbol*] dep, AValCT[] params = null){
+		void[0][ASymbol*] dep, RFn[string] fns, AValCT[] params = null){
+	assert (fns);
 	St st;
 	st.dep = dep;
 	st.ctx = ctx.dup;
 	st.stabR = stabR;
 	st.stab = stabR.findSt(ctx, ctx);
+	st.fns = fns;
 	st.params = params.dup;
 	It.exec(expr, st);
 	if (st.errs.length)

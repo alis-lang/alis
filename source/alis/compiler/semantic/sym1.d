@@ -91,7 +91,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			ADataType type;
 			if (!isAuto){
 				SmErrsVal!ADataType typeRes = eval4Type(param.type, st.stabR, st.ctx,
-						st.dep);
+						st.dep, st.fns);
 				if (typeRes.isErr)
 					st.errs ~= typeRes.err;
 				type = typeRes.val;
@@ -102,7 +102,8 @@ private bool isRecDep(ASTNode node, ref St1 st){
 				st.errs ~= errAutoNoVal(param.pos);
 			if (param.val){
 				prevHadDef = true;
-				SmErrsVal!AValCT valRes = eval4Val(param.val, st.stabR, st.ctx, st.dep);
+				SmErrsVal!AValCT valRes = eval4Val(param.val, st.stabR, st.ctx, st.dep,
+						st.fns);
 				if (valRes.isErr){
 					st.errs ~= valRes.err;
 					continue;
@@ -115,7 +116,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 				type = valRes.val.typeL;
 				symC.paramsV ~= valRes.val.dataL;
 			} else {
-				symC.paramsV ~= (ubyte[]).init;
+				symC.paramsV ~= type.initB;
 			}
 			symC.paramsN ~= param.name;
 			symC.paramsT ~= type;
@@ -139,7 +140,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 
 		st.stab.add(symC.uid.IdentU, subSt, symC.vis, st.ctx);
 		SmErrsVal!RExpr exprRes = resolve(node.body, st.stabR,
-				st.ctx ~ symC.uid.IdentU, st.dep);
+				st.ctx ~ symC.uid.IdentU, st.dep, st.fns);
 		if (exprRes.isErr){
 			st.errs ~= exprRes.err;
 			return;
@@ -167,7 +168,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
 		if (!isAuto){
 			SmErrsVal!ADataType typeRes = eval4Type(node.type, st.stabR, st.ctx,
-					st.dep);
+					st.dep, st.fns);
 			if (typeRes.isErr){
 				st.errs ~= typeRes.err;
 				return;
@@ -175,7 +176,8 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			symC.type = typeRes.val;
 		}
 
-		SmErrsVal!AValCT valRes = eval4Val(node.val, st.stabR, st.ctx, st.dep);
+		SmErrsVal!AValCT valRes = eval4Val(node.val, st.stabR, st.ctx, st.dep,
+				st.fns);
 		if (valRes.isErr){
 			st.errs ~= valRes.err;
 			return;
@@ -203,7 +205,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
 		if (!isAuto){
 			SmErrsVal!ADataType typeRes = eval4Type(node.type, st.stabR, st.ctx,
-					st.dep);
+					st.dep, st.fns);
 			if (typeRes.isErr){
 				st.errs ~= typeRes.err;
 				return;
@@ -222,7 +224,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 				return;
 			}
 			SmErrsVal!AValCT valRes = eval4Val(member.value, st.stabR, st.ctx,
-					st.dep);
+					st.dep, st.fns);
 			if (valRes.isErr){
 				st.errs ~= valRes.err;
 				return;
@@ -340,7 +342,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 				}
 			} else {
 				SmErrsVal!ADataType typeRes = eval4Type(field.type, st.stabR, st.ctx,
-						st.dep);
+						st.dep, st.fns);
 				if (typeRes.isErr){
 					st.errs ~= typeRes.err;
 					continue;
@@ -349,7 +351,8 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			}
 			AValCT val;
 			if (field.val){
-				SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx, st.dep);
+				SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx, st.dep,
+						st.fns);
 				if (valRes.isErr){
 					st.errs ~= valRes.err;
 					continue;
@@ -395,7 +398,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
 		if (!isAuto){
 			SmErrsVal!ADataType typeVal = eval4Type(node.type, st.stabR, st.ctx,
-					st.dep);
+					st.dep, st.fns);
 			if (typeVal.isErr){
 				st.errs ~= typeVal.err;
 				return;
@@ -403,7 +406,8 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			symC.type = typeVal.val;
 		}
 		if (node.value){
-			SmErrsVal!AValCT valVal = eval4Val(node.value, st.stabR, st.ctx, st.dep);
+			SmErrsVal!AValCT valVal = eval4Val(node.value, st.stabR, st.ctx, st.dep,
+					st.fns);
 			if (valVal.isErr){
 				st.errs ~= valVal.err;
 				return;
@@ -430,7 +434,8 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		scope(exit) st.dep.remove(sym);
 		scope(exit) sym.isComplete = true;
 		AAlias* symC = &sym.aliasS;
-		SmErrsVal!RExpr exprVal = resolve(node.val, st.stabR, st.ctx, st.dep);
+		SmErrsVal!RExpr exprVal = resolve(node.val, st.stabR, st.ctx, st.dep,
+				st.fns);
 		if (exprVal.isErr){
 			st.errs ~= exprVal.err;
 			return;
@@ -541,7 +546,7 @@ private void structDo(Struct s, AStruct* symC, ref St1 st){
 			}
 		} else {
 			SmErrsVal!ADataType typeRes = eval4Type(field.type, st.stabR, st.ctx,
-					st.dep);
+					st.dep, st.fns);
 			if (typeRes.isErr){
 				st.errs ~= typeRes.err;
 				continue;
@@ -550,7 +555,8 @@ private void structDo(Struct s, AStruct* symC, ref St1 st){
 		}
 		AValCT val;
 		if (field.val){
-			SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx, st.dep);
+			SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx, st.dep,
+					st.fns);
 			if (valRes.isErr){
 				st.errs ~= valRes.err;
 				continue;
@@ -655,7 +661,7 @@ package void unionNamedDo(NamedUnion node, ASymbol* sym, ref St1 st){
 			}
 		} else {
 			SmErrsVal!ADataType typeRes = eval4Type(field.type, st.stabR, st.ctx,
-					st.dep);
+					st.dep, st.fns);
 			if (typeRes.isErr){
 				st.errs ~= typeRes.err;
 				continue;
@@ -668,7 +674,8 @@ package void unionNamedDo(NamedUnion node, ASymbol* sym, ref St1 st){
 				st.errs ~= errUnionMultiDef(field.pos);
 			}
 			symC.initI = i;
-			SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx, st.dep);
+			SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx, st.dep,
+					st.fns);
 			if (valRes.isErr){
 				st.errs ~= valRes.err;
 				continue;
@@ -714,7 +721,7 @@ package void unionUnnamedDo(UnnamedUnion node, ASymbol* sym, ref St1 st){
 	symC.initI = size_t.max;
 	foreach (UnnamedUnionMember member; node.members){
 		SmErrsVal!ADataType typeRes = eval4Type(member.type, st.stabR, st.ctx,
-				st.dep);
+				st.dep, st.fns);
 		if (typeRes.isErr){
 			st.errs ~= typeRes.err;
 			continue;
@@ -723,7 +730,8 @@ package void unionUnnamedDo(UnnamedUnion node, ASymbol* sym, ref St1 st){
 		if (!member.val) continue;
 		if (symC.initI != size_t.max)
 			st.errs ~= errUnionMultiDef(member.pos);
-		SmErrsVal!AValCT valRes = eval4Val(member.val, st.stabR, st.ctx, st.dep);
+		SmErrsVal!AValCT valRes = eval4Val(member.val, st.stabR, st.ctx, st.dep,
+				st.fns);
 		if (valRes.isErr){
 			st.errs ~= valRes.err;
 			continue;
@@ -772,6 +780,7 @@ package SmErrsVal!S1R stab1Of(ASTNode node, STab stabR, ASymbol*[ASTNode] sMap,
 	st.ctx = ctx.dup;
 	st.sMap = sMap;
 	st.dep = dep;
+	st.fns = new RFn[string];
 	It.exec(node, st);
 	if (st.errs)
 		return SmErrsVal!S1R(st.errs);
