@@ -194,7 +194,7 @@ package SmErr errUnxp(Location pos, string err){
 
 /// Ambiguous identifier
 package SmErr errIdentAmbig(R)(Location pos, string ident, R matches) if (
-		isInputRange!R && is (ForeachType!R : string)){
+		isInputRange!(R, string)){
 	return SmErr(pos,
 			format!"Identifier %s is ambiguous, matches with: %(%r,%)"(
 				ident, matches), SmErr.Type.IdentAmbig);
