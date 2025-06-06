@@ -281,12 +281,12 @@ public:
 public class RIdentExpr : RExpr{
 public:
 	/// identifier
-	string ident;
+	IdentU[] id;
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "RIdentExpr";
-		ret["ident"] = ident;
+		ret["ident"] = id.toString;
 		return ret;
 	}
 }
