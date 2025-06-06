@@ -411,6 +411,54 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	void opQQBinIter(OpQQBin node, ref St st){
 		st.errs ~= errUnsup(node); // TODO: implement
 	}
+
+	void cCNodeIter(CCNode node, ref St st){
+		st.errs ~= errUnsup(node); // TODO: implement
+	}
+
+	void staticIfIter(StaticIf node, ref St st){
+		st.errs ~= errUnsup(node); // TODO: implement
+	}
+
+	void staticForIter(StaticFor node, ref St st){
+		st.errs ~= errUnsup(node); // TODO: implement
+	}
+
+	void staticSwitchIter(StaticSwitch node, ref St st){
+		st.errs ~= errUnsup(node); // TODO: implement
+	}
+
+	void mixinInitStmntIter(MixinInitStmnt node, ref St st){
+		st.errs ~= errUnsup(node); // TODO: implement
+	}
+
+	void blockIter(Block node, ref St st){
+		st.errs ~= errUnsup(node); // TODO: implement
+	}
+
+	void returnIter(Return node, ref St st){
+		st.errs ~= errUnsup(node); // TODO: implement
+	}
+
+	void ifIter(If node, ref St st){
+		st.errs ~= errUnsup(node); // TODO: implement
+	}
+
+	void forIter(For node, ref St st){
+		st.errs ~= errUnsup(node); // TODO: implement
+	}
+
+	void whileIter(While node, ref St st){
+		st.errs ~= errUnsup(node); // TODO: implement
+	}
+
+	void doWhileIter(DoWhile node, ref St st){
+		st.errs ~= errUnsup(node); // TODO: implement
+	}
+
+	void switchIter(Switch node, ref St st){
+		st.errs ~= errUnsup(node); // TODO: implement
+	}
 }
 
 /// Resolves Expression to RExpr
