@@ -9,6 +9,9 @@ import alis.common,
 			 alis.compiler.semantic.error,
 			 alis.compiler.semantic.sym0,
 			 alis.compiler.semantic.eval,
+			 alis.compiler.semantic.stmnt,
+			 alis.compiler.semantic.typeofexpr,
+			 alis.compiler.semantic.types,
 			 alis.compiler.ast,
 			 alis.compiler.ast.iter,
 			 alis.compiler.ast.rst;
@@ -70,6 +73,38 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	void blockExprIter(BlockExpr node, ref St st){
 		RBlockExpr r = new RBlockExpr;
 		r.pos = node.pos;
+		r.block = new RBlock;
+		r.block.pos = node.block.pos;
+		immutable bool isAuto = cast(AutoExpr)node.type !is null;
+		foreach (Statement stmnt; node.block.statements){
+			SmErrsVal!RStatement stmntRes = resolveStmnt(stmnt, st.stabR, st.ctx,
+					st.dep, st.fns);
+			if (stmntRes.isErr){
+				st.errs ~= stmntRes.err;
+				continue;
+			}
+			r.block.statements ~= stmntRes.val;
+		}
+		SmErrsVal!ADataType typeRes = typeOf(r, st.stabR, st.ctx);
+		if (typeRes.isErr){
+			st.errs ~= typeRes.err;
+			return;
+		}
+		if (isAuto){
+			r.type = typeRes.val;
+		} else {
+			SmErrsVal!ADataType xtypeRes = eval4Type(node.type, st.stabR, st.ctx,
+					st.dep, st.fns);
+			if (xtypeRes.err){
+				st.errs ~= xtypeRes.err;
+				return;
+			}
+			r.type = xtypeRes.val;
+			if (!typeRes.val.canCastTo(r.type)){
+				st.errs ~= errTypeMis(node, xtypeRes.val, typeRes.val);
+				return;
+			}
+		}
 		st.errs ~= errUnsup(node); // TODO: implement
 	}
 
@@ -409,54 +444,6 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void opQQBinIter(OpQQBin node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
-	}
-
-	void cCNodeIter(CCNode node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
-	}
-
-	void staticIfIter(StaticIf node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
-	}
-
-	void staticForIter(StaticFor node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
-	}
-
-	void staticSwitchIter(StaticSwitch node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
-	}
-
-	void mixinInitStmntIter(MixinInitStmnt node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
-	}
-
-	void blockIter(Block node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
-	}
-
-	void returnIter(Return node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
-	}
-
-	void ifIter(If node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
-	}
-
-	void forIter(For node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
-	}
-
-	void whileIter(While node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
-	}
-
-	void doWhileIter(DoWhile node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
-	}
-
-	void switchIter(Switch node, ref St st){
 		st.errs ~= errUnsup(node); // TODO: implement
 	}
 }
