@@ -98,7 +98,7 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 /// - `ctx` - Context where the `expr` occurs
 /// Returns: RStatement or SmErr[]
 pragma(inline, true)
-package SmErrsVal!RStatement resolveStmnt(Statement expr, STab stabR,
+package SmErrsVal!RStatement resolveStmnt(Statement stmnt, STab stabR,
 		IdentU[] ctx, void[0][ASymbol*] dep, RFn[string] fns){
 	assert (fns);
 	St st;
@@ -107,10 +107,10 @@ package SmErrsVal!RStatement resolveStmnt(Statement expr, STab stabR,
 	st.stabR = stabR;
 	st.stab = stabR.findSt(ctx, ctx);
 	st.fns = fns;
-	It.exec(expr, st);
+	It.exec(stmnt, st);
 	if (st.errs.length)
 		return SmErrsVal!RStatement(st.errs);
 	if (st.res is null)
-		return SmErrsVal!RStatement([errUnxp(expr.pos, "resolve stmnt -> null")]);
+		return SmErrsVal!RStatement([errUnxp(stmnt.pos, "resolve stmnt -> null")]);
 	return SmErrsVal!RStatement(st.res);
 }
