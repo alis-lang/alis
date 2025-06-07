@@ -105,7 +105,6 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 				return;
 			}
 		}
-		st.errs ~= errUnsup(node); // TODO: implement
 	}
 
 	void intrinsicExprIter(IntrinsicExpr node, ref St st){
@@ -337,15 +336,45 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void opPostExprOverridableIter(OpPostExprOverridable node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
+		OpCallExpr call = new OpCallExpr;
+		call.pos = node.pos;
+		IdentExpr callee = new IdentExpr;
+		callee.pos = node.pos;
+		callee.ident = "opPost";
+		call.callee = callee;
+		LiteralStringExpr op = new LiteralStringExpr;
+		op.pos = node.pos;
+		op.val = node.op;
+		call.params = [op, node.operand];
+		opCallExprIter(call, st);
 	}
 
 	void opPreExprOverridableIter(OpPreExprOverridable node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
+		OpCallExpr call = new OpCallExpr;
+		call.pos = node.pos;
+		IdentExpr callee = new IdentExpr;
+		callee.pos = node.pos;
+		callee.ident = "opPre";
+		call.callee = callee;
+		LiteralStringExpr op = new LiteralStringExpr;
+		op.pos = node.pos;
+		op.val = node.op;
+		call.params = [op, node.operand];
+		opCallExprIter(call, st);
 	}
 
 	void opBinExprOverridableIter(OpBinExprOverridable node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
+		OpCallExpr call = new OpCallExpr;
+		call.pos = node.pos;
+		IdentExpr callee = new IdentExpr;
+		callee.pos = node.pos;
+		callee.ident = "opPre";
+		call.callee = callee;
+		LiteralStringExpr op = new LiteralStringExpr;
+		op.pos = node.pos;
+		op.val = node.op;
+		call.params = [op, node.lhs, node.rhs];
+		opCallExprIter(call, st);
 	}
 
 	void opCallExprIter(OpCallExpr node, ref St st){
