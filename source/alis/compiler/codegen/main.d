@@ -12,7 +12,7 @@ import std.algorithm;
 
 const string testFolder = "tests/codegen/";
 
-class BytecodeGenerator {
+/*class BytecodeGenerator {
 	private string[][] bytecodeInstructions;
 	private int labelCounter = 0;
 	private int stackOffset = 0;
@@ -714,11 +714,11 @@ void printBytecodeToFile(string filename, string[][] bytecodeInstructions) {
 	generator.generateStatementBytecode(ifStmt);
 
 	printBytecodeToFile(testFolder ~ "rif_intrinsic_code.txt", generator.bytecodeInstructions);
-}*/
+}*//*
 
 
 version (codegen) {
 	void main() {
 		writeln("Testing Bytecode Generator...");
 	}
-}
+}*/
