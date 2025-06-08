@@ -112,7 +112,8 @@ private bool isRecDep(ASTNode node, ref St1 st){
 					type = valRes.val.typeL;
 				else
 				if (!valRes.val.typeL.canCastTo(type))
-					st.errs ~= errIncompatType(param.val.pos, type, valRes.val.typeL);
+					st.errs ~= errIncompatType(param.val.pos, type.toString,
+							valRes.val.typeL.toString);
 				type = valRes.val.typeL;
 				symC.paramsV ~= valRes.val.dataL;
 			} else {
@@ -186,7 +187,8 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		if (isAuto)
 			symC.type = valRes.val.typeL;
 		if (!valRes.val.typeL.canCastTo(symC.type)){
-			st.errs ~= errIncompatType(node.pos, symC.type, valRes.val.typeL);
+			st.errs ~= errIncompatType(node.pos, symC.type.toString,
+					valRes.val.typeL.toString);
 			return;
 		}
 	}
@@ -243,7 +245,8 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		} else {
 			foreach (size_t i, ref ADataType type; types){
 				if (!type.canCastTo(symC.type))
-					st.errs ~= errIncompatType(node.members[i].pos, symC.type, type);
+					st.errs ~= errIncompatType(node.members[i].pos, symC.type.toString,
+							type.toString);
 			}
 		}
 
@@ -362,7 +365,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 					type = val.typeL;
 				} else
 				if (!val.typeL.canCastTo(type)){
-					st.errs ~= errTypeMis(field, type, val.typeL);
+					st.errs ~= errIncompatType(field.pos, type.toString, val.typeL.toString);
 					continue;
 				}
 				symC.initD ~= val.dataL;
@@ -415,7 +418,8 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			if (isAuto){
 				symC.type = valVal.val.typeL;
 			} else if (!valVal.val.typeL.canCastTo(symC.type)){
-				st.errs ~= errTypeMis(node.value, symC.type, valVal.val.typeL);
+				st.errs ~= errIncompatType(node.value.pos, symC.type.toString,
+						valVal.val.typeL.toString);
 				return;
 			}
 		} else if (isAuto){
@@ -566,7 +570,8 @@ private void structDo(Struct s, AStruct* symC, ref St1 st){
 				type = val.typeL;
 			} else
 				if (!val.typeL.canCastTo(type)){
-					st.errs ~= errTypeMis(field, type, val.typeL);
+					st.errs ~= errIncompatType(field.pos, type.toString,
+							val.typeL.toString);
 					continue;
 				}
 			symC.initD ~= val.dataL;
@@ -685,7 +690,8 @@ package void unionNamedDo(NamedUnion node, ASymbol* sym, ref St1 st){
 				type = val.typeL;
 			}	else
 			if (!val.typeL.canCastTo(type)){
-				st.errs ~= errTypeMis(field, type, val.typeL);
+				st.errs ~= errIncompatType(field.pos, type.toString,
+						val.typeL.toString);
 				continue;
 			}
 			symC.initD = val.dataL;

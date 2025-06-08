@@ -27,7 +27,6 @@ public struct SmErr{
 		TypeExprExpected, /// Expression should have resolved to type
 		SymExprExpected, /// Expression should have resolved to symbol
 		ParamCountMis, /// mismatched parameter count
-		TypeMis, /// type mismatch
 		RecursiveDep, /// Recursive Dependency
 		IncompatTypes, /// incompatible types
 		EnumMemValMis, /// enum member value missing
@@ -109,14 +108,6 @@ package SmErr errParamCount(ASTNode node, string name, size_t expected,
 			SmErr.Type.ParamCountMis);
 }
 
-/// Type mismatch
-package SmErr errTypeMis(ASTNode node, ADataType expected, ADataType got){
-	return SmErr(node.pos,
-			format!"Mismatched types: expected `%s`, received `%s`"(
-				expected.toString, got.toString),
-			SmErr.Type.TypeMis);
-}
-
 /// Recursive Dependency
 package SmErr errRecDep(Location pos, string name){
 	return SmErr(pos,
@@ -125,8 +116,8 @@ package SmErr errRecDep(Location pos, string name){
 }
 
 /// incompatible types
-package SmErr errIncompatType()(Location pos, ADataType expected,
-		ADataType got){
+package SmErr errIncompatType()(Location pos, string expected,
+		string got){
 	return SmErr(pos,
 			format!"Incompatible Types: Cannot implicitly cast `%s` to `%s`"(
 				got, expected),
