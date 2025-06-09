@@ -42,9 +42,6 @@ struct St{
 	void literalIter(RLiteralExpr node, ref St st){
 		st.res = AValCT(node.type, node.value.dup);
 	}
-	void dataTypeIter(RDTypeExpr node, ref St st){
-		st.res = AValCT(node.type);
-	}
 
 	void intrExpr(RIntrinsicExpr node, ref St st){
 		switch (node.name){
