@@ -127,7 +127,6 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		r.ident = symC.ident.toString;
 		r.paramsT = symC.paramsT;
 		r.paramsN = symC.paramsN;
-		r.paramCount = r.paramsT.length; // TODO: get rid of RFn.paramCount
 		symC.uid = fnNameEncode(symC.ident.toString, symC.paramsT);
 		st.fns[symC.uid] = r;
 
