@@ -493,8 +493,8 @@ public:
 	}
 }
 
-/// Wrapper for Expression that has already been evaluated
-public class REvaldExpr : RExpr{
+/// Wrapper for AValCT
+public class RAValCTExpr : RExpr{
 public:
 	/// evaluation result
 	AValCT res;
