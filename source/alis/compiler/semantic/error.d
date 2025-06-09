@@ -41,6 +41,7 @@ public struct SmErr{
 		IdentAmbig, /// Ambiguous identifier
 		FnAnonParamDef, /// Anonymous Function cannot have default parameter value
 		TypeInferFail, /// Failed to infer type
+		Bounds, /// Bounds violation
 	}
 	/// where error happen
 	Location pos;
@@ -202,4 +203,10 @@ package SmErr errFnAnonParamDef(Location pos, string name){
 package SmErr errTypeInferFail(Location pos, string name){
 	return SmErr(pos, name.format!"type inference failed for `%s`",
 			SmErr.Type.TypeExprExpected);
+}
+
+/// Bounds violation
+package SmErr errBounds(Location pos, size_t max, size_t got){
+	return SmErr(pos, format!"Bounds violation: %d exceeds bound %d"(
+				got, max), SmErr.Type.Bounds);
 }
