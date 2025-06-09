@@ -398,46 +398,60 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 			return;
 		}
 
-		SmErr[] errs;
-		bool isMember;
-		if (OpDotBin opDot = cast(OpDotBin)node.callee)(){
-			IdentExpr idExpr = cast(IdentExpr)opDot.rhs;
-			if (idExpr is null) return;
-			RExpr sub; {
-				SmErrsVal!RExpr subRes = resolve(opDot.lhs, st.stabR, st.ctx, st.dep,
-						st.fns);
-				if (subRes.isErr){
-					errs ~= subRes.err;
-					return;
+		if (OpDotBin opDot = cast(OpDotBin)node.callee){
+			IdentExpr calleeId;
+			Expression[] params;
+			SmErr[] errs;
+			bool isMember = true;
+			(){
+				calleeId = cast(IdentExpr)opDot.rhs;
+				if (calleeId is null) return;
+				RExpr sub; {
+					SmErrsVal!RExpr subRes = resolve(opDot.lhs, st.stabR, st.ctx, st.dep,
+							st.fns);
+					if (subRes.isErr){
+						errs ~= subRes.err;
+						return;
+					}
+					sub = subRes.val;
 				}
-				sub = subRes.val;
-			}
-			ADataType subT; {
-				SmErrsVal!ADataType typeRes = typeOf(sub, st.stabR, st.ctx);
-				if (typeRes.isErr){
-					errs ~= typeRes.err;
-					return;
+				ADataType subT; {
+					SmErrsVal!ADataType typeRes = typeOf(sub, st.stabR, st.ctx);
+					if (typeRes.isErr){
+						errs ~= typeRes.err;
+						return;
+					}
+					subT = typeRes.val;
 				}
-				subT = typeRes.val;
-			}
-			string id = idExpr.ident;
-			switch (subT.type){
-				case ADataType.Type.Enum:
-					isMember = subT.enumS.memId.canFind(id); break;
-				case ADataType.Type.Struct:
-					isMember = (id in subT.structS.names) !is null; break;
-				default: isMember = false; break;
-			}
-		}();
+				string id = calleeId.ident;
+				isMember = false;
+				switch (subT.type){
+					case ADataType.Type.Enum:
+						isMember = subT.enumS.memId.canFind(id); break;
+					case ADataType.Type.Struct:
+						isMember = (id in subT.structS.names) !is null; break;
+					default: isMember = false; break;
+				}
+				if (!isMember)
+					params = opDot.lhs ~ node.params;
+			}();
 
-		if (isMember){
-			// TODO: opDot will give fn ptr that should be called
-			return;
+			if (!isMember){
+				if (errs.length){
+					st.errs ~= errs;
+					return;
+				}
+				OpCallExpr callExpr = new OpCallExpr;
+				callExpr.pos = node.pos;
+				callExpr.callee = calleeId;
+				callExpr.params = params;
+				opCallExprIter(callExpr, st);
+				return;
+			}
 		}
-		// TODO: try UFCS
 
-		// else error out
-		st.errs ~= errs;
+		// TODO: handle "normal" function calls
+		st.errs ~= errUnsup(node.pos, "normal function calls, sadly");
 	}
 
 	void opIndexExprIter(OpIndexExpr node, ref St st){
