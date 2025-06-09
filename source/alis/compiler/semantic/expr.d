@@ -23,6 +23,7 @@ import meta;
 import std.algorithm,
 			 std.array,
 			 std.range,
+			 std.conv,
 			 std.format;
 
 debug import std.stdio;
@@ -54,20 +55,22 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 			st.errs ~= errUnsup(node.pos, "ident lookup with params");
 			return;
 		}
-		RIdentExpr r = new RIdentExpr;
-		r.pos = node.pos;
+		bool found = false;
+		ASymbol* sym;
 		foreach (symR; st.stabR.find(node.ident.IdentU, st.ctx)){
 			auto syms = symR;
-			foreach (ASymbol* sym; symR){
-				if (r.id.length){
+			foreach (ASymbol* s; symR){
+				if (found){
 					st.errs ~= errIdentAmbig(node.pos, node.ident,
 							syms.map!(s => s.ident.toString));
 					return;
 				}
-				r.id = sym.ident;
+				found = true;
+				sym = s;
 			}
 		}
-		st.res = r;
+		// TODO: transform sym into RExpr
+		//st.res = r;
 	}
 
 	void blockExprIter(BlockExpr node, ref St st){
@@ -101,7 +104,8 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 			}
 			r.type = xtypeRes.val;
 			if (!typeRes.val.canCastTo(r.type)){
-				st.errs ~= errTypeMis(node, xtypeRes.val, typeRes.val);
+				st.errs ~= errIncompatType(node.pos, xtypeRes.val.toString,
+						typeRes.val.toString);
 				return;
 			}
 		}
@@ -204,7 +208,6 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 		r.ident = symC.ident.toString;
 		r.paramsT = symC.paramsT;
 		r.paramsN = symC.paramsN;
-		r.paramCount = r.paramsT.length; // TODO: get rid of RFn.paramCount
 		symC.uid = fnNameEncode(symC.ident.toString, symC.paramsT);
 		st.fns[symC.uid] = r;
 	}
@@ -225,7 +228,8 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 				st.errs ~= exprRes.err;
 				continue;
 			}
-			r.members[kv.key] = exprRes.val;
+			r.names ~= kv.key;
+			r.vals ~= exprRes.val;
 		}
 		st.res = r;
 	}
@@ -294,44 +298,44 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void intExprIter(IntExpr node, ref St st){
-		RDTypeExpr r = new RDTypeExpr;
+		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofInt;
+		r.res = ADataType.ofInt.AValCT;
 		st.res = r;
 	}
 
 	void uIntExprIter(UIntExpr node, ref St st){
-		RDTypeExpr r = new RDTypeExpr;
+		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofUInt;
+		r.res = ADataType.ofUInt.AValCT;
 		st.res = r;
 	}
 
 	void floatExprIter(FloatExpr node, ref St st){
-		RDTypeExpr r = new RDTypeExpr;
+		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofFloat;
+		r.res = ADataType.ofFloat.AValCT;
 		st.res = r;
 	}
 
 	void charExprIter(CharExpr node, ref St st){
-		RDTypeExpr r = new RDTypeExpr;
+		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofChar(8);
+		r.res = ADataType.ofChar(8).AValCT;
 		st.res = r;
 	}
 
 	void stringExprIter(StringExpr node, ref St st){
-		RDTypeExpr r = new RDTypeExpr;
+		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofString;
+		r.res = ADataType.ofString.AValCT;
 		st.res = r;
 	}
 
 	void boolExprIter(BoolExpr node, ref St st){
-		RDTypeExpr r = new RDTypeExpr;
+		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofBool;
+		r.res = ADataType.ofBool.AValCT;
 		st.res = r;
 	}
 
@@ -398,6 +402,77 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 
 	void opIndexExprIter(OpIndexExpr node, ref St st){
 		st.errs ~= errUnsup(node); // TODO: implement
+		RExpr sub; {
+			SmErrsVal!RExpr subRes = resolve(node.lhs, st.stabR, st.ctx, st.dep,
+					st.fns);
+			if (subRes.isErr){
+				st.errs ~= subRes.err;
+				return;
+			}
+			sub = subRes.val;
+		}
+		ADataType subType; {
+			SmErrsVal!ADataType subTypeRes = typeOf(sub, st.stabR, st.ctx);
+			if (subTypeRes.isErr){
+				st.errs ~= subTypeRes.err;
+				return;
+			}
+			subType = subTypeRes.val;
+		}
+
+		if (subType.type == ADataType.Type.Seq){
+			if (node.indexes.length != 0){
+				st.errs ~= errParamCount(node, "index", 1, node.indexes.length);
+				return;
+			}
+			AValCT ind; {
+				SmErrsVal!AValCT indRes = eval(node.indexes[0], st.stabR, st.ctx,
+						st.dep, st.fns);
+				if (indRes.isErr){
+					st.errs ~= indRes.err;
+					return;
+				}
+				ind = indRes.val;
+			}
+			if (ind.type != AValCT.Type.Literal){
+				st.errs ~= errIncompatType(node.indexes[0].pos, "uint literal",
+						ind.toString);
+				return;
+			}
+			if (!ind.typeT.canCastTo(ADataType.ofUInt)){
+				st.errs ~= errIncompatType(node.indexes[0].pos, "uint",
+						ind.typeT.toString);
+				return;
+			}
+			AValCT subVal; {
+				SmErrsVal!AValCT subValRes = eval(sub, st.stabR, st.ctx);
+				if (subValRes.isErr){
+					st.errs ~= subValRes.err;
+					return;
+				}
+				subVal = subValRes.val;
+			}
+			if (subVal.type != AValCT.Type.Seq){
+				st.errs ~= errIncompatType(node.lhs.pos, "sequence", sub.toString);
+				return;
+			}
+			ind = ind.to(ADataType.ofUInt).val;
+			size_t indI = ind.dataL.as!size_t;
+			if (indI >= subVal.seq.length){
+				st.errs ~= errBounds(node.indexes[0].pos, subVal.seq.length, indI);
+				return;
+			}
+			RAValCTExpr r = new RAValCTExpr;
+			r.pos = node.pos;
+			r.res = subVal.seq[indI];
+			st.res = r;
+			return;
+		}
+
+		if (subType.type == ADataType.Type.Array ||
+				subType.type == ADataType.Type.Slice){
+
+		}
 	}
 
 	void opAssignBinIter(OpAssignBin node, ref St st){
