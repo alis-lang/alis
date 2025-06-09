@@ -401,7 +401,6 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void opIndexExprIter(OpIndexExpr node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
 		RExpr sub; {
 			SmErrsVal!RExpr subRes = resolve(node.lhs, st.stabR, st.ctx, st.dep,
 					st.fns);
@@ -469,10 +468,47 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 			return;
 		}
 
-		if (subType.type == ADataType.Type.Array ||
-				subType.type == ADataType.Type.Slice){
-
+		RExpr[] params;
+		ADataType[] paramsT;
+		foreach (Expression index; node.indexes){
+			SmErrsVal!RExpr exprRes = resolve(index, st.stabR, st.ctx, st.dep,
+					st.fns);
+			if (exprRes.isErr){
+				st.errs ~= exprRes.err;
+				continue;
+			}
+			params ~= exprRes.val;
+			SmErrsVal!ADataType typeRes = typeOf(params[$ - 1], st.stabR, st.ctx);
+			if (typeRes.isErr){
+				st.errs ~= typeRes.err;
+				continue;
+			}
+			paramsT ~= typeRes.val;
 		}
+		if (params.length != node.indexes.length ||
+				params.length != paramsT.length)
+			return;
+
+		if ((subType.type == ADataType.Type.Array ||
+					subType.type == ADataType.Type.Slice) &&
+				node.indexes.length == 1 &&
+				paramsT[0].canCastTo(ADataType.ofUInt)){
+			RIntrinsicCallExpr r = new RIntrinsicCallExpr;
+			r.pos = node.pos;
+			r.name = "arrInd";
+			r.params = [sub, params[0]];
+			st.res = r;
+			return;
+		}
+
+		OpCallExpr call = new OpCallExpr;
+		call.pos = node.pos;
+		IdentExpr callee = new IdentExpr;
+		callee.pos = node.pos;
+		callee.ident = "opIndex";
+		call.callee = callee;
+		call.params = node.lhs ~ node.indexes;
+		opCallExprIter(call, st);
 	}
 
 	void opAssignBinIter(OpAssignBin node, ref St st){
