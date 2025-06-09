@@ -117,10 +117,12 @@ public struct ErrVal(T, E){
 	}
 	/// Returns: error
 	public @property E err() pure {
+		assert (isErr);
 		return _err;
 	}
 	/// Returns: value
 	public @property T val() pure {
+		assert (!isErr);
 		return _val;
 	}
 
