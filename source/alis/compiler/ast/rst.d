@@ -220,16 +220,16 @@ public:
 /// Resolved Expression
 public abstract class RExpr : RStatement{
 public:
-	/// whether `typeOf` is valid for this
-	bool hasTypeOf = false;
-	/// `typeOf` for this expression. Only valid if `this.hasTypeOf`
-	ADataType typeOf;
+	/// whether `type` has been set
+	bool hasType = false;
+	/// `typeOf` for this expression. Only valid if `this.hasType`
+	ADataType type;
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "RExpr";
-		if (hasTypeOf)
-			ret["typeOf"] = typeOf.toString;
+		if (hasType)
+			ret["type"] = type.toString;
 		return ret;
 	}
 
