@@ -40,3 +40,11 @@ package ADataType commonType(ADataType[] types){
 	}
 	return ADataType.ofNoInit;
 }
+
+/// casts AValCT (must be of AValCT.Type.Literal) to `target` ADataType
+/// Returns: AValCT containing casted value, or SmErr[]
+package SmErrsVal!AValCT to(AValCT val, ADataType type){
+	debug stderr.writefln!"STUB: to(ADataType: %s) returning as-is `%s`"(
+			type, val);
+	return SmErrsVal!AValCT(val);
+}

@@ -23,8 +23,9 @@ import alis.common,
 import core.stdc.stdlib;
 
 void main(){
-	string source;
-	while (!stdin.eof) source ~= stdin.readln;
+	import std.file;
+	string source = cast(string)File("in.alis").byLine.fold!((a, e) => a ~= e);
+	//while (!stdin.eof) source ~= stdin.readln;
 	StopWatch sw = StopWatch(AutoStart.yes);
 	CmpErrVal!Module node = source.tokenize.parse("alis-main");
 	sw.stop;
