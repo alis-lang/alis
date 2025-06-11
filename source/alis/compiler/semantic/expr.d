@@ -110,6 +110,11 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 				return;
 			}
 		}
+		if (st.params.length && r.type.callabilityOf(st.params) == size_t.max){
+			st.errs ~= errCallableIncompat(node.pos, r.type.toString,
+					st.params.map!(p => p.toString));
+			return;
+		}
 	}
 
 	void intrinsicExprIter(IntrinsicExpr node, ref St st){
@@ -117,9 +122,15 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 		r.pos = node.pos;
 		r.name = node.name;
 		st.res = r;
+		// TODO: error out if intrinsic not callable && st.params.length
 	}
 
 	void commaExprIter(CommaExpr node, ref St st){
+		if (st.params.length){
+			st.errs ~= errCallableIncompat(node.pos, "expression list",
+					st.params.map!(p => p.toString));
+			return;
+		}
 		RCommaExpr r = new RCommaExpr;
 		r.pos = node.pos;
 		foreach (Expression expr; node.exprs){
@@ -135,6 +146,11 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void structAnonIter(StructAnon node, ref St st){
+		if (st.params.length){
+			st.errs ~= errCallableIncompat(node.pos, "struct",
+					st.params.map!(p => p.toString));
+			return;
+		}
 		immutable string name = format!"struct$_%d_%d_$"(
 				node.pos.line, node.pos.col);
 		ASymbol *sym = new ASymbol(AStruct(st.ctx ~ name.IdentU));
@@ -148,6 +164,11 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void unionAnonIter(UnionAnon node, ref St st){
+		if (st.params.length){
+			st.errs ~= errCallableIncompat(node.pos, "union",
+					st.params.map!(p => p.toString));
+			return;
+		}
 		immutable string name = format!"union$_%d_%d_$"(
 				node.pos.line, node.pos.col);
 		ASymbol *sym = new ASymbol(AUnion(st.ctx ~ name.IdentU));
@@ -211,9 +232,20 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 		r.paramsN = symC.paramsN;
 		symC.uid = fnNameEncode(symC.ident.toString, symC.paramsT);
 		st.fns[symC.uid] = r;
+
+		if (st.params.length && sym.callabilityOf(st.params) == size_t.max){
+			st.errs ~= errCallableIncompat(node.pos, sym.ident.toString,
+					st.params.map!(p => p.toString));
+			return;
+		}
 	}
 
 	void structLiteralExprIter(StructLiteralExpr node, ref St st){
+		if (st.params.length){
+			st.errs ~= errCallableIncompat(node.pos, "struct literal",
+					st.params.map!(p => p.toString));
+			return;
+		}
 		RStructLiteralExpr r = new RStructLiteralExpr;
 		r.pos = node.pos;
 		void[0][string] nameSet;
@@ -236,6 +268,11 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void boolLiteralExprIter(BoolLiteralExpr node, ref St st){
+		if (st.params.length){
+			st.errs ~= errCallableIncompat(node.pos, "bool literal",
+					st.params.map!(p => p.toString));
+			return;
+		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
 		r.type = ADataType.ofBool;
@@ -244,6 +281,11 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void literalIntExprIter(LiteralIntExpr node, ref St st){
+		if (st.params.length){
+			st.errs ~= errCallableIncompat(node.pos, "int literal",
+					st.params.map!(p => p.toString));
+			return;
+		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
 		r.type = ADataType.ofInt;
@@ -252,6 +294,11 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void literalFloatExprIter(LiteralFloatExpr node, ref St st){
+		if (st.params.length){
+			st.errs ~= errCallableIncompat(node.pos, "float literal",
+					st.params.map!(p => p.toString));
+			return;
+		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
 		r.type = ADataType.ofFloat;
@@ -260,6 +307,11 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void literalStringExprIter(LiteralStringExpr node, ref St st){
+		if (st.params.length){
+			st.errs ~= errCallableIncompat(node.pos, "string literal",
+					st.params.map!(p => p.toString));
+			return;
+		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
 		r.type = ADataType.ofString;
@@ -268,6 +320,11 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void literalCharExprIter(LiteralCharExpr node, ref St st){
+		if (st.params.length){
+			st.errs ~= errCallableIncompat(node.pos, "char literal",
+					st.params.map!(p => p.toString));
+			return;
+		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
 		r.type = ADataType.ofChar(8);
@@ -276,6 +333,11 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void literalArrayExprIter(LiteralArrayExpr node, ref St st){
+		if (st.params.length){
+			st.errs ~= errCallableIncompat(node.pos, "array literal",
+					st.params.map!(p => p.toString));
+			return;
+		}
 		RArrayLiteralExpr r = new RArrayLiteralExpr;
 		r.pos = node.pos;
 		foreach (Expression elem; node.elements){
@@ -299,6 +361,11 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void intExprIter(IntExpr node, ref St st){
+		if (st.params.length > 1){
+			st.errs ~= errCallableIncompat(node.pos, node.ident,
+					st.params.map!(p => p.toString));
+			return;
+		}
 		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
 		r.res = ADataType.ofInt.AValCT;
@@ -306,6 +373,11 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void uIntExprIter(UIntExpr node, ref St st){
+		if (st.params.length > 1){
+			st.errs ~= errCallableIncompat(node.pos, node.ident,
+					st.params.map!(p => p.toString));
+			return;
+		}
 		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
 		r.res = ADataType.ofUInt.AValCT;
@@ -313,6 +385,11 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void floatExprIter(FloatExpr node, ref St st){
+		if (st.params.length > 1){
+			st.errs ~= errCallableIncompat(node.pos, node.ident,
+					st.params.map!(p => p.toString));
+			return;
+		}
 		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
 		r.res = ADataType.ofFloat.AValCT;
@@ -320,6 +397,11 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void charExprIter(CharExpr node, ref St st){
+		if (st.params.length > 1){
+			st.errs ~= errCallableIncompat(node.pos, node.ident,
+					st.params.map!(p => p.toString));
+			return;
+		}
 		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
 		r.res = ADataType.ofChar(8).AValCT;
@@ -327,6 +409,11 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void stringExprIter(StringExpr node, ref St st){
+		if (st.params.length > 1){
+			st.errs ~= errCallableIncompat(node.pos, node.ident,
+					st.params.map!(p => p.toString));
+			return;
+		}
 		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
 		r.res = ADataType.ofString.AValCT;
@@ -334,6 +421,11 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void boolExprIter(BoolExpr node, ref St st){
+		if (st.params.length > 1){
+			st.errs ~= errCallableIncompat(node.pos, node.ident,
+					st.params.map!(p => p.toString));
+			return;
+		}
 		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
 		r.res = ADataType.ofBool.AValCT;
@@ -547,6 +639,12 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 				st.errs ~= errBounds(node.indexes[0].pos, subVal.seq.length, indI);
 				return;
 			}
+			if (st.params.length &&
+					subVal.seq[indI].callabilityOf(st.params) == size_t.max){
+				st.errs ~= errCallableIncompat(node.pos, subVal.seq[indI].toString,
+						st.params.map!(p => p.toString));
+				return;
+			}
 			RAValCTExpr r = new RAValCTExpr;
 			r.pos = node.pos;
 			r.res = subVal.seq[indI];
@@ -579,6 +677,12 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 					subType.type == ADataType.Type.Slice) &&
 				node.indexes.length == 1 &&
 				paramsT[0].canCastTo(ADataType.ofUInt)){
+			if (st.params.length &&
+					(*subType.refT).callabilityOf(st.params) == size_t.max){
+				st.errs ~= errCallableIncompat(node.pos, subType.refT.toString,
+						st.params.map!(p => p.toString));
+				return;
+			}
 			RIntrinsicCallExpr r = new RIntrinsicCallExpr;
 			r.pos = node.pos;
 			r.name = "arrInd";
@@ -598,10 +702,18 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void opAssignBinIter(OpAssignBin node, ref St st){
+		if (st.params.length){
+			st.errs ~= errNotCallable(node.pos, "assignment operation");
+			return;
+		}
 		st.errs ~= errUnsup(node); // TODO: implement
 	}
 
 	void opAssignRefBinIter(OpAssignRefBin node, ref St st){
+		if (st.params.length){
+			st.errs ~= errNotCallable(node.pos, "reference assignment operation");
+			return;
+		}
 		st.errs ~= errUnsup(node); // TODO: implement
 	}
 
@@ -614,18 +726,34 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void opIsPreIter(OpIsPre node, ref St st){
+		if (st.params.length){
+			st.errs ~= errNotCallable(node.pos, "is prefix");
+			return;
+		}
 		st.errs ~= errUnsup(node); // TODO: implement
 	}
 
 	void opNotIsPreIter(OpNotIsPre node, ref St st){
+		if (st.params.length){
+			st.errs ~= errNotCallable(node.pos, "!is prefix");
+			return;
+		}
 		st.errs ~= errUnsup(node); // TODO: implement
 	}
 
 	void opConstPreIter(OpConstPre node, ref St st){
+		if (st.params.length){
+			st.errs ~= errNotCallable(node.pos, "const prefix");
+			return;
+		}
 		st.errs ~= errUnsup(node); // TODO: implement
 	}
 
 	void opRefPreIter(OpRefPre node, ref St st){
+		if (st.params.length){
+			st.errs ~= errNotCallable(node.pos, "reference");
+			return;
+		}
 		st.errs ~= errUnsup(node); // TODO: implement
 	}
 
@@ -646,31 +774,43 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void opColonBinIter(OpColonBin node, ref St st){
+		if (st.params.length){
+			st.errs ~= errNotCallable(node.pos, "type-cast check operation");
+			return;
+		}
 		st.errs ~= errUnsup(node); // TODO: implement
 	}
 
 	void opIsBinIter(OpIsBin node, ref St st){
+		if (st.params.length){
+			st.errs ~= errNotCallable(node.pos, "is comparison");
+			return;
+		}
 		st.errs ~= errUnsup(node); // TODO: implement
 	}
 
 	void opNotIsBinIter(OpNotIsBin node, ref St st){
+		if (st.params.length){
+			st.errs ~= errNotCallable(node.pos, "!is comparison");
+			return;
+		}
 		st.errs ~= errUnsup(node); // TODO: implement
 	}
 
 	void opNotPostIter(OpNotPost node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
+		st.errs ~= errUnsup(node.pos, "error handling"); // TODO: implement
 	}
 
 	void opQPostIter(OpQPost node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
+		st.errs ~= errUnsup(node.pos, "error handling"); // TODO: implement
 	}
 
 	void opNotNotBinIter(OpNotNotBin node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
+		st.errs ~= errUnsup(node.pos, "error handling"); // TODO: implement
 	}
 
 	void opQQBinIter(OpQQBin node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
+		st.errs ~= errUnsup(node.pos, "error handling"); // TODO: implement
 	}
 }
 
