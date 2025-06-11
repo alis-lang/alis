@@ -15,9 +15,12 @@ package size_t callabilityOf(ASymbol* sym, AValCT[] params){
 	return size_t.max; // TODO: kinda sad tbh, nothing is callable :(
 }
 
-/// finds symbol with highest callability given params and name
-/// Returns: ASymbol* to callable or null if none
-package ASymbol* callableTop(STab stabR, IdentU[] ctx,
-		IdentU[] id, AValCT[] params){
-	return null; // TODO: implement
+/// ditto
+package size_t callabilityOf(ADataType type, AValCT[] params){
+	return size_t.max; // TODO: kinda sad tbh, nothing is callable :(
+}
+
+/// ditto
+package size_t callabilityOf(AValCT val, AValCT[] params){
+	return size_t.max; // TODO: kinda sad tbh, nothing is callable :(
 }
