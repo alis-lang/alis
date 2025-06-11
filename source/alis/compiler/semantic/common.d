@@ -273,7 +273,7 @@ public:
 	/// what is being resolved
 	IdentU[] subject;
 	/// result from resolution
-	ASymbol sym;
+	ASymbol* sym;
 
 	/// previous resolution, if any
 	@property ATResN* prev() const pure {
@@ -300,17 +300,4 @@ public:
 	void push(ATResN* r) pure {
 		leaf._next = r;
 	}
-}
-
-/// Imports
-package struct Imports{
-	AModule[] imports; /// unnamed imports
-	AModule[string] importsN; /// named imports
-}
-
-/// Gets a module, for importing
-/// Returns: symbol table of a module
-package AModule mod(string[] modId) pure {
-	/// TODO: implement modSTab
-	return AModule();
 }
