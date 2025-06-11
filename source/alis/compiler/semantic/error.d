@@ -42,6 +42,8 @@ public struct SmErr{
 		FnAnonParamDef, /// Anonymous Function cannot have default parameter value
 		TypeInferFail, /// Failed to infer type
 		Bounds, /// Bounds violation
+		CallableIncompat, /// Callable symbol called with incompatible params
+		NotCallable, /// Callable expected, not found (sadly)
 	}
 	/// where error happen
 	Location pos;
@@ -209,4 +211,17 @@ package SmErr errTypeInferFail(Location pos, string name){
 package SmErr errBounds(Location pos, size_t max, size_t got){
 	return SmErr(pos, format!"Bounds violation: %d exceeds bound %d"(
 				got, max), SmErr.Type.Bounds);
+}
+/// Callable symbol called with incompatible params
+package SmErr errCallableIncompat(R)(Location pos, string symN, R range) if (
+		isInputRange!(R, string)){
+	return SmErr(pos,
+			format!"incompatible parameters: `%s` cannot be called with (%(%r,%))"(
+				symN, range), SmErr.Type.CallableIncompat);
+}
+
+/// Callable expected, not found (sadly)
+package SmErr errNotCallable(Location pos, string symN){
+	return SmErr(pos, symN.format!"callable expected: `%s` is not callable",
+			SmErr.Type.NotCallable);
 }
