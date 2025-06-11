@@ -12,6 +12,7 @@ import alis.common,
 			 alis.compiler.semantic.stmnt,
 			 alis.compiler.semantic.typeofexpr,
 			 alis.compiler.semantic.types,
+			 alis.compiler.semantic.call,
 			 alis.compiler.ast,
 			 alis.compiler.ast.iter,
 			 alis.compiler.ast.rst;
@@ -398,7 +399,7 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 			return;
 		}
 
-		if (OpDotBin opDot = cast(OpDotBin)node.callee){
+		/*if (OpDotBin opDot = cast(OpDotBin)node.callee){
 			IdentExpr calleeId;
 			Expression[] params;
 			SmErr[] errs;
@@ -432,23 +433,54 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 						isMember = (id in subT.structS.names) !is null; break;
 					default: isMember = false; break;
 				}
-				if (!isMember)
-					params = opDot.lhs ~ node.params;
+				if (!isMember){
+					if (CommaExpr commaExpr = cast(CommaExpr)opDot.lhs)
+						params = commaExpr.exprs.dup;
+					params ~= node.params;
+				}
 			}();
 
-			if (!isMember){
+			if (isMember){
+				// simple, ez pz
+				RFnCallExpr callExpr = new RFnCallExpr;
+				callExpr.pos = node.pos;
+				SmErrsVal!RExpr calleeRes = resolve(node.callee, st.stabR, st.ctx,
+						st.dep, st.fns);
+				if (calleeRes.isErr){
+					st.errs ~= calleeRes.err;
+					return;
+				}
+				foreach (Expression param; node.params){
+					SmErrsVal!RExpr paramRes = resolve(param, st.stabR, st.ctx,
+							st.dep, st.fns);
+					if (paramRes.isErr){
+						st.errs ~= paramRes.err;
+						continue;
+					}
+					callExpr.params ~= paramRes.val;
+				}
+				if (callExpr.params.length != node.params.length)
+					return;
+				st.res = callExpr;
+				// TODO: ensure callability
+				return;
+			} else {
 				if (errs.length){
 					st.errs ~= errs;
 					return;
 				}
+				// try a.b(c) -> b(a, c)
 				OpCallExpr callExpr = new OpCallExpr;
 				callExpr.pos = node.pos;
 				callExpr.callee = calleeId;
 				callExpr.params = params;
-				opCallExprIter(callExpr, st);
+				SmErrsVal!RExpr altARes = resolve(callExpr, st.stabR, st.ctx,
+						st.dep, st.fns);
+				// try a.b(c) -> b(c)(a)
+				// TODO: handle this part
 				return;
 			}
-		}
+		}*/
 
 		// TODO: handle "normal" function calls
 		st.errs ~= errUnsup(node.pos, "normal function calls, sadly");
