@@ -44,6 +44,10 @@ private struct St{
 	RExpr res;
 	/// parameter types if resuslting expression is expected to be callable
 	AValCT[] params;
+	/// if there is any expected type
+	bool isExpT = false;
+	/// expected type, if `isExpT`
+	ADataType expT;
 	/// `RFn` for each `AFn.uid`
 	RFn[string] fns;
 }
@@ -819,11 +823,11 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 /// - `expr` - The expression to resolve
 /// - `stab` - The root level Symbol Table
 /// - `ctx` - Context where the `expr` occurs
-/// - `params` - Parameters for `expr`, if any
+/// - `params` - Ensure result is callable with `params`
 /// Returns: RExpr or SmErr[]
 pragma(inline, true)
 package SmErrsVal!RExpr resolve(Expression expr, STab stabR, IdentU[] ctx,
-		void[0][ASymbol*] dep, RFn[string] fns, AValCT[] params = null){
+		void[0][ASymbol*] dep, RFn[string] fns, AValCT[] params){
 	assert (fns);
 	St st;
 	st.dep = dep;
@@ -832,6 +836,57 @@ package SmErrsVal!RExpr resolve(Expression expr, STab stabR, IdentU[] ctx,
 	st.stab = stabR.findSt(ctx, ctx);
 	st.fns = fns;
 	st.params = params.dup;
+	It.exec(expr, st);
+	if (st.errs.length)
+		return SmErrsVal!RExpr(st.errs);
+	if (st.res is null)
+		return SmErrsVal!RExpr([errUnxp(expr.pos, "resolve expr -> null")]);
+	return SmErrsVal!RExpr(st.res);
+}
+
+/// Resolves Expression to RExpr
+/// Params:
+/// - `expr` - The expression to resolve
+/// - `stab` - The root level Symbol Table
+/// - `ctx` - Context where the `expr` occurs
+/// - `expT` - Expected Data Type for resulting expression
+/// Returns: RExpr or SmErr[]
+pragma(inline, true)
+package SmErrsVal!RExpr resolve(Expression expr, STab stabR, IdentU[] ctx,
+		void[0][ASymbol*] dep, RFn[string] fns, ADataType expT){
+	assert (fns);
+	St st;
+	st.dep = dep;
+	st.ctx = ctx.dup;
+	st.stabR = stabR;
+	st.stab = stabR.findSt(ctx, ctx);
+	st.fns = fns;
+	st.isExpT = true;
+	st.expT = expT;
+	It.exec(expr, st);
+	if (st.errs.length)
+		return SmErrsVal!RExpr(st.errs);
+	if (st.res is null)
+		return SmErrsVal!RExpr([errUnxp(expr.pos, "resolve expr -> null")]);
+	return SmErrsVal!RExpr(st.res);
+}
+
+/// Resolves Expression to RExpr
+/// Params:
+/// - `expr` - The expression to resolve
+/// - `stab` - The root level Symbol Table
+/// - `ctx` - Context where the `expr` occurs
+/// Returns: RExpr or SmErr[]
+pragma(inline, true)
+package SmErrsVal!RExpr resolve(Expression expr, STab stabR, IdentU[] ctx,
+		void[0][ASymbol*] dep, RFn[string] fns){
+	assert (fns);
+	St st;
+	st.dep = dep;
+	st.ctx = ctx.dup;
+	st.stabR = stabR;
+	st.stab = stabR.findSt(ctx, ctx);
+	st.fns = fns;
 	It.exec(expr, st);
 	if (st.errs.length)
 		return SmErrsVal!RExpr(st.errs);
