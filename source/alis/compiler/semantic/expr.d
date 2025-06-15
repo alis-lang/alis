@@ -126,9 +126,22 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 			case ASymbol.Type.Import:
 			case ASymbol.Type.Template:
 				st.errs ~= errUnsup(node);
-				break;
+				return;
 			default:
 				st.errs ~= errUnsup(node.pos, res.type.to!string);
+				return;
+		}
+		if (st.isExpT){
+			SmErrsVal!ADataType rTypeRes = typeOf(r, st.stabR, st.ctx);
+			if (rTypeRes.isErr){
+				st.errs ~= rTypeRes.err;
+				return;
+			}
+			if (!rTypeRes.val.canCastTo(st.expT)){
+				st.errs ~= errIncompatType(node.pos, st.expT.toString,
+						rTypeRes.val.toString);
+				return;
+			}
 		}
 	}
 
