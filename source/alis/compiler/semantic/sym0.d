@@ -57,7 +57,8 @@ private void l0Iter(S, D)(D node, ref St st){
 			st.errs ~= errIdentReuse(node.pos, symC.ident[$ - 1].toString);
 			return;
 		}
-	} else if (symC.ident[$ - 1] in st.stab.map){
+	} else if (symC.ident[$ - 1] in st.stab.map &&
+			symC.ident[$ - 1] != IdentU.init){
 		st.errs ~= errIdentReuse(node.pos, symC.ident[$ - 1].toString);
 		return;
 	}
