@@ -56,26 +56,75 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 
 @ItFn @ITL(0){
 	void identExprIter(IdentExpr node, ref St st){
+		ASymbol* res;
 		if (st.params.length){
-			st.errs ~= errUnsup(node.pos, "ident lookup with params");
-			return;
-		}
-		bool found = false;
-		ASymbol* sym;
-		foreach (symR; st.stabR.find(node.ident.IdentU, st.ctx)){
-			auto syms = symR;
-			foreach (ASymbol* s; symR){
-				if (found){
-					st.errs ~= errIdentAmbig(node.pos, node.ident,
-							syms.map!(s => s.ident.toString));
+			foreach (range; st.stabR.find(node.ident.IdentU, st.ctx)){
+				size_t best = size_t.max;
+				size_t count = 0;
+				foreach (ASymbol* sym; range.filter!(s => s.isCallable)){
+					immutable size_t callability = callabilityOf(sym, st.params);
+					if (callability == size_t.max) continue;
+					if (callability == best){
+						count ++;
+					} else
+					if (callability < best){
+						best = callability;
+						count = 1;
+						res = sym;
+					}
+				}
+				if (count == 0){
+					st.errs ~= errUndef(node.pos, node.ident);
 					return;
 				}
-				found = true;
-				sym = s;
+				if (count > 1){
+					st.errs ~= errCallableConflict(node.pos, node.ident,
+							st.params.map!(p => p.toString));
+				}
+			}
+		} else {
+			bool found = false;
+			foreach (symR; st.stabR.find(node.ident.IdentU, st.ctx)){
+				auto syms = symR;
+				foreach (ASymbol* s; symR){
+					if (found){
+						st.errs ~= errIdentAmbig(node.pos, node.ident,
+								syms.map!(s => s.ident.toString));
+						return;
+					}
+					found = true;
+					res = s;
+				}
 			}
 		}
-		// TODO: transform sym into RExpr
-		//st.res = r;
+		if (res is null){
+			st.errs ~= errUndef(node.pos, node.ident);
+			return;
+		}
+		// convert res to RExpr
+		RExpr r;
+		switch (res.type){
+			case ASymbol.Type.Struct:
+				r = new RAValCTExpr(ADataType.of(&res.structS).AValCT);
+				break;
+			case ASymbol.Type.Union:
+				r = new RAValCTExpr(ADataType.of(&res.unionS).AValCT);
+				break;
+			case ASymbol.Type.Enum:
+				r = new RAValCTExpr(ADataType.of(&res.enumS).AValCT);
+				break;
+			case ASymbol.Type.EnumConst:
+				r = new RAValCTExpr(AValCT(res.enumCS.type, res.enumCS.data));
+				break;
+			case ASymbol.Type.Fn:
+				r = new RFnExpr(res.fnS);
+				break;
+			case ASymbol.Type.Var:
+				r = new RVarExpr(res.varS);
+				break;
+			default:
+				st.errs ~= errUnsup(node.pos, res.type.to!string);
+		}
 	}
 
 	void blockExprIter(BlockExpr node, ref St st){
