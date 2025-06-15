@@ -122,6 +122,11 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 			case ASymbol.Type.Var:
 				r = new RVarExpr(res.varS);
 				break;
+			case ASymbol.Type.Alias:
+			case ASymbol.Type.Import:
+			case ASymbol.Type.Template:
+				st.errs ~= errUnsup(node);
+				break;
 			default:
 				st.errs ~= errUnsup(node.pos, res.type.to!string);
 		}
