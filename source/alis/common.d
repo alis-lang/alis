@@ -1047,10 +1047,12 @@ public struct AVar{
 	bool isGlobal = false;
 	/// Visibility outside its parent module
 	Visibility vis;
+	/// unique id. TODO: set this
+	string uid;
 
 	string toString() const pure {
-		return format!"var %s%s:%s=%s off=%d"(isGlobal ? "global" : null, ident,
-				type, initD, offset);
+		return format!"var %s%s[%s]:%s=%s off=%d"(isGlobal ? "global" : null,
+				ident, uid, type, initD, offset);
 	}
 }
 
