@@ -54,6 +54,30 @@ private struct St{
 
 private alias It = ItL!(mixin(__MODULE__), 0);
 
+/// Verifies if return type of expression matches expected type, adding
+/// appropriate errors
+/// Returns: true if error-free, false if error added
+private bool expT(Location pos, RExpr expr, ref St st){
+	if (!st.isExpT) return true;
+	SmErrsVal!ADataType typeRes = typeOf(expr, st.stabR, st.ctx);
+	if (typeRes.isErr){
+		st.errs ~= typeRes.err;
+		return false;
+	}
+	return expT(pos, typeRes.val, st);
+}
+
+/// ditto
+private bool expT(Location pos, ADataType type, ref St st){
+	if (!st.isExpT) return true;
+	if (!type.canCastTo(st.expT)){
+		st.errs ~= errIncompatType(pos, st.expT.toString,
+				type.toString);
+		return false;
+	}
+	return true;
+}
+
 @ItFn @ITL(0){
 	void identExprIter(IdentExpr node, ref St st){
 		ASymbol* res;
@@ -131,18 +155,7 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 				st.errs ~= errUnsup(node.pos, res.type.to!string);
 				return;
 		}
-		if (st.isExpT){
-			SmErrsVal!ADataType rTypeRes = typeOf(r, st.stabR, st.ctx);
-			if (rTypeRes.isErr){
-				st.errs ~= rTypeRes.err;
-				return;
-			}
-			if (!rTypeRes.val.canCastTo(st.expT)){
-				st.errs ~= errIncompatType(node.pos, st.expT.toString,
-						rTypeRes.val.toString);
-				return;
-			}
-		}
+		expT(node.pos, r, st);
 	}
 
 	void blockExprIter(BlockExpr node, ref St st){
@@ -186,6 +199,8 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 					st.params.map!(p => p.toString));
 			return;
 		}
+		if (!expT(node.pos, r, st)) return;
+		st.res = r;
 	}
 
 	void intrinsicExprIter(IntrinsicExpr node, ref St st){
@@ -213,6 +228,7 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 			}
 			r.exprs ~= exprRes.val;
 		}
+		if (!expT(node.pos, r, st)) return;
 		st.res = r;
 	}
 
