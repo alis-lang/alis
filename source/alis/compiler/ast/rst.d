@@ -241,13 +241,18 @@ public:
 /// Resolved Var Get expression
 public class RVarExpr : RExpr{
 public:
-	/// var identifier
-	IdentU[] id;
+	/// var
+	AVar var;
+
+	this(){}
+	this()(auto ref AVar var){
+		this.var = var;
+	}
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "RVarExpr";
-		ret["id"] = id.toString;
+		ret["var"] = var.toString;
 		return ret;
 	}
 }
@@ -430,6 +435,11 @@ public:
 	/// function
 	AFn fn;
 
+	this(){}
+	this()(auto ref AFn fn){
+		this.fn = fn;
+	}
+
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "RFnExpr";
@@ -500,6 +510,11 @@ public:
 	AValCT res;
 	/// the expression itself. can be null
 	RExpr expr;
+
+	this (){}
+	this(AValCT res){
+		this.res = res;
+	}
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
