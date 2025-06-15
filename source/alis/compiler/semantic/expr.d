@@ -248,6 +248,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.errs ~= errs;
 		}
 		sym.isComplete = true;
+		IdentExpr idExpr = new IdentExpr;
+		idExpr.pos = node.pos;
+		idExpr.ident = name;
+		identExprIter(idExpr, st); // HACK: do it directly here
 	}
 
 	void unionAnonIter(UnionAnon node, ref St st){
@@ -272,6 +276,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.errs ~= errs;
 		}
 		sym.isComplete = true;
+		IdentExpr idExpr = new IdentExpr;
+		idExpr.pos = node.pos;
+		idExpr.ident = name;
+		identExprIter(idExpr, st); // HACK: do it directly here
 	}
 
 	void fnAnonExprIter(FnAnonExpr node, ref St st){
@@ -325,6 +333,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 					st.params.map!(p => p.toString));
 			return;
 		}
+		IdentExpr idExpr = new IdentExpr;
+		idExpr.pos = node.pos;
+		idExpr.ident = name;
+		identExprIter(idExpr, st); // HACK: do it directly here
 	}
 
 	void structLiteralExprIter(StructLiteralExpr node, ref St st){
@@ -351,6 +363,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			r.names ~= kv.key;
 			r.vals ~= exprRes.val;
 		}
+		if (!expT(node.pos, r, st)) return;
 		st.res = r;
 	}
 
@@ -364,6 +377,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.pos = node.pos;
 		r.type = ADataType.ofBool;
 		r.value = node.val.asBytes;
+		if (!expT(node.pos, r, st)) return;
 		st.res = r;
 	}
 
@@ -377,6 +391,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.pos = node.pos;
 		r.type = ADataType.ofInt;
 		r.value = node.val.asBytes;
+		if (!expT(node.pos, r, st)) return;
 		st.res = r;
 	}
 
@@ -390,6 +405,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.pos = node.pos;
 		r.type = ADataType.ofFloat;
 		r.value = node.val.asBytes;
+		if (!expT(node.pos, r, st)) return;
 		st.res = r;
 	}
 
@@ -403,6 +419,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.pos = node.pos;
 		r.type = ADataType.ofString;
 		r.value = cast(ubyte[])(node.val.dup);
+		if (!expT(node.pos, r, st)) return;
 		st.res = r;
 	}
 
@@ -416,6 +433,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.pos = node.pos;
 		r.type = ADataType.ofChar(8);
 		r.value = [cast(ubyte)node.val];
+		if (!expT(node.pos, r, st)) return;
 		st.res = r;
 	}
 
@@ -436,6 +454,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			}
 			r.elements ~= exprRes.val;
 		}
+		if (!expT(node.pos, r, st)) return;
 		st.res = r;
 	}
 
@@ -456,6 +475,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
 		r.res = ADataType.ofInt.AValCT;
+		if (!expT(node.pos, r, st)) return;
 		st.res = r;
 	}
 
@@ -468,6 +488,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
 		r.res = ADataType.ofUInt.AValCT;
+		if (!expT(node.pos, r, st)) return;
 		st.res = r;
 	}
 
@@ -480,6 +501,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
 		r.res = ADataType.ofFloat.AValCT;
+		if (!expT(node.pos, r, st)) return;
 		st.res = r;
 	}
 
@@ -492,6 +514,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
 		r.res = ADataType.ofChar(8).AValCT;
+		if (!expT(node.pos, r, st)) return;
 		st.res = r;
 	}
 
@@ -504,6 +527,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
 		r.res = ADataType.ofString.AValCT;
+		if (!expT(node.pos, r, st)) return;
 		st.res = r;
 	}
 
@@ -516,6 +540,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
 		r.res = ADataType.ofBool.AValCT;
+		if (!expT(node.pos, r, st)) return;
 		st.res = r;
 	}
 
@@ -735,6 +760,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			RAValCTExpr r = new RAValCTExpr;
 			r.pos = node.pos;
 			r.res = subVal.seq[indI];
+			if (!expT(node.pos, r, st)) return;
 			st.res = r;
 			return;
 		}
@@ -774,6 +800,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			r.pos = node.pos;
 			r.name = "arrInd";
 			r.params = [sub, params[0]];
+			if (!expT(node.pos, r, st)) return;
 			st.res = r;
 			return;
 		}
@@ -793,12 +820,20 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.errs ~= errNotCallable(node.pos, "assignment operation");
 			return;
 		}
+		if (st.isExpT){
+			st.errs ~= errIncompatType(node.pos, st.expT.toString, "struct{}");
+			return;
+		}
 		st.errs ~= errUnsup(node); // TODO: implement
 	}
 
 	void opAssignRefBinIter(OpAssignRefBin node, ref St st){
 		if (st.params.length){
 			st.errs ~= errNotCallable(node.pos, "reference assignment operation");
+			return;
+		}
+		if (st.isExpT){
+			st.errs ~= errIncompatType(node.pos, st.expT.toString, "struct{}");
 			return;
 		}
 		st.errs ~= errUnsup(node); // TODO: implement
