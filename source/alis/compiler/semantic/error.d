@@ -44,6 +44,8 @@ public struct SmErr{
 		Bounds, /// Bounds violation
 		CallableIncompat, /// Callable symbol called with incompatible params
 		NotCallable, /// Callable expected, not found (sadly)
+		CallableConflict, /// Multiple callables matched
+		Undef, /// use of undefined identifier
 	}
 	/// where error happen
 	Location pos;
@@ -224,4 +226,17 @@ package SmErr errCallableIncompat(R)(Location pos, string symN, R range) if (
 package SmErr errNotCallable(Location pos, string symN){
 	return SmErr(pos, symN.format!"callable expected: `%s` is not callable",
 			SmErr.Type.NotCallable);
+}
+
+/// Multiple callables matched
+package SmErr errCallableConflict(R)(Location pos, string symN, R range) if (
+		isInputRange!(R, string)){
+	return SmErr(pos,
+			format!"multiple matches: for callable `%s` with parameters %(%r%)"(
+				symN, range), SmErr.Type.CallableConflict);
+}
+
+/// use of undefined identifier
+package SmErr errUndef(Location pos, string id){
+	return SmErr(pos, id.format!"undefined identifier: `%s`", SmErr.Type.Undef);
 }
