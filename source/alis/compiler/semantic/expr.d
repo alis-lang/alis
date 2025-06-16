@@ -248,10 +248,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.errs ~= errs;
 		}
 		sym.isComplete = true;
-		IdentExpr idExpr = new IdentExpr;
-		idExpr.pos = node.pos;
-		idExpr.ident = name;
-		identExprIter(idExpr, st); // HACK: do it directly here
+		RExpr r = new RAValCTExpr(ADataType.of(&sym.structS).AValCT);
+		if (!expT(node.pos, r, st)) return;
+		st.res = r;
 	}
 
 	void unionAnonIter(UnionAnon node, ref St st){
@@ -276,10 +275,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.errs ~= errs;
 		}
 		sym.isComplete = true;
-		IdentExpr idExpr = new IdentExpr;
-		idExpr.pos = node.pos;
-		idExpr.ident = name;
-		identExprIter(idExpr, st); // HACK: do it directly here
+		RExpr r = new RAValCTExpr(ADataType.of(&sym.unionS).AValCT);
+		if (!expT(node.pos, r, st)) return;
+		st.res = r;
 	}
 
 	void fnAnonExprIter(FnAnonExpr node, ref St st){
@@ -334,10 +332,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 					st.params.map!(p => p.toString));
 			return;
 		}
-		IdentExpr idExpr = new IdentExpr;
-		idExpr.pos = node.pos;
-		idExpr.ident = name;
-		identExprIter(idExpr, st); // HACK: do it directly here
+		RExpr res = new RFnExpr(*symC);
+		if (!expT(node.pos, res, st)) return;
+		st.res = res;
 	}
 
 	void structLiteralExprIter(StructLiteralExpr node, ref St st){
