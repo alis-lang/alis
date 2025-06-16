@@ -246,6 +246,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		SmErr[] errs = structDo(node.val, &sym.structS, st.stabR, st.ctx, st.dep);
 		if (errs.length){
 			st.errs ~= errs;
+			return;
 		}
 		sym.isComplete = true;
 		RExpr r = new RAValCTExpr(ADataType.of(&sym.structS).AValCT);
@@ -273,6 +274,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		if (errs.length){
 			st.errs ~= errs;
+			return;
 		}
 		sym.isComplete = true;
 		RExpr r = new RAValCTExpr(ADataType.of(&sym.unionS).AValCT);
