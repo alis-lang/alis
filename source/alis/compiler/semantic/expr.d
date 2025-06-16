@@ -327,6 +327,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.paramsN = symC.paramsN;
 		symC.uid = fnNameEncode(symC.ident.toString, symC.paramsT);
 		st.fns[symC.uid] = r;
+		st.stab.add(name.IdentU, sym, st.ctx);
 
 		if (st.params.length && sym.callabilityOf(st.params) == size_t.max){
 			st.errs ~= errCallableIncompat(node.pos, sym.ident.toString,
