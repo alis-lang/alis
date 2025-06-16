@@ -102,26 +102,24 @@ public:
 
 	static struct ResRange{
 	private:
-		IdentU _head;
 		IdentU _id;
-		IdentU[] ctx;
+		IdentU[] _ctx;
 		Node!(ASymbol*)[][IdentU][] _maps;
 
 		this(IdentU id, IdentU[] ctx, STab st) pure {
 			this._id = id;
-			this.ctx = ctx.dup;
-			this._head = ctx.length ? ctx[0] : IdentU.init;
+			this._ctx = ctx.dup;
 			_maps ~= st.map;
-			foreach (IdentU i; ctx){
+			foreach (IdentU i; _ctx){
 				if (i !in st.next)
 					break;
 				Node!STab nextNode = st.next[i];
-				if (!nextNode.isVis(ctx))
+				if (!nextNode.isVis(_ctx))
 					break;
 				_maps ~= nextNode.val.map;
 				st = nextNode.val;
 			}
-			_maps ~= [];
+			_maps ~= ForeachType!(typeof(_maps)).init;
 			popFront;
 		}
 
@@ -143,7 +141,7 @@ public:
 			if (_maps.length && (_id in _maps[$ - 1]) !is null)
 				arr = _maps[$ - 1][_id];
 			return arr
-				.filter!(node => node.isVis(ctx))
+				.filter!(node => node.isVis(_ctx))
 				.map!(node => node.val);
 		}
 	}
