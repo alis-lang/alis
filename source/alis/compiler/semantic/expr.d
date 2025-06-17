@@ -155,7 +155,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 				st.errs ~= errUnsup(node.pos, res.type.to!string);
 				return;
 		}
-		expT(node.pos, r, st);
+		if (expT(node.pos, r, st)){} // the empty if is to make LSP shut up
 	}
 
 	void blockExprIter(BlockExpr node, ref St st){
