@@ -502,26 +502,3 @@ public:
 		return ret;
 	}
 }
-
-/// Wrapper for AValCT
-public class RAValCTExpr : RExpr{
-public:
-	/// evaluation result
-	AValCT res;
-	/// the expression itself. can be null
-	RExpr expr;
-
-	this (){}
-	this(AValCT res){
-		this.res = res;
-	}
-
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		ret["_name"] = "REvaldExpr";
-		ret["res"] = res.toString;
-		if (expr)
-			ret["expr"] = expr.jsonOf;
-		return ret;
-	}
-}
