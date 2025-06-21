@@ -42,9 +42,6 @@ struct St{
 	void literalIter(RLiteralExpr node, ref St st){
 		st.res = AValCT(node.type, node.value.dup);
 	}
-	void dataTypeIter(RDTypeExpr node, ref St st){
-		st.res = AValCT(node.type);
-	}
 
 	void intrExpr(RIntrinsicExpr node, ref St st){
 		switch (node.name){
@@ -164,8 +161,8 @@ package SmErrsVal!AValCT eval(RExpr expr, STab stabR, IdentU[] ctx){
 
 /// ditto
 package SmErrsVal!AValCT eval(Expression expr, STab stab, IdentU[] ctx,
-		void[0][ASymbol*] dep, AValCT[] params = null){
-	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, dep, params);
+		void[0][ASymbol*] dep, RFn[string] fns, AValCT[] params = null){
+	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, dep, fns, params);
 	if (resolved.isErr){
 		debug{
 			import std.stdio;
@@ -197,8 +194,8 @@ package SmErrsVal!AValCT eval4Val(RExpr expr, STab stab, IdentU[] ctx){
 
 /// ditto
 package SmErrsVal!AValCT eval4Val(Expression expr, STab stab, IdentU[] ctx,
-		void[0][ASymbol*] dep, AValCT[] params = null){
-	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, dep, params);
+		void[0][ASymbol*] dep, RFn[string] fns, AValCT[] params = null){
+	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, dep, fns, params);
 	if (resolved.isErr){
 		debug{
 			import std.stdio;
@@ -230,8 +227,8 @@ package SmErrsVal!ADataType eval4Type(RExpr expr, STab stab, IdentU[] ctx){
 
 /// ditto
 package SmErrsVal!ADataType eval4Type(Expression expr, STab stab, IdentU[] ctx,
-		void[0][ASymbol*] dep, AValCT[] params = null){
-	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, dep, params);
+		void[0][ASymbol*] dep, RFn[string] fns, AValCT[] params = null){
+	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, dep, fns, params);
 	if (resolved.isErr){
 		debug{
 			import std.stdio;
@@ -257,8 +254,8 @@ package SmErrsVal!(ASymbol*) eval4Sym(RExpr expr, STab stab, IdentU[] ctx){
 
 /// ditto
 package SmErrsVal!(ASymbol*) eval4Sym(Expression expr, STab stab, IdentU[] ctx,
-		void[0][ASymbol*] dep, AValCT[] params = null){
-	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, dep, params);
+		void[0][ASymbol*] dep, RFn[string] fns, AValCT[] params = null){
+	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, dep, fns, params);
 	if (resolved.isErr)
 		return SmErrsVal!(ASymbol*)(resolved.err);
 	return eval4Sym(resolved.val, stab, ctx);

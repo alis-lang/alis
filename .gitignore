@@ -27,3 +27,4 @@ alis-vm
 *.png
 /ast.json
 biggtest.alis
+/*.alis
