@@ -646,6 +646,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 
 		if (RTmPartInitExpr pTmCall = cast(RTmPartInitExpr)callee){
 			st.errs ~= errUnsup(node.pos, "Template instantiation");
+			// add node.params to pTmCall.tparams
+			// if st.params, result should be callable with st.params:
+			// pTmCall(.., node.params)(st.params)
 			return;
 		}
 
