@@ -203,14 +203,6 @@ private bool expT(Location pos, ADataType type, ref St st){
 		st.res = r;
 	}
 
-	void intrinsicExprIter(IntrinsicExpr node, ref St st){
-		RIntrinsicExpr r = new RIntrinsicExpr;
-		r.pos = node.pos;
-		r.name = node.name;
-		st.res = r;
-		// TODO: error out if intrinsic not callable && st.params.length
-	}
-
 	void commaExprIter(CommaExpr node, ref St st){
 		if (st.params.length){
 			st.errs ~= errCallableIncompat(node.pos, "expression list",
@@ -586,108 +578,86 @@ private bool expT(Location pos, ADataType type, ref St st){
 		opCallExprIter(call, st);
 	}
 
+	void intrinsicExprIter(IntrinsicExpr node, ref St st){
+		RIntrinsicExpr r = new RIntrinsicExpr;
+		r.pos = node.pos;
+		r.name = node.name;
+		st.res = r;
+		// TODO: error out if intrinsic not callable && st.params.length
+	}
+
 	void opCallExprIter(OpCallExpr node, ref St st){
-		if (IntrinsicExpr intr = cast(IntrinsicExpr)node.callee){
-			RIntrinsicCallExpr r = new RIntrinsicCallExpr;
-			r.pos = node.pos;
-			r.name = intr.name;
-			r.params = node.params
-				.map!(p => resolve(p, st.stabR, st.ctx, st.dep, st.fns))
-				.tee!((SmErrsVal!RExpr p){
-						if (p.isErr)
-							st.errs ~= p.err;
-						})
-				.filter!(p => !p.isErr)
-				.map!(p => p.val).array;
-			st.res = r;
+		AValCT[] params;
+		foreach (Expression p; node.params){
+			SmErrsVal!AValCT pRes = eval(p, st.stabR, st.ctx, st.dep, st.fns);
+			if (pRes.isErr){
+				st.errs ~= pRes.err;
+				continue;
+			}
+			params ~= pRes.val;
+		}
+		if (params.length != node.params.length) return;
+		RExpr callee; {
+			SmErrsVal!RExpr calleeRes = resolve(node.callee, st.stabR, st.ctx,
+					st.dep, st.fns, params);
+			if (calleeRes.isErr){
+				st.errs ~= calleeRes.err;
+				return;
+			}
+			callee = calleeRes.val;
+		}
+
+		static RExpr[] paramConv(AValCT[] params){
+			RExpr[] ret;
+			foreach (AValCT param; params){
+				final switch (param.type){
+					case AValCT.Type.Literal:
+						RLiteralExpr p = new RLiteralExpr;
+						p.value = param.dataL;
+						p.type = param.typeL;
+						ret ~= p;
+						break;
+					case AValCT.Type.Symbol:
+						assert(false,
+								"AValCT.Type.Symbol in opCallExprIter.conv->RFnPartCallExpr");
+						break;
+					case AValCT.Type.Type:
+						RLiteralExpr p = new RLiteralExpr;
+						p.value = param.typeT.initB;
+						p.type = param.typeT;
+						ret ~= p;
+						break;
+					case AValCT.Type.Expr:
+						ret ~= param.expr;
+						break;
+					case AValCT.Type.Seq:
+						ret ~= paramConv(param.seq);
+						break;
+				}
+			}
+			return ret;
+		}
+
+		if (RFnPartCallExpr pFnCall = cast(RFnPartCallExpr)callee){
+			pFnCall.params ~= paramConv(params);
+			st.res = pFnCall;
 			return;
 		}
 
-		/*if (OpDotBin opDot = cast(OpDotBin)node.callee){
-			IdentExpr calleeId;
-			Expression[] params;
-			SmErr[] errs;
-			bool isMember = true;
-			(){
-				calleeId = cast(IdentExpr)opDot.rhs;
-				if (calleeId is null) return;
-				RExpr sub; {
-					SmErrsVal!RExpr subRes = resolve(opDot.lhs, st.stabR, st.ctx, st.dep,
-							st.fns);
-					if (subRes.isErr){
-						errs ~= subRes.err;
-						return;
-					}
-					sub = subRes.val;
-				}
-				ADataType subT; {
-					SmErrsVal!ADataType typeRes = typeOf(sub, st.stabR, st.ctx);
-					if (typeRes.isErr){
-						errs ~= typeRes.err;
-						return;
-					}
-					subT = typeRes.val;
-				}
-				string id = calleeId.ident;
-				isMember = false;
-				switch (subT.type){
-					case ADataType.Type.Enum:
-						isMember = subT.enumS.memId.canFind(id); break;
-					case ADataType.Type.Struct:
-						isMember = (id in subT.structS.names) !is null; break;
-					default: isMember = false; break;
-				}
-				if (!isMember){
-					if (CommaExpr commaExpr = cast(CommaExpr)opDot.lhs)
-						params = commaExpr.exprs.dup;
-					params ~= node.params;
-				}
-			}();
+		if (RTmPartInitExpr pTmCall = cast(RTmPartInitExpr)callee){
+			st.errs ~= errUnsup(node.pos, "Template instantiation");
+			return;
+		}
 
-			if (isMember){
-				// simple, ez pz
-				RFnCallExpr callExpr = new RFnCallExpr;
-				callExpr.pos = node.pos;
-				SmErrsVal!RExpr calleeRes = resolve(node.callee, st.stabR, st.ctx,
-						st.dep, st.fns);
-				if (calleeRes.isErr){
-					st.errs ~= calleeRes.err;
-					return;
-				}
-				foreach (Expression param; node.params){
-					SmErrsVal!RExpr paramRes = resolve(param, st.stabR, st.ctx,
-							st.dep, st.fns);
-					if (paramRes.isErr){
-						st.errs ~= paramRes.err;
-						continue;
-					}
-					callExpr.params ~= paramRes.val;
-				}
-				if (callExpr.params.length != node.params.length)
-					return;
-				st.res = callExpr;
-				// TODO: ensure callability
-				return;
-			} else {
-				if (errs.length){
-					st.errs ~= errs;
-					return;
-				}
-				// try a.b(c) -> b(a, c)
-				OpCallExpr callExpr = new OpCallExpr;
-				callExpr.pos = node.pos;
-				callExpr.callee = calleeId;
-				callExpr.params = params;
-				SmErrsVal!RExpr altARes = resolve(callExpr, st.stabR, st.ctx,
-						st.dep, st.fns);
-				// try a.b(c) -> b(c)(a)
-				// TODO: handle this part
-				return;
-			}
-		}*/
+		RFnCallExpr call = new RFnCallExpr;
+		call.pos = node.pos;
+		call.callee = callee;
+		call.params = paramConv(params);
+		st.res = call;
+	}
 
-		// TODO: handle "normal" function calls
-		st.errs ~= errUnsup(node.pos, "normal function calls, sadly");
+	void opDotBinIter(OpDotBin node, ref St st){
+		st.errs ~= errUnsup(node); // TODO: implement
 	}
 
 	void opIndexExprIter(OpIndexExpr node, ref St st){
@@ -889,10 +859,6 @@ private bool expT(Location pos, ADataType type, ref St st){
 
 	void opCommaBinIter(OpCommaBin node, ref St st){
 		st.errs ~= errUnxp(node.pos, "OpCommaBin should not have happened");
-	}
-
-	void opDotBinIter(OpDotBin node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
 	}
 
 	void opColonBinIter(OpColonBin node, ref St st){
