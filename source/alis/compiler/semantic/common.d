@@ -21,6 +21,16 @@ debug import std.stdio;
 /// **should never occur in a finalized RST**
 package class RFnPartCallExpr : RFnCallExpr{}
 
+/// Resolved Partial Template Instantiation Expression
+/// **should never occur in a finalized RST**
+package class RTmPartInitExpr : RExpr{
+	// TODO
+}
+
+/// Resolved Partial Intrinsic Call Expression
+/// **should never occur in a finalized RST**
+package class RIntrinsicPartCallExpr : RIntrinsicCallExpr{}
+
 /// Wrapper for AValCT
 /// **should never occur in a finalized RST**
 package class RAValCTExpr : RExpr{
