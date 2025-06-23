@@ -19,17 +19,25 @@ debug import std.stdio;
 
 /// Resolved Partial Function Call Expression
 /// **should never occur in a finalized RST**
-package class RFnPartCallExpr : RFnCallExpr{}
+package class RFnPartCallExpr : RFnCallExpr{
+package:
+	this(){}
+}
 
 /// Resolved Partial Template Instantiation Expression
 /// **should never occur in a finalized RST**
 package class RTmPartInitExpr : RExpr{
+package:
+	this(){}
 	// TODO
 }
 
 /// Resolved Partial Intrinsic Call Expression
 /// **should never occur in a finalized RST**
-package class RIntrinsicPartCallExpr : RIntrinsicCallExpr{}
+package class RIntrinsicPartCallExpr : RIntrinsicCallExpr{
+package:
+	this(){}
+}
 
 /// Wrapper for AValCT
 /// **should never occur in a finalized RST**
