@@ -709,19 +709,44 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.res = r;
 			return;
 		}
-		RExpr rhsExpr; {
-			SmErrsVal!RExpr res = resolve(node.rhs, st.stabR, st.ctx, st.dep, st.fns);
-			if (res.isErr){
-				st.errs ~= res.err;
+
+		AValCT[] lhsVal; {
+			SmErrsVal!AValCT lhsRes = eval(lhsExpr, st.stabR, st.ctx);
+			if (lhsRes.isErr){
+				st.errs ~= lhsRes.err;
 				return;
 			}
-			rhsExpr = res.val;
+			lhsVal = lhsRes.val.flatten;
 		}
-		if (RAValCTExpr ctValExpr = cast(RAValCTExpr)lhsExpr){
-			if (ctValExpr.res.type == AValCT.Type.Symbol){}
+		AValCT[] pTypes = lhsVal ~ st.params;
+		RExpr r; {
+			/// L.R(params) -> R(L, params)
+			SmErrsVal!RExpr resA = resolve(node.rhs, st.stabR, st.ctx, st.dep,
+					st.fns, pTypes);
+			if (resA.isErr){
+				st.errs ~= resA.err;
+				return;
+			}
+			r = resA.val;
 		}
-
-		st.errs ~= errUnsup(node); // TODO: implement
+		ADataType rType; {
+			SmErrsVal!ADataType typeRes = typeOf(r, st.stabR, st.ctx);
+			if (typeRes.isErr){
+				st.errs ~= typeRes.err;
+				return;
+			}
+			rType = typeRes.val;
+		}
+		if (!expT(node.pos, r, st)) return;
+		if (st.params.length && rType.callabilityOf(pTypes) == size_t.max){
+			st.errs ~= errCallableIncompat(node.pos, rType.toString,
+					pTypes.map!(p => p.toString));
+			return;
+		}
+		st.res = r;
+		/// A.B(params) -> B(A)(params)
+		//SmErrsVal!RExpr resB = resolve(node.rhs, )
+		// TODO: implement UFCS on templates
 	}
 
 	void opIndexExprIter(OpIndexExpr node, ref St st){
