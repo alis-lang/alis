@@ -127,6 +127,19 @@ public struct AValCT{
 	}
 }
 
+/// flattens AValCT[]
+/// Returns: new flattened AValCT[]
+public AValCT[] flatten(AValCT[] seq){
+	AValCT[] ret;
+	foreach (ref AValCT val; seq){
+		if (val.type == AValCT.Type.Seq)
+			ret ~= val.seq.flatten;
+		else
+			ret ~= val;
+	}
+	return ret;
+}
+
 /// identifier node unit
 public struct IdentU{
 public:
