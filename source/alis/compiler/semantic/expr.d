@@ -588,8 +588,15 @@ private bool expT(Location pos, ADataType type, ref St st){
 
 	void opCallExprIter(OpCallExpr node, ref St st){
 		AValCT[] params;
+		RExpr[] paramsExpr;
 		foreach (Expression p; node.params){
-			SmErrsVal!AValCT pRes = eval(p, st.stabR, st.ctx, st.dep, st.fns);
+			SmErrsVal!RExpr exprRes = resolve(p, st.stabR, st.ctx, st.dep, st.fns);
+			if (exprRes.isErr){
+				st.errs ~= exprRes.err;
+				continue;
+			}
+			paramsExpr ~= exprRes.val;
+			SmErrsVal!AValCT pRes = eval(paramsExpr[$ - 1], st.stabR, st.ctx);
 			if (pRes.isErr){
 				st.errs ~= pRes.err;
 				continue;
@@ -597,6 +604,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			params ~= pRes.val;
 		}
 		if (params.length != node.params.length) return;
+		params = params.flatten;
 		RExpr callee; {
 			SmErrsVal!RExpr calleeRes = resolve(node.callee, st.stabR, st.ctx,
 					st.dep, st.fns, params);
@@ -607,56 +615,41 @@ private bool expT(Location pos, ADataType type, ref St st){
 			callee = calleeRes.val;
 		}
 
-		static RExpr[] paramConv(AValCT[] params){
-			RExpr[] ret;
-			foreach (AValCT param; params){
-				final switch (param.type){
-					case AValCT.Type.Literal:
-						RLiteralExpr p = new RLiteralExpr;
-						p.value = param.dataL;
-						p.type = param.typeL;
-						ret ~= p;
-						break;
-					case AValCT.Type.Symbol:
-						assert(false,
-								"AValCT.Type.Symbol in opCallExprIter.conv->RFnPartCallExpr");
-						break;
-					case AValCT.Type.Type:
-						RLiteralExpr p = new RLiteralExpr;
-						p.value = param.typeT.initB;
-						p.type = param.typeT;
-						ret ~= p;
-						break;
-					case AValCT.Type.Expr:
-						ret ~= param.expr;
-						break;
-					case AValCT.Type.Seq:
-						ret ~= paramConv(param.seq);
-						break;
-				}
-			}
-			return ret;
-		}
-
+		RExpr r;
 		if (RFnPartCallExpr pFnCall = cast(RFnPartCallExpr)callee){
-			pFnCall.params ~= paramConv(params);
+			pFnCall.params ~= paramsExpr;
+			r = pFnCall;
 			st.res = pFnCall;
-			return;
-		}
-
+		} else
 		if (RTmPartInitExpr pTmCall = cast(RTmPartInitExpr)callee){
 			st.errs ~= errUnsup(node.pos, "Template instantiation");
 			// add node.params to pTmCall.tparams
 			// if st.params, result should be callable with st.params:
 			// pTmCall(.., node.params)(st.params)
+			r = pTmCall;
+		} else
+		if (RIntrinsicPartCallExpr iCall = cast(RIntrinsicPartCallExpr)callee){
+			iCall.params ~= paramsExpr;
+			r = iCall;
+		} else {
+			RFnCallExpr call = new RFnCallExpr;
+			call.pos = node.pos;
+			call.callee = callee;
+			call.params = paramsExpr;
+			r = call;
+		}
+		if (!expT(node.pos, r, st)) return;
+		SmErrsVal!ADataType typeRes = typeOf(r, st.stabR, st.ctx);
+		if (typeRes.isErr){
+			st.errs ~= typeRes.err;
 			return;
 		}
-
-		RFnCallExpr call = new RFnCallExpr;
-		call.pos = node.pos;
-		call.callee = callee;
-		call.params = paramConv(params);
-		st.res = call;
+		if (st.params.length && typeRes.val.callabilityOf(st.params) == size_t.max){
+			st.errs ~= errCallableIncompat(node.pos, typeRes.val.toString,
+					st.params.map!(p => p.toString));
+			return;
+		}
+		st.res = r;
 	}
 
 	void opDotBinIter(OpDotBin node, ref St st){
@@ -922,7 +915,7 @@ package SmErrsVal!RExpr resolve(Expression expr, STab stabR, IdentU[] ctx,
 	st.stabR = stabR;
 	st.stab = stabR.findSt(ctx, ctx);
 	st.fns = fns;
-	st.params = params.dup;
+	st.params = params.flatten;
 	It.exec(expr, st);
 	if (st.errs.length)
 		return SmErrsVal!RExpr(st.errs);
