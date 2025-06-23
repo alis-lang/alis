@@ -579,6 +579,13 @@ private bool expT(Location pos, ADataType type, ref St st){
 	}
 
 	void intrinsicExprIter(IntrinsicExpr node, ref St st){
+		if (st.params.length){
+			RIntrinsicPartCallExpr r = new RIntrinsicPartCallExpr;
+			r.pos = node.pos;
+			r.name = node.name;
+			st.res = r;
+			return;
+		}
 		RIntrinsicExpr r = new RIntrinsicExpr;
 		r.pos = node.pos;
 		r.name = node.name;
