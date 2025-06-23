@@ -130,14 +130,28 @@ public struct AValCT{
 /// flattens AValCT[]
 /// Returns: new flattened AValCT[]
 public AValCT[] flatten(AValCT[] seq){
-	AValCT[] ret;
-	foreach (ref AValCT val; seq){
+	size_t i = 0;
+	while (i < seq.length){
+		if (seq[i].type == AValCT.Type.Seq)
+			break;
+		i ++;
+	}
+	if (i >= seq.length) return seq.dup;
+	AValCT[] ret = seq[0 .. i].dup;
+	foreach (ref AValCT val; seq[i .. $]){
 		if (val.type == AValCT.Type.Seq)
 			ret ~= val.seq.flatten;
 		else
 			ret ~= val;
 	}
 	return ret;
+}
+
+/// ditto
+public AValCT[] flatten(AValCT seq){
+	if (seq.type != AValCT.Type.Seq)
+		return [seq];
+	return seq.seq.dup;
 }
 
 /// identifier node unit
