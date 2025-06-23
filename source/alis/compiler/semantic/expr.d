@@ -653,6 +653,74 @@ private bool expT(Location pos, ADataType type, ref St st){
 	}
 
 	void opDotBinIter(OpDotBin node, ref St st){
+		RExpr lhsExpr; {
+			SmErrsVal!RExpr res = resolve(node.lhs, st.stabR, st.ctx, st.dep, st.fns);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			lhsExpr = res.val;
+		}
+		ADataType lhsType; {
+			SmErrsVal!ADataType res = typeOf(lhsExpr, st.stabR, st.ctx);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			lhsType = res.val;
+		}
+		IdentExpr rhsId = cast(IdentExpr)node.rhs;
+		string member = null;
+		ADataType memberType;
+		if (rhsId){
+			switch (lhsType.type){
+				case ADataType.Type.Struct:
+					if (lhsType.structS.exists(rhsId.ident, st.ctx)){
+						member = rhsId.ident;
+						memberType = lhsType.structS.types[lhsType.structS.names[member]];
+					}
+					break;
+				case ADataType.Type.Union:
+					if (lhsType.unionS.exists(rhsId.ident, st.ctx)){
+						member = rhsId.ident;
+						memberType = lhsType.unionS.types[lhsType.unionS.names[member]];
+					}
+					break;
+				case ADataType.Type.Enum:
+					if (lhsType.enumS.memId.canFind(rhsId.ident))
+						member = rhsId.ident;
+					break;
+				default:
+					break;
+			}
+		}
+		if (member !is null){
+			RMemberGetExpr r = new RMemberGetExpr;
+			r.pos = node.pos;
+			r.val = lhsExpr;
+			r.member = member;
+			if (!expT(node.pos, r, st)) return;
+			if (st.params.length &&
+					memberType.callabilityOf(st.params) == size_t.max){
+				st.errs ~= errCallableIncompat(node.pos, memberType.toString,
+						st.params.map!(p => p.toString));
+				return;
+			}
+			st.res = r;
+			return;
+		}
+		RExpr rhsExpr; {
+			SmErrsVal!RExpr res = resolve(node.rhs, st.stabR, st.ctx, st.dep, st.fns);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			rhsExpr = res.val;
+		}
+		if (RAValCTExpr ctValExpr = cast(RAValCTExpr)lhsExpr){
+			if (ctValExpr.res.type == AValCT.Type.Symbol){}
+		}
+
 		st.errs ~= errUnsup(node); // TODO: implement
 	}
 
