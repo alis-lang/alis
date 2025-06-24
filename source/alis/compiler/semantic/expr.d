@@ -145,6 +145,16 @@ private bool expT(Location pos, ADataType type, ref St st){
 				break;
 			case ASymbol.Type.Var:
 				r = new RVarExpr(res.varS);
+				SmErrsVal!ADataType typeRes = typeOf(r, st.stabR, st.ctx);
+				if (typeRes.isErr){
+					st.errs ~= typeRes.err;
+					return;
+				}
+				r.type = typeRes.val;
+				if (st.ctx.length && res.varS.ident.length &&
+						st.ctx[0] != res.varS.ident[0] &&
+						res.varS.vis == Visibility.IPub)
+					r.type = r.type.constOf;
 				break;
 			case ASymbol.Type.Alias:
 			case ASymbol.Type.Import:
