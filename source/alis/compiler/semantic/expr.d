@@ -689,18 +689,24 @@ private bool expT(Location pos, ADataType type, ref St st){
 		IdentExpr rhsId = cast(IdentExpr)node.rhs;
 		string member = null;
 		ADataType memberType;
+		Visibility memberVis;
+		IdentU[] aggId;
 		if (rhsId){
 			switch (lhsType.type){
 				case ADataType.Type.Struct:
+					aggId = lhsType.structS.ident;
 					if (lhsType.structS.exists(rhsId.ident, st.ctx)){
 						member = rhsId.ident;
 						memberType = lhsType.structS.types[lhsType.structS.names[member]];
+						memberVis = lhsType.structS.nameVis[member];
 					}
 					break;
 				case ADataType.Type.Union:
+					aggId = lhsType.unionS.ident;
 					if (lhsType.unionS.exists(rhsId.ident, st.ctx)){
 						member = rhsId.ident;
 						memberType = lhsType.unionS.types[lhsType.unionS.names[member]];
+						memberVis = lhsType.unionS.nameVis[member];
 					}
 					break;
 				case ADataType.Type.Enum:
@@ -712,6 +718,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 			}
 		}
 		if (member !is null){
+			if (lhsType.isConst || (
+						aggId.length && st.ctx.length && st.ctx[0] != aggId[0] &&
+						memberVis == Visibility.IPub))
+				memberType = memberType.constOf;
 			RMemberGetExpr r = new RMemberGetExpr;
 			r.pos = node.pos;
 			r.val = lhsExpr;
