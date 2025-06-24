@@ -48,3 +48,11 @@ package SmErrsVal!AValCT to(AValCT val, ADataType type){
 			type, val);
 	return SmErrsVal!AValCT(val);
 }
+
+/// converts a type to const
+/// Returns: cont type
+package ADataType constOf()(const auto ref ADataType type) pure {
+	ADataType ret = type.copy;
+	ret.isConst = true;
+	return ret;
+}
