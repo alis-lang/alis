@@ -720,15 +720,17 @@ private bool expT(Location pos, ADataType type, ref St st){
 		if (member !is null){
 			if (lhsType.isConst || (
 						aggId.length && st.ctx.length && st.ctx[0] != aggId[0] &&
-						memberVis == Visibility.IPub))
+						memberVis == Visibility.IPub)){
 				memberType = memberType.constOf;
+			}
 			RMemberGetExpr r = new RMemberGetExpr;
 			r.pos = node.pos;
 			r.val = lhsExpr;
 			r.member = member;
 			r.type = memberType;
 			if (!expT(node.pos, r, st)) return;
-			if (memberType.callabilityOf(st.params) == size_t.max){
+			if (st.params.length &&
+					memberType.callabilityOf(st.params) == size_t.max){
 				st.errs ~= errCallableIncompat(node.pos, memberType.toString,
 						st.params.map!(p => p.toString));
 				return;
