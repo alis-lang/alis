@@ -726,9 +726,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 			r.pos = node.pos;
 			r.val = lhsExpr;
 			r.member = member;
+			r.type = memberType;
 			if (!expT(node.pos, r, st)) return;
-			if (st.params.length &&
-					memberType.callabilityOf(st.params) == size_t.max){
+			if (memberType.callabilityOf(st.params) == size_t.max){
 				st.errs ~= errCallableIncompat(node.pos, memberType.toString,
 						st.params.map!(p => p.toString));
 				return;
