@@ -675,6 +675,43 @@ public struct ADataType{
 		return format!"{type: %s, data: %s}"(this.toString, data);
 	}
 
+	ADataType copy() const pure {
+		ADataType ret;
+		ret.type = type;
+		ret.isConst = isConst;
+		final switch (type){
+			case Type.Seq:
+				ret.seqT = seqT.map!(t => t.copy).array;
+				break;
+			case Type.IntX:
+			case Type.UIntX:
+			case Type.FloatX:
+			case Type.CharX:
+				ret.x = x;
+				break;
+			case Type.Bool:
+			case Type.NoInit:
+				break;
+			case Type.Slice:
+			case Type.Array:
+			case Type.Ref:
+				ret.refT = [(*refT).copy].ptr;
+				break;
+			case Type.Fn:
+				ret.retT = [(*retT).copy].ptr;
+				break;
+			case Type.Struct:
+				ret.structS = cast(AStruct*)structS;
+				break;
+			case Type.Union:
+				ret.unionS = cast(AUnion*)unionS;
+				break;
+			case Type.Enum:
+				ret.enumS = cast(AEnum*)enumS;
+		}
+		return ret;
+	}
+
 	/// Returns: `$noinit` data type
 	static ADataType ofNoInit() pure {
 		ADataType ret;
