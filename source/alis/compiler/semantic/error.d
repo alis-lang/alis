@@ -48,6 +48,7 @@ public struct SmErr{
 		Undef, /// use of undefined identifier
 		ConstAssign, /// assigning to const
 		RefAssign, /// assigning to ref using =
+		AssignNotRefable, /// Assignment LHS is not Ref-able
 	}
 	/// where error happen
 	Location pos;
@@ -254,4 +255,10 @@ package SmErr errConstAssign(Location pos, string type){
 package SmErr errRefAssign(Location pos){
 	return SmErr(pos, "assignment to ref: cannot use `=` to assign to ref",
 			SmErr.Type.RefAssign);
+}
+
+/// Assignment LHS is not Ref-able
+package SmErr errAssignNotRefable(Location pos){
+	return SmErr(pos, "assignment to non referenceable value",
+		SmErr.Type.AssignNotRefable);
 }
