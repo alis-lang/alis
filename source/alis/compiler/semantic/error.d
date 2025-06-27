@@ -46,6 +46,8 @@ public struct SmErr{
 		NotCallable, /// Callable expected, not found (sadly)
 		CallableConflict, /// Multiple callables matched
 		Undef, /// use of undefined identifier
+		ConstAssign, /// assigning to const
+		RefAssign, /// assigning to ref using =
 	}
 	/// where error happen
 	Location pos;
@@ -239,4 +241,17 @@ package SmErr errCallableConflict(R)(Location pos, string symN, R range) if (
 /// use of undefined identifier
 package SmErr errUndef(Location pos, string id){
 	return SmErr(pos, id.format!"undefined identifier: `%s`", SmErr.Type.Undef);
+}
+
+/// assigning to const
+package SmErr errConstAssign(Location pos, string type){
+	return SmErr(pos,
+			type.format!"assignment to const: cannot assign to type `%s`",
+			SmErr.Type.ConstAssign);
+}
+
+/// assigning to ref using =
+package SmErr errRefAssign(Location pos){
+	return SmErr(pos, "assignment to ref: cannot use `=` to assign to ref",
+			SmErr.Type.RefAssign);
 }
