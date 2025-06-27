@@ -303,18 +303,18 @@ public:
 }
 
 /// Resolved Assignment Expression
-public class RAssignExpr : RExpr{
+public class RVarAssignExpr : RExpr{
 public:
-	/// left side
-	RExpr lhs;
-	/// right side
-	RExpr rhs;
+	/// variable
+	AVar var;
+	/// value
+	RExpr val;
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
-		ret["_name"] = "RAssignExpr";
-		ret["lhs"] = lhs.jsonOf;
-		ret["rhs"] = rhs.jsonOf;
+		ret["_name"] = "RVarAssignExpr";
+		ret["var"] = var.toString;
+		ret["val"] = val.jsonOf;
 		return ret;
 	}
 }
@@ -322,16 +322,16 @@ public:
 /// Resolved Reference Assign Expression
 public class RRefAssignExpr : RExpr{
 public:
-	/// left side
-	RExpr lhs;
-	/// right side
-	RExpr rhs;
+	/// left side. will evaluate to a reference
+	RExpr refExpr;
+	/// right side. will evaluate to type being referenced
+	RExpr valExpr;
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "RRefAssignExpr";
-		ret["lhs"] = lhs.jsonOf;
-		ret["rhs"] = rhs.jsonOf;
+		ret["refExpr"] = refExpr.jsonOf;
+		ret["valExpr"] = refExpr.jsonOf;
 		return ret;
 	}
 }
