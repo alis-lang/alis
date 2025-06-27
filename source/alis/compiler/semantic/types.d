@@ -55,8 +55,22 @@ package ADataType constOf()(const auto ref ADataType type) pure {
 	ADataType ret = type.copy;
 	if (ret.type == ADataType.Type.Slice || ret.type == ADataType.Type.Array){
 		ret.refT.isConst = true;
+		// array become slice
+		ret.type = ADataType.Type.Slice;
 		return ret;
 	}
 	ret.isConst = true;
 	return ret;
+}
+
+///
+unittest{
+	ADataType constInt = ADataType.ofInt;
+	constInt.isConst = true;
+	ADataType intSlice = ADataType.ofSlice(ADataType.ofInt);
+	ADataType constIntSlice = ADataType.ofSlice(constInt);
+	ADataType intArray = ADataType.ofArray(ADataType.ofInt);
+	assert(ADataType.ofInt.constOf == constInt);
+	assert(intSlice.constOf == constIntSlice);
+	assert(intArray.constOf == constIntSlice);
 }
