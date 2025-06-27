@@ -967,7 +967,24 @@ private bool expT(Location pos, ADataType type, ref St st){
 			// TODO: opFree?
 		}
 
-		st.errs ~= errUnsup(node); // TODO: implement
+		if (RVarExpr varExpr = cast(RVarExpr)lhsExpr){
+			RVarAssignExpr r = new RVarAssignExpr;
+			r.pos = node.pos;
+			r.var = varExpr.var;
+			r.val = rhsExpr;
+			st.res = r;
+			return;
+		}
+
+		if (lhsType.type != ADataType.Type.Ref){
+			st.errs ~= errAssignNotRefable(node.lhs.pos);
+			return;
+		}
+		RRefAssignExpr r = new RRefAssignExpr;
+		r.pos = node.pos;
+		r.refExpr = lhsExpr;
+		r.valExpr = rhsExpr;
+		st.res = r;
 	}
 
 	void opAssignRefBinIter(OpAssignRefBin node, ref St st){
