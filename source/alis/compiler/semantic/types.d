@@ -53,6 +53,10 @@ package SmErrsVal!AValCT to(AValCT val, ADataType type){
 /// Returns: cont type
 package ADataType constOf()(const auto ref ADataType type) pure {
 	ADataType ret = type.copy;
+	if (ret.type == ADataType.Type.Slice || ret.type == ADataType.Type.Array){
+		ret.refT.isConst = true;
+		return ret;
+	}
 	ret.isConst = true;
 	return ret;
 }
