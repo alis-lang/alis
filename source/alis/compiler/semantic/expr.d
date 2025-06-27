@@ -749,7 +749,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		AValCT[] pTypes = lhsVal ~ st.params;
 		RExpr r; {
-			/// L.R(params) -> R(L, params)
+			// L.R(params) -> R(L, params)
 			SmErrsVal!RExpr resA = resolve(node.rhs, st.stabR, st.ctx, st.dep,
 					st.fns, pTypes);
 			if (resA.isErr){
@@ -912,6 +912,61 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.errs ~= errIncompatType(node.pos, st.expT.toString, "struct{}");
 			return;
 		}
+		RExpr lhsExpr; {
+			SmErrsVal!RExpr res = resolve(node.lhs, st.stabR, st.ctx, st.dep, st.fns);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			lhsExpr = res.val;
+		}
+		ADataType lhsType; {
+			SmErrsVal!ADataType res = typeOf(lhsExpr, st.stabR, st.ctx);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			lhsType = res.val;
+		}
+		if (lhsType.isConst){
+			st.errs ~= errConstAssign(node.pos, lhsType.toString);
+			return;
+		}
+		ADataType expectedType = lhsType.copy;
+		if (expectedType.type == ADataType.Type.Ref)
+			expectedType = *expectedType.refT;
+		if (expectedType.type == ADataType.Type.Ref){
+			st.errs ~= errRefAssign(node.pos);
+			return;
+		}
+
+		RExpr rhsExpr; {
+			SmErrsVal!RExpr res = resolve(node.rhs, st.stabR, st.ctx, st.dep, st.fns,
+					expectedType);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			rhsExpr = res.val;
+		}
+		ADataType rhsType; {
+			SmErrsVal!ADataType res = typeOf(rhsExpr, st.stabR, st.ctx);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			rhsType = res.val;
+		}
+
+		if (!rhsType.canCastTo(expectedType)){
+			st.errs ~= errIncompatType(node.pos, expectedType.toString,
+					rhsType.toString);
+			return;
+		}
+		if (rhsType.type != ADataType.Type.Ref && !rhsType.isPrimitive){
+			// TODO: opFree?
+		}
+
 		st.errs ~= errUnsup(node); // TODO: implement
 	}
 
