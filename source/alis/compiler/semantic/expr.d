@@ -165,7 +165,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 				st.errs ~= errUnsup(node.pos, res.type.to!string);
 				return;
 		}
-		if (expT(node.pos, r, st)){} // the empty if is to make LSP shut up
+		if (!expT(node.pos, r, st)) return;
+		if (st.isExpT)
+			r = r.to(st.expT).val;
+		st.res = r;
 	}
 
 	void blockExprIter(BlockExpr node, ref St st){
@@ -210,7 +213,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 			return;
 		}
 		if (!expT(node.pos, r, st)) return;
-		st.res = r;
+		if (st.isExpT)
+			st.res = r.to(st.expT).val;
+		else
+			st.res = r;
 	}
 
 	void commaExprIter(CommaExpr node, ref St st){
@@ -231,7 +237,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 			r.exprs ~= exprRes.val;
 		}
 		if (!expT(node.pos, r, st)) return;
-		st.res = r;
+		if (st.isExpT)
+			st.res = r.to(st.expT).val;
+		else
+			st.res = r;
 	}
 
 	void structAnonIter(StructAnon node, ref St st){
@@ -253,6 +262,8 @@ private bool expT(Location pos, ADataType type, ref St st){
 		sym.isComplete = true;
 		RExpr r = new RAValCTExpr(ADataType.of(&sym.structS).AValCT);
 		if (!expT(node.pos, r, st)) return;
+		if (st.isExpT)
+			r = r.to(st.expT).val;
 		st.res = r;
 	}
 
@@ -281,6 +292,8 @@ private bool expT(Location pos, ADataType type, ref St st){
 		sym.isComplete = true;
 		RExpr r = new RAValCTExpr(ADataType.of(&sym.unionS).AValCT);
 		if (!expT(node.pos, r, st)) return;
+		if (st.isExpT)
+			r = r.to(st.expT).val;
 		st.res = r;
 	}
 
@@ -366,7 +379,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 			r.vals ~= exprRes.val;
 		}
 		if (!expT(node.pos, r, st)) return;
-		st.res = r;
+		if (st.isExpT)
+			st.res = r.to(st.expT).val;
+		else
+			st.res = r;
 	}
 
 	void boolLiteralExprIter(BoolLiteralExpr node, ref St st){
@@ -380,7 +396,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.type = ADataType.ofBool;
 		r.value = node.val.asBytes;
 		if (!expT(node.pos, r, st)) return;
-		st.res = r;
+		if (st.isExpT)
+			st.res = r.to(st.expT).val;
+		else
+			st.res = r;
 	}
 
 	void literalIntExprIter(LiteralIntExpr node, ref St st){
@@ -394,7 +413,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.type = ADataType.ofInt;
 		r.value = node.val.asBytes;
 		if (!expT(node.pos, r, st)) return;
-		st.res = r;
+		if (st.isExpT)
+			st.res = r.to(st.expT).val;
+		else
+			st.res = r;
 	}
 
 	void literalFloatExprIter(LiteralFloatExpr node, ref St st){
@@ -408,7 +430,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.type = ADataType.ofFloat;
 		r.value = node.val.asBytes;
 		if (!expT(node.pos, r, st)) return;
-		st.res = r;
+		if (st.isExpT)
+			st.res = r.to(st.expT).val;
+		else
+			st.res = r;
 	}
 
 	void literalStringExprIter(LiteralStringExpr node, ref St st){
@@ -422,7 +447,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.type = ADataType.ofString;
 		r.value = cast(ubyte[])(node.val.dup);
 		if (!expT(node.pos, r, st)) return;
-		st.res = r;
+		if (st.isExpT)
+			st.res = r.to(st.expT).val;
+		else
+			st.res = r;
 	}
 
 	void literalCharExprIter(LiteralCharExpr node, ref St st){
@@ -436,7 +464,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.type = ADataType.ofChar(8);
 		r.value = [cast(ubyte)node.val];
 		if (!expT(node.pos, r, st)) return;
-		st.res = r;
+		if (st.isExpT)
+			st.res = r.to(st.expT).val;
+		else
+			st.res = r;
 	}
 
 	void literalArrayExprIter(LiteralArrayExpr node, ref St st){
@@ -457,7 +488,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 			r.elements ~= exprRes.val;
 		}
 		if (!expT(node.pos, r, st)) return;
-		st.res = r;
+		if (st.isExpT)
+			st.res = r.to(st.expT).val;
+		else
+			st.res = r;
 	}
 
 	void autoExprIter(AutoExpr node, ref St st){
@@ -599,7 +633,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 		RIntrinsicExpr r = new RIntrinsicExpr;
 		r.pos = node.pos;
 		r.name = node.name;
-		st.res = r;
+		if (st.isExpT)
+			st.res = r.to(st.expT).val;
+		else
+			st.res = r;
 		// TODO: error out if intrinsic not callable && st.params.length
 	}
 
@@ -634,6 +671,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 
 		RExpr r;
 		if (RFnPartCallExpr pFnCall = cast(RFnPartCallExpr)callee){
+			// TODO: cast to param types
 			pFnCall.params ~= paramsExpr;
 			r = pFnCall;
 			st.res = pFnCall;
@@ -652,6 +690,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			RFnCallExpr call = new RFnCallExpr;
 			call.pos = node.pos;
 			call.callee = callee;
+			// TODO: cast paramsExpr to param types
 			call.params = paramsExpr;
 			r = call;
 		}
@@ -666,6 +705,8 @@ private bool expT(Location pos, ADataType type, ref St st){
 					st.params.map!(p => p.toString));
 			return;
 		}
+		if (st.isExpT)
+			r = r.to(st.expT).val;
 		st.res = r;
 	}
 
@@ -735,7 +776,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 						st.params.map!(p => p.toString));
 				return;
 			}
-			st.res = r;
+			if (st.isExpT)
+				st.res = r.to(st.expT).val;
+			else
+				st.res = r;
 			return;
 		}
 
@@ -772,6 +816,8 @@ private bool expT(Location pos, ADataType type, ref St st){
 					pTypes.map!(p => p.toString));
 			return;
 		}
+		if (st.isExpT)
+			r = r.to(st.expT).val;
 		st.res = r;
 		/// A.B(params) -> B(A)(params)
 		//SmErrsVal!RExpr resB = resolve(node.rhs, )
@@ -849,6 +895,8 @@ private bool expT(Location pos, ADataType type, ref St st){
 			r.pos = node.pos;
 			r.res = subVal.seq[indI];
 			if (!expT(node.pos, r, st)) return;
+			if (st.isExpT)
+				r = new RAValCTExpr(subVal.seq[indI].to(st.expT).val);
 			st.res = r;
 			return;
 		}
@@ -889,7 +937,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 			r.name = "arrInd";
 			r.params = [sub, params[0]];
 			if (!expT(node.pos, r, st)) return;
-			st.res = r;
+			if (st.isExpT)
+				st.res = r.to(st.expT).val;
+			else
+				st.res = r;
 			return;
 		}
 
@@ -963,6 +1014,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 					rhsType.toString);
 			return;
 		}
+		rhsExpr = rhsExpr.to(expectedType).val;
 		if (rhsType.type != ADataType.Type.Ref && !rhsType.isPrimitive){
 			// TODO: opFree?
 		}
@@ -1044,6 +1096,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 					rhsType.toString);
 			return;
 		}
+		rhsExpr = rhsExpr.to(lhsType).val;
 		RRefAssignExpr r = new RRefAssignExpr;
 		r.pos = node.pos;
 		r.refExpr = lhsExpr;
