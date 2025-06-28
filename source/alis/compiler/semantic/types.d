@@ -49,6 +49,14 @@ package SmErrsVal!AValCT to(AValCT val, ADataType type){
 	return SmErrsVal!AValCT(val);
 }
 
+/// casts RExpr to `target` ADataType, creating a new RExpr around it, which
+/// does the casting
+package SmErrsVal!RExpr to(RExpr expr, ADataType type){
+	debug stderr.writefln!"STUB: to(ADataType: %s) returning as-is `%s`"(
+			type, expr);
+	return SmErrsVal!RExpr(expr);
+}
+
 /// converts a type to const
 /// Returns: cont type
 package ADataType constOf()(const auto ref ADataType type) pure {
