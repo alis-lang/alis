@@ -49,6 +49,7 @@ public struct SmErr{
 		ConstAssign, /// assigning to const
 		RefAssign, /// assigning to ref using =
 		AssignNotRefable, /// Assignment LHS is not Ref-able
+		AssignRefNotRef, /// `@=` used with non-ref LHS
 	}
 	/// where error happen
 	Location pos;
@@ -261,4 +262,9 @@ package SmErr errRefAssign(Location pos){
 package SmErr errAssignNotRefable(Location pos){
 	return SmErr(pos, "assignment to non referenceable value",
 		SmErr.Type.AssignNotRefable);
+}
+
+/// `@=` used with non-ref LHS
+package SmErr errAssignRefNotRef(Location pos){
+	return SmErr(pos, "`@=` only accepts ref on LHS", SmErr.Type.AssignRefNotRef);
 }
