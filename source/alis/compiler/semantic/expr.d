@@ -727,60 +727,63 @@ private bool expT(Location pos, ADataType type, ref St st){
 			}
 			lhsType = res.val;
 		}
-		IdentExpr rhsId = cast(IdentExpr)node.rhs;
-		string member = null;
-		ADataType memberType;
-		Visibility memberVis;
-		IdentU[] aggId;
-		if (rhsId){
-			switch (lhsType.type){
-				case ADataType.Type.Struct:
-					aggId = lhsType.structS.ident;
-					if (lhsType.structS.exists(rhsId.ident, st.ctx)){
-						member = rhsId.ident;
-						memberType = lhsType.structS.types[lhsType.structS.names[member]];
-						memberVis = lhsType.structS.nameVis[member];
-					}
-					break;
-				case ADataType.Type.Union:
-					aggId = lhsType.unionS.ident;
-					if (lhsType.unionS.exists(rhsId.ident, st.ctx)){
-						member = rhsId.ident;
-						memberType = lhsType.unionS.types[lhsType.unionS.names[member]];
-						memberVis = lhsType.unionS.nameVis[member];
-					}
-					break;
-				case ADataType.Type.Enum:
-					if (lhsType.enumS.memId.canFind(rhsId.ident))
-						member = rhsId.ident;
-					break;
-				default:
-					break;
+
+		{
+			IdentExpr rhsId = cast(IdentExpr)node.rhs;
+			string member = null;
+			ADataType memberType;
+			Visibility memberVis;
+			IdentU[] aggId;
+			if (rhsId){
+				switch (lhsType.type){
+					case ADataType.Type.Struct:
+						aggId = lhsType.structS.ident;
+						if (lhsType.structS.exists(rhsId.ident, st.ctx)){
+							member = rhsId.ident;
+							memberType = lhsType.structS.types[lhsType.structS.names[member]];
+							memberVis = lhsType.structS.nameVis[member];
+						}
+						break;
+					case ADataType.Type.Union:
+						aggId = lhsType.unionS.ident;
+						if (lhsType.unionS.exists(rhsId.ident, st.ctx)){
+							member = rhsId.ident;
+							memberType = lhsType.unionS.types[lhsType.unionS.names[member]];
+							memberVis = lhsType.unionS.nameVis[member];
+						}
+						break;
+					case ADataType.Type.Enum:
+						if (lhsType.enumS.memId.canFind(rhsId.ident))
+							member = rhsId.ident;
+						break;
+					default:
+						break;
+				}
 			}
-		}
-		if (member !is null){
-			if (lhsType.isConst || (
-						aggId.length && st.ctx.length && st.ctx[0] != aggId[0] &&
-						memberVis == Visibility.IPub)){
-				memberType = memberType.constOf;
-			}
-			RMemberGetExpr r = new RMemberGetExpr;
-			r.pos = node.pos;
-			r.val = lhsExpr;
-			r.member = member;
-			r.type = memberType;
-			if (!expT(node.pos, r, st)) return;
-			if (st.params.length &&
-					memberType.callabilityOf(st.params) == size_t.max){
-				st.errs ~= errCallableIncompat(node.pos, memberType.toString,
-						st.params.map!(p => p.toString));
+			if (member !is null){
+				if (lhsType.isConst || (
+							aggId.length && st.ctx.length && st.ctx[0] != aggId[0] &&
+							memberVis == Visibility.IPub)){
+					memberType = memberType.constOf;
+				}
+				RMemberGetExpr r = new RMemberGetExpr;
+				r.pos = node.pos;
+				r.val = lhsExpr;
+				r.member = member;
+				r.type = memberType;
+				if (!expT(node.pos, r, st)) return;
+				if (st.params.length &&
+						memberType.callabilityOf(st.params) == size_t.max){
+					st.errs ~= errCallableIncompat(node.pos, memberType.toString,
+							st.params.map!(p => p.toString));
+					return;
+				}
+				if (st.isExpT)
+					st.res = r.to(st.expT).val;
+				else
+					st.res = r;
 				return;
 			}
-			if (st.isExpT)
-				st.res = r.to(st.expT).val;
-			else
-				st.res = r;
-			return;
 		}
 
 		AValCT[] lhsVal; {
@@ -792,8 +795,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 			lhsVal = lhsRes.val.flatten;
 		}
 		AValCT[] pTypes = lhsVal ~ st.params;
+
+		// L.R(params) -> R(L, params)
 		RExpr r; {
-			// L.R(params) -> R(L, params)
 			SmErrsVal!RExpr resA = resolve(node.rhs, st.stabR, st.ctx, st.dep,
 					st.fns, pTypes);
 			if (resA.isErr){
@@ -816,10 +820,27 @@ private bool expT(Location pos, ADataType type, ref St st){
 					pTypes.map!(p => p.toString));
 			return;
 		}
+		RFnPartCallExpr pFCall = new RFnPartCallExpr;
+		pFCall.pos = node.pos;
+		pFCall.callee = r;
+		pFCall.params = lhsVal.map!(
+				function (AValCT val){
+					final switch (val.type){
+						case AValCT.Type.Literal:
+						case AValCT.Type.Symbol:
+						case AValCT.Type.Type:
+							return new RAValCTExpr(val);
+						case AValCT.Type.Expr:
+							return val.expr;
+						case AValCT.Type.Seq:
+							assert (false, "noooo");
+					}
+				}).array;
 		if (st.isExpT)
-			r = r.to(st.expT).val;
-		st.res = r;
-		/// A.B(params) -> B(A)(params)
+			st.res = pFCall.to(st.expT).val;
+		else
+			st.res = pFCall;
+		// A.B(params) -> B(A)(params) ?
 		//SmErrsVal!RExpr resB = resolve(node.rhs, )
 		// TODO: implement UFCS on templates
 	}
