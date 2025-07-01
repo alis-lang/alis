@@ -28,6 +28,7 @@ package:
 /// **should never occur in a finalized RST**
 package class RTmPartInitExpr : RExpr{
 package:
+	// TODO: include expected param types
 	this(){}
 	// TODO
 }
@@ -36,6 +37,8 @@ package:
 /// **should never occur in a finalized RST**
 package class RIntrinsicPartCallExpr : RIntrinsicCallExpr{
 package:
+	/// expected param types
+	ADataType[] paramT;
 	this(){}
 }
 
