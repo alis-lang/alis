@@ -673,10 +673,28 @@ private bool expT(Location pos, ADataType type, ref St st){
 
 		RExpr r;
 		if (RFnPartCallExpr pFnCall = cast(RFnPartCallExpr)callee){
-			// TODO: cast to param types
-			pFnCall.params ~= paramsExpr;
+			ADataType fnType; {
+				SmErrsVal!ADataType res = typeOf(pFnCall.callee, st.stabR, st.ctx);
+				if (res.isErr){
+					st.errs ~= res.err;
+					return;
+				}
+				fnType = res.val;
+			}
+			assert (fnType.type == ADataType.Type.Fn);
+			assert (fnType.paramT.length == paramsExpr.length + pFnCall.params.length,
+					"WOT!?");
+			immutable size_t offset = pFnCall.params.length;
+			foreach (size_t i, RExpr param; paramsExpr){
+				SmErrsVal!RExpr castRes = param.to(fnType.paramT[offset + i]);
+				if (castRes.isErr){
+					st.errs ~= castRes.err;
+					continue;
+				}
+				pFnCall.params ~= castRes.val;
+			}
+			if (pFnCall.params.length != fnType.paramT.length) return;
 			r = pFnCall;
-			st.res = pFnCall;
 		} else
 		if (RTmPartInitExpr pTmCall = cast(RTmPartInitExpr)callee){
 			st.errs ~= errUnsup(node.pos, "Template instantiation");
@@ -692,8 +710,25 @@ private bool expT(Location pos, ADataType type, ref St st){
 			RFnCallExpr call = new RFnCallExpr;
 			call.pos = node.pos;
 			call.callee = callee;
-			// TODO: cast paramsExpr to param types
-			call.params = paramsExpr;
+			ADataType fnType; {
+				SmErrsVal!ADataType res = typeOf(callee, st.stabR, st.ctx);
+				if (res.isErr){
+					st.errs ~= res.err;
+					return;
+				}
+				fnType = res.val;
+			}
+			assert (fnType.type == ADataType.Type.Fn);
+			assert (fnType.paramT.length == paramsExpr.length, "WOT!?");
+			foreach (size_t i, RExpr param; paramsExpr){
+				SmErrsVal!RExpr castRes = param.to(fnType.paramT[i]);
+				if (castRes.isErr){
+					st.errs ~= castRes.err;
+					continue;
+				}
+				call.params ~= castRes.val;
+			}
+			if (call.params.length != fnType.paramT.length) return;
 			r = call;
 		}
 		if (!expT(node.pos, r, st)) return;
