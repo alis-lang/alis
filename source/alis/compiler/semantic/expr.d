@@ -176,6 +176,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.pos = node.pos;
 		r.block = new RBlock;
 		r.block.pos = node.block.pos;
+		// TODO: handlue @auto
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
 		foreach (Statement stmnt; node.block.statements){
 			SmErrsVal!RStatement stmntRes = resolveStmnt(stmnt, st.stabR, st.ctx,
@@ -312,6 +313,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 				continue;
 			}
 			nameSet[param.name] = (void[0]).init;
+			// TODO: handle @auto
 			immutable bool isAuto =
 				cast(AutoExpr)param.type !is null || param.type is null;
 			ADataType type;
