@@ -704,6 +704,18 @@ private bool expT(Location pos, ADataType type, ref St st){
 			r = pTmCall;
 		} else
 		if (RIntrinsicPartCallExpr iCall = cast(RIntrinsicPartCallExpr)callee){
+			assert (iCall.params.length + paramsExpr.length == iCall.paramT.length,
+					"WOT!?");
+			immutable size_t offset = iCall.params.length;
+			foreach (size_t i, RExpr param; paramsExpr){
+				SmErrsVal!RExpr castRes = param.to(iCall.paramT[offset + i]);
+				if (castRes.isErr){
+					st.errs ~= castRes.err;
+					continue;
+				}
+				iCall.params ~= castRes.val;
+			}
+			if (iCall.params.length != iCall.paramT.length) return;
 			iCall.params ~= paramsExpr;
 			r = iCall;
 		} else {
