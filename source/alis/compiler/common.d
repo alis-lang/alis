@@ -81,6 +81,9 @@ public enum IntrN : string{
 	ArithLShift = "arithLShift",
 	ArithSShift = "arithSShift",
 
+	// booleans
+	BoolNot = "boolNot",
+
 	// casting
 	Cast = "cast"
 }

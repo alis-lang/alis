@@ -2122,6 +2122,10 @@ required:
 - `arithLShift(X, Y)` - returns `X << Y`
 - `arithRShift(X, Y)` - returns `X >> Y`
 
+## Booleans
+
+- `boolNot(X)` - returns `false` if `X is true`, or `true` if `X is false`
+
 ## Type Casting
 
 - `cast(X, T)` - casts `X` to type `T`. Works only for primitives.
