@@ -51,6 +51,7 @@ public struct SmErr{
 		AssignNotRefable, /// Assignment LHS is not Ref-able
 		AssignRefNotRef, /// `@=` used with non-ref LHS
 		DerefNoRef, /// trying to deref something that is not a ref
+		ConstConst, /// trying to const a const
 	}
 
 	/// where error happen
@@ -276,4 +277,10 @@ package SmErr errDerefNoRef(Location pos, string type){
 	return SmErr(pos,
 			type.format!"only reference can be dereferenced: cannot deref `%s`",
 			SmErr.Type.DerefNoRef);
+}
+
+/// trying to const a const
+package SmErr errConstConst(Location pos, string type){
+	return SmErr(pos, type.format!"constOf const: cannot const `%s`",
+			SmErr.Type.ConstConst);
 }
