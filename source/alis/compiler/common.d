@@ -88,6 +88,27 @@ public enum IntrN : string{
 	Cast = "cast"
 }
 
+/// Returns: true if a string is a valid intrinsic name
+public bool isIntrN(string s) pure {
+	import std.traits : EnumMembers;
+	switch (s){
+		static foreach (Member; EnumMembers!IntrN){
+			case Member:
+		}
+		return true;
+	default:
+		return false;
+	}
+	return false; // just in case
+}
+///
+unittest{
+	assert ("type".isIntrN);
+	assert ("cast".isIntrN);
+	assert ("foo".isIntrN == false);
+	assert ("bar".isIntrN == false);
+}
+
 /// Visibility specifier
 /// first rightmost bit -> 1 if can read
 /// second rightmost bit -> 1 if can write
