@@ -1227,11 +1227,21 @@ private bool expT(Location pos, ADataType type, ref St st){
 	}
 
 	void opNotIsPreIter(OpNotIsPre node, ref St st){
-		if (st.params.length){
-			st.errs ~= errNotCallable(node.pos, "!is prefix");
-			return;
-		}
-		st.errs ~= errUnsup(node); // TODO: implement
+		IntrinsicExpr itr = new IntrinsicExpr;
+		itr.pos = node.pos;
+		itr.name = IntrN.BoolNot;
+		OpCallExpr itrCall = new OpCallExpr;
+		itrCall.pos = node.pos;
+		itrCall.callee = itr;
+		IntrinsicExpr isItr = new IntrinsicExpr;
+		isItr.pos = node.pos;
+		isItr.name = IntrN.UnionIs;
+		OpCallExpr isCall = new OpCallExpr;
+		isCall.pos = node.pos;
+		isCall.callee = isItr;
+		isCall.params = [node.operand];
+		itrCall.params = [isCall];
+		opCallExprIter(itrCall, st);
 	}
 
 	void opConstPreIter(OpConstPre node, ref St st){
