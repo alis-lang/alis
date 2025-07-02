@@ -1215,11 +1215,14 @@ private bool expT(Location pos, ADataType type, ref St st){
 	}
 
 	void opIsPreIter(OpIsPre node, ref St st){
-		if (st.params.length){
-			st.errs ~= errNotCallable(node.pos, "is prefix");
-			return;
-		}
-		st.errs ~= errUnsup(node); // TODO: implement
+		IntrinsicExpr itr = new IntrinsicExpr;
+		itr.pos = node.pos;
+		itr.name = "is";
+		OpCallExpr call = new OpCallExpr;
+		call.pos = node.pos;
+		call.callee = itr;
+		call.params = [node.operand];
+		opCallExprIter(call, st);
 	}
 
 	void opNotIsPreIter(OpNotIsPre node, ref St st){
