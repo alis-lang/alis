@@ -1249,7 +1249,22 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.errs ~= errNotCallable(node.pos, "const prefix");
 			return;
 		}
-		st.errs ~= errUnsup(node); // TODO: implement
+		ADataType type; {
+			SmErrsVal!ADataType typeRes = eval4Type(node.operand, st.stabR, st.ctx,
+					st.dep, st.fns);
+			if (typeRes.isErr){
+				st.errs ~= typeRes.err;
+				return;
+			}
+			type = typeRes.val;
+		}
+		if (type.isConst){
+			st.errs ~= errConstConst(node.pos, type.toString);
+			return;
+		}
+		RAValCTExpr r = new RAValCTExpr(type.constOf.AValCT);
+		r.pos = node.pos;
+		st.res = r;
 	}
 
 	void opRefPreIter(OpRefPre node, ref St st){
