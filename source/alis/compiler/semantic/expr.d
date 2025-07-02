@@ -633,6 +633,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 	}
 
 	void intrinsicExprIter(IntrinsicExpr node, ref St st){
+		assert (node.name.isIntrN);
 		if (st.params.length){
 			RIntrinsicPartCallExpr r = new RIntrinsicPartCallExpr;
 			r.pos = node.pos;
@@ -1010,7 +1011,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			}
 			RIntrinsicCallExpr r = new RIntrinsicCallExpr;
 			r.pos = node.pos;
-			r.name = "arrInd";
+			r.name = IntrN.ArrayInd;
 			r.params = [sub, params[0]];
 			if (!expT(node.pos, r, st)) return;
 			if (st.isExpT)
@@ -1217,7 +1218,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 	void opIsPreIter(OpIsPre node, ref St st){
 		IntrinsicExpr itr = new IntrinsicExpr;
 		itr.pos = node.pos;
-		itr.name = "is";
+		itr.name = IntrN.UnionIs;
 		OpCallExpr call = new OpCallExpr;
 		call.pos = node.pos;
 		call.callee = itr;
