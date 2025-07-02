@@ -50,7 +50,9 @@ public struct SmErr{
 		RefAssign, /// assigning to ref using =
 		AssignNotRefable, /// Assignment LHS is not Ref-able
 		AssignRefNotRef, /// `@=` used with non-ref LHS
+		DerefNoRef, /// trying to deref something that is not a ref
 	}
+
 	/// where error happen
 	Location pos;
 	/// error message
@@ -267,4 +269,11 @@ package SmErr errAssignNotRefable(Location pos){
 /// `@=` used with non-ref LHS
 package SmErr errAssignRefNotRef(Location pos){
 	return SmErr(pos, "`@=` only accepts ref on LHS", SmErr.Type.AssignRefNotRef);
+}
+
+/// trying to deref something that is not a ref
+package SmErr errDerefNoRef(Location pos, string type){
+	return SmErr(pos,
+			type.format!"only reference can be dereferenced: cannot deref `%s`",
+			SmErr.Type.DerefNoRef);
 }
