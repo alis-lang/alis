@@ -1292,7 +1292,33 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.errs ~= errNotCallable(node.pos, "type-cast check operation");
 			return;
 		}
-		st.errs ~= errUnsup(node); // TODO: implement
+		ADataType lhs; {
+			SmErrsVal!ADataType res = eval4Type(node.lhs, st.stabR, st.ctx,
+					st.dep, st.fns);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			lhs = res.val;
+		}
+		ADataType rhs; {
+			SmErrsVal!ADataType res = eval4Type(node.rhs, st.stabR, st.ctx,
+					st.dep, st.fns);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			rhs = res.val;
+		}
+		AValCT val;
+		if (lhs.canCastTo(rhs)){
+			val = AValCT(ADataType.ofBool, true.asBytes);
+		} else {
+			val = AValCT(ADataType.ofBool, false.asBytes);
+		}
+		RAValCTExpr r = new RAValCTExpr(val);
+		r.pos = node.pos;
+		st.res = r;
 	}
 
 	void opIsBinIter(OpIsBin node, ref St st){
