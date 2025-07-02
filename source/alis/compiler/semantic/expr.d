@@ -1172,7 +1172,33 @@ private bool expT(Location pos, ADataType type, ref St st){
 	}
 
 	void opRefPostIter(OpRefPost node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
+		RExpr sub; {
+			SmErrsVal!RExpr res = resolve(node.operand, st.stabR, st.ctx,
+					st.dep, st.fns);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			sub = res.val;
+		}
+		ADataType subType; {
+			SmErrsVal!ADataType res = typeOf(sub, st.stabR, st.ctx);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			subType = res.val;
+		}
+		if (subType.type != ADataType.Type.Ref){
+			st.errs ~= errDerefNoRef(node.pos, subType.toString);
+			return;
+		}
+		RDerefExpr r = new RDerefExpr;
+		r.pos = node.pos;
+		r.type = *subType.refT;
+		r.hasType = true;
+		r.val = sub;
+		st.res = r;
 	}
 
 	void opDotsPostIter(OpDotsPost node, ref St st){
