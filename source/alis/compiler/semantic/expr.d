@@ -155,6 +155,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 						st.ctx[0] != res.varS.ident[0] &&
 						res.varS.vis == Visibility.IPub)
 					r.type = r.type.constOf;
+				r.hasType = true;
 				break;
 			case ASymbol.Type.Alias:
 			case ASymbol.Type.Import:
@@ -194,6 +195,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		if (isAuto){
 			r.type = typeRes.val;
+			r.hasType = true;
 		} else {
 			SmErrsVal!ADataType xtypeRes = eval4Type(node.type, st.stabR, st.ctx,
 					st.dep, st.fns);
@@ -202,6 +204,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 				return;
 			}
 			r.type = xtypeRes.val;
+			r.hasType = true;
 			if (!typeRes.val.canCastTo(r.type)){
 				st.errs ~= errIncompatType(node.pos, xtypeRes.val.toString,
 						typeRes.val.toString);
@@ -396,6 +399,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
 		r.type = ADataType.ofBool;
+		r.hasType = true;
 		r.value = node.val.asBytes;
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
@@ -413,6 +417,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
 		r.type = ADataType.ofInt;
+		r.hasType = true;
 		r.value = node.val.asBytes;
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
@@ -430,6 +435,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
 		r.type = ADataType.ofFloat;
+		r.hasType = true;
 		r.value = node.val.asBytes;
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
@@ -447,6 +453,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
 		r.type = ADataType.ofString;
+		r.hasType = true;
 		r.value = cast(ubyte[])(node.val.dup);
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
@@ -464,6 +471,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
 		r.type = ADataType.ofChar(8);
+		r.hasType = true;
 		r.value = [cast(ubyte)node.val];
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
@@ -817,6 +825,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 				r.val = lhsExpr;
 				r.member = member;
 				r.type = memberType;
+				r.hasType = true;
 				if (!expT(node.pos, r, st)) return;
 				if (st.params.length &&
 						memberType.callabilityOf(st.params) == size_t.max){
