@@ -398,7 +398,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofBool;
+		r.type = ADataType.ofBool.constOf;
 		r.hasType = true;
 		r.value = node.val.asBytes;
 		if (!expT(node.pos, r, st)) return;
@@ -416,7 +416,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofInt;
+		r.type = ADataType.ofInt.constOf;
 		r.hasType = true;
 		r.value = node.val.asBytes;
 		if (!expT(node.pos, r, st)) return;
@@ -434,7 +434,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofFloat;
+		r.type = ADataType.ofFloat.constOf;
 		r.hasType = true;
 		r.value = node.val.asBytes;
 		if (!expT(node.pos, r, st)) return;
@@ -452,7 +452,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofString;
+		r.type = ADataType.ofString.constOf;
 		r.hasType = true;
 		r.value = cast(ubyte[])(node.val.dup);
 		if (!expT(node.pos, r, st)) return;
@@ -470,7 +470,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofChar(8);
+		r.type = ADataType.ofChar(8).constOf;
 		r.hasType = true;
 		r.value = [cast(ubyte)node.val];
 		if (!expT(node.pos, r, st)) return;
