@@ -12,7 +12,7 @@ import alis.common,
 
 debug import std.stdio;
 
-private alias It = ItL!(mixin(__MODULE__), 0);
+private alias It = RtL!(mixin(__MODULE__), 0);
 
 private struct St{
 	SmErr[] errs;
