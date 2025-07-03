@@ -84,6 +84,10 @@ public enum IntrN : string{
 	// booleans
 	BoolNot = "boolNot",
 
+	// comparison
+	Is = "is",
+	IsNot = "isNot",
+
 	// casting
 	Cast = "cast"
 }

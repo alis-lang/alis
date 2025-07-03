@@ -2126,6 +2126,11 @@ required:
 
 - `boolNot(X)` - returns `false` if `X is true`, or `true` if `X is false`
 
+## Comparison
+
+- `is(X, Y)` - returns if `X` equals `Y`.
+- `isNot(X, Y)` - returns if `X` not equals `Y`.
+
 ## Type Casting
 
 - `cast(X, T)` - casts `X` to type `T`. Works only for primitives.
