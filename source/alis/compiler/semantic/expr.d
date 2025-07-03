@@ -1106,7 +1106,24 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 
 		if (lhsType.type != ADataType.Type.Ref){
-			st.errs ~= errAssignNotRefable(node.lhs.pos);
+			OpRefPre opRef = new OpRefPre;
+			opRef.pos = lhsExpr.pos;
+			opRef.operand = node.lhs;
+			SmErrsVal!RExpr lhsRes = resolve(opRef, st.stabR, st.ctx, st.dep, st.fns);
+			if (lhsRes.isErr){
+				st.errs ~= lhsRes.err;
+				return;
+			}
+			lhsExpr = lhsRes.val;
+			SmErrsVal!ADataType typeRes = typeOf(lhsExpr, st.stabR, st.ctx);
+			if (typeRes.isErr){
+				st.errs ~= typeRes.err;
+				return;
+			}
+			lhsType = typeRes.val;
+		}
+		if (lhsType.type != ADataType.Type.Ref){ // just in case
+			st.errs ~= errAssignNotRefable(node.pos);
 			return;
 		}
 		RRefAssignExpr r = new RRefAssignExpr;
