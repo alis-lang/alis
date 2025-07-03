@@ -1814,11 +1814,11 @@ template mixin xTimes $(alias F : @fn ()->void, uint times){
 	}
 }
 fn main() -> void{
-	mixin (xTimes) (foo, 5); // equivalent to calling foo 5 times
+	mixin xTimes (foo, 5); // equivalent to calling foo 5 times
 }
 ```
 
-mixins are initialized as `mixin (MIXIN) (PARAM_LIST)`. The `.` operator
+mixins are initialized as `mixin MIXIN_NAME (PARAM_LIST)`. The `.` operator
 cannot be used in place of `()` in case of mixins.
 
 ## Functions
