@@ -368,11 +368,9 @@ The `auto` keyword can be used to infer types:
 
 ```
 var auto x = something;
-var auto y @= something;
+var auto y @= something; 
 ```
-
-Where it is not possible to detect whether `auto` should resolve to `T` or
-`@T`, it will prefer `T`. To override this behavior, use `@auto`
+// TODO: `var .. .. @= x;` needs to be implemented starting at parser.
 
 ## `$array(X)`
 
