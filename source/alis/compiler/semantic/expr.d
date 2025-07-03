@@ -1322,19 +1322,25 @@ private bool expT(Location pos, ADataType type, ref St st){
 	}
 
 	void opIsBinIter(OpIsBin node, ref St st){
-		if (st.params.length){
-			st.errs ~= errNotCallable(node.pos, "is comparison");
-			return;
-		}
-		st.errs ~= errUnsup(node); // TODO: implement
+		IntrinsicExpr itr = new IntrinsicExpr;
+		itr.pos = node.pos;
+		itr.name = IntrN.Is;
+		OpCallExpr call = new OpCallExpr;
+		call.pos = node.pos;
+		call.callee = itr;
+		call.params = [node.lhs, node.rhs];
+		opCallExprIter(call, st);
 	}
 
 	void opNotIsBinIter(OpNotIsBin node, ref St st){
-		if (st.params.length){
-			st.errs ~= errNotCallable(node.pos, "!is comparison");
-			return;
-		}
-		st.errs ~= errUnsup(node); // TODO: implement
+		IntrinsicExpr itr = new IntrinsicExpr;
+		itr.pos = node.pos;
+		itr.name = IntrN.IsNot;
+		OpCallExpr call = new OpCallExpr;
+		call.pos = node.pos;
+		call.callee = itr;
+		call.params = [node.lhs, node.rhs];
+		opCallExprIter(call, st);
 	}
 
 	void opNotPostIter(OpNotPost node, ref St st){
