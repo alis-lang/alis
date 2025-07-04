@@ -368,11 +368,9 @@ The `auto` keyword can be used to infer types:
 
 ```
 var auto x = something;
-var auto y @= something;
+var auto y @= something; 
 ```
-
-Where it is not possible to detect whether `auto` should resolve to `T` or
-`@T`, it will prefer `T`. To override this behavior, use `@auto`
+// TODO: `var .. .. @= x;` needs to be implemented starting at parser.
 
 ## `$array(X)`
 
@@ -1816,11 +1814,11 @@ template mixin xTimes $(alias F : @fn ()->void, uint times){
 	}
 }
 fn main() -> void{
-	mixin (xTimes) (foo, 5); // equivalent to calling foo 5 times
+	mixin xTimes (foo, 5); // equivalent to calling foo 5 times
 }
 ```
 
-mixins are initialized as `mixin (MIXIN) (PARAM_LIST)`. The `.` operator
+mixins are initialized as `mixin MIXIN_NAME (PARAM_LIST)`. The `.` operator
 cannot be used in place of `()` in case of mixins.
 
 ## Functions
@@ -2121,6 +2119,15 @@ required:
 
 - `arithLShift(X, Y)` - returns `X << Y`
 - `arithRShift(X, Y)` - returns `X >> Y`
+
+## Booleans
+
+- `boolNot(X)` - returns `false` if `X is true`, or `true` if `X is false`
+
+## Comparison
+
+- `is(X, Y)` - returns if `X` equals `Y`.
+- `isNot(X, Y)` - returns if `X` not equals `Y`.
 
 ## Type Casting
 

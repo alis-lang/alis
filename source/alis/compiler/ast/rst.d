@@ -19,7 +19,7 @@ public alias RSTIter(Fns...) =
 	Instantiate!(alis.compiler.ast.iter.ASTIter!RSTNodes, Fns);
 
 private template GetAll(){
-	alias GetAll = AliasSeq!();
+	alias GetAll = AliasSeq!(RFn, RModule);
 	static foreach (string name; __traits(allMembers, mixin(__MODULE__))){
 		static if (is (__traits(getMember, mixin(__MODULE__), name) : RStatement)){
 			GetAll = AliasSeq!(GetAll, __traits(getMember, mixin(__MODULE__), name));
@@ -35,33 +35,20 @@ public class RModule : ASTNode{
 public:
 	/// functions
 	RFn[] fns;
-	/// whether any function is public
-	bool[] fnIsPublic;
 	/// init blocks
 	RBlock[] initers;
-	/// globals (parameters and variables) types
+	/// globals data types
 	ADataType[] globalsT;
 	/// globals names
 	string[] globalsN;
-	/// globals visibility
-	Visibility[] globalsV;
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
-		ret["fns"] = fns.length.iota
-			.map!((size_t i){
-					JSONValue f = fns[i].jsonOf;
-					f["isPublic"] = fnIsPublic[i];
-					return f;
-			})
+		ret["fns"] = fns.map!(f => f.jsonOf).array;
+		ret["globals"] = globalsN.length.iota
+			.map!(i => ["name": globalsN[i], "type": globalsT[i].toString].JSONValue)
 			.array;
-		ret["globals"] = globalsT.length.iota
-			.map!(i => JSONValue([
-						"name": globalsN[i],
-						"type": globalsT[i].toString,
-						"vis": globalsV.to!string
-			]))
-			.array;
+		ret["init"] = initers.map!(i => i.jsonOf).array;
 		return ret;
 	}
 }
@@ -77,8 +64,6 @@ public:
 	ADataType[] paramsT;
 	/// parameter names
 	string[] paramsN;
-	/// how many of the locals are parameters
-	size_t paramCount;
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
@@ -90,15 +75,13 @@ public:
 						["name": paramsN[i], "type": paramsT[i].toString]
 						))
 			.array;
-		ret["paramCount"] = JSONValue(paramCount);
 		ret["_name"] = "RFn";
 		return ret;
 	}
 }
 
 /// Resovled Statement
-public abstract class RStatement : Statement{
-}
+public abstract class RStatement : Statement{}
 
 /// Resovled Block
 public class RBlock : RStatement{
@@ -138,6 +121,21 @@ public:
 	}
 }
 
+/// Resolved ReturnFromFunction Statement
+public class RReturnFn : RStatement{
+public:
+	/// return value, can be null
+	RExpr val;
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		if (val)
+			ret["val"] = val.jsonOf;
+		ret["_name"] = "RReturnFn";
+		return ret;
+	}
+}
+
 /// resovled if statement node
 public class RIf : RStatement{
 public:
@@ -155,32 +153,6 @@ public:
 		if (onFalse)
 			ret["onFalse"] = onFalse.jsonOf;
 		ret["_name"] = "RIf";
-		return ret;
-	}
-}
-
-/// resolved for statement node
-public class RFor : RStatement{
-public:
-	/// counter name, can be null
-	string countIdent;
-	/// value type
-	ADataType valType;
-	/// value
-	string valIdent;
-	/// range
-	RExpr range;
-	/// loop body
-	RStatement body;
-
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		ret["countIdent"] = countIdent;
-		ret["valType"] = valType.toString;
-		ret["valIdent"] = valIdent;
-		ret["range"] = range.jsonOf;
-		ret["body"] = body.jsonOf;
-		ret["_name"] = "RFor";
 		return ret;
 	}
 }
@@ -219,45 +191,27 @@ public:
 	}
 }
 
-/// resolved Case statement
-public class RCase : ASTNode{
-public:
-	/// case value
-	RLiteralExpr val;
-	/// case block
-	RStatement body;
-
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		ret["val"] = val.jsonOf;
-		ret["body"] = body.jsonOf;
-		ret["_name"] = "RCase";
-		return ret;
-	}
-}
-
-/// resolved Default Case statement
-public class RCaseDef : RCase{
-public:
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		ret["_name"] = "RCaseDef";
-		return ret;
-	}
-}
-
 /// resolved switch case statement
 public class RSwitch : RStatement{
 public:
 	/// value to switch on
 	RExpr val;
-	/// cases
-	RCase[] cases;
+	/// values to match against
+	RLiteralExpr[] vals;
+	/// statements to jump to
+	RStatement[] stmnts;
+	/// default statement, if any
+	RStatement def;
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["val"] = val.jsonOf;
-		ret["cases"] = cases.map!(a => a.jsonOf).array;
+		if (def)
+			ret["default"] = def.jsonOf;
+		JSONValue cases;
+		foreach (size_t i; 0 .. vals.length)
+			cases[vals[i].toString] = stmnts[i].jsonOf;
+		ret["cases"] = cases;
 		ret["_name"] = "RSwitch";
 		return ret;
 	}
@@ -266,27 +220,39 @@ public:
 /// Resolved Expression
 public abstract class RExpr : RStatement{
 public:
+	/// whether `type` has been set
+	bool hasType = false;
+	/// `typeOf` for this expression. Only valid if `this.hasType`
+	ADataType type;
+
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "RExpr";
+		if (hasType)
+			ret["type"] = type.toString;
 		return ret;
 	}
 
 	override string toString() const pure {
-		return "RExpr"; // TODO: implement RExpr.toString
+		return "TODO"; // TODO: implement RExpr.toString
 	}
 }
 
-/// Resolved Identifier
-public class RIdentExpr : RExpr{
+/// Resolved Var Get expression
+public class RVarExpr : RExpr{
 public:
-	/// identifier
-	string ident;
+	/// var
+	AVar var;
+
+	this(){}
+	this()(auto ref AVar var){
+		this.var = var;
+	}
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
-		ret["_name"] = "RIdentExpr";
-		ret["ident"] = ident;
+		ret["_name"] = "RVarExpr";
+		ret["var"] = var.toString;
 		return ret;
 	}
 }
@@ -294,15 +260,12 @@ public:
 /// Resolved Block Expression
 public class RBlockExpr : RExpr{
 public:
-	/// return type
-	ADataType type;
 	/// block
 	RBlock block;
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "RBlockExpr";
-		ret["type"] = type.toString;
 		ret["block"] = block.jsonOf;
 		return ret;
 	}
@@ -339,33 +302,19 @@ public:
 	}
 }
 
-/// Data Type as a Resolved Expression
-public class RDTypeExpr : RExpr{
-public:
-	/// type
-	ADataType type;
-
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		ret["type"] = type.toString;
-		ret["_name"] = "RDTypeExpr";
-		return ret;
-	}
-}
-
 /// Resolved Assignment Expression
-public class RAssignExpr : RExpr{
+public class RVarAssignExpr : RExpr{
 public:
-	/// left side
-	RExpr lhs;
-	/// right side
-	RExpr rhs;
+	/// variable
+	AVar var;
+	/// value
+	RExpr val;
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
-		ret["_name"] = "RAssignExpr";
-		ret["lhs"] = lhs.jsonOf;
-		ret["rhs"] = rhs.jsonOf;
+		ret["_name"] = "RVarAssignExpr";
+		ret["var"] = var.toString;
+		ret["val"] = val.jsonOf;
 		return ret;
 	}
 }
@@ -373,16 +322,16 @@ public:
 /// Resolved Reference Assign Expression
 public class RRefAssignExpr : RExpr{
 public:
-	/// left side
-	RExpr lhs;
-	/// right side
-	RExpr rhs;
+	/// left side. will evaluate to a reference
+	RExpr refExpr;
+	/// right side. will evaluate to type being referenced
+	RExpr valExpr;
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "RRefAssignExpr";
-		ret["lhs"] = lhs.jsonOf;
-		ret["rhs"] = rhs.jsonOf;
+		ret["refExpr"] = refExpr.jsonOf;
+		ret["valExpr"] = refExpr.jsonOf;
 		return ret;
 	}
 }
@@ -428,34 +377,6 @@ public:
 		ret["_name"] = "RFnCallExpr";
 		ret["callee"] = callee.jsonOf;
 		ret["params"] = params.map!(a => a.jsonOf).array;
-		return ret;
-	}
-}
-
-/// Resolved Prefix `is` Expression
-public class RPreIsExpr : RExpr{
-public:
-	/// operand
-	RExpr val;
-
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		ret["_name"] = "RIsPre";
-		ret["val"] = val.jsonOf;
-		return ret;
-	}
-}
-
-/// Resolved Prefix `!is` Expression
-public class RPreNotIsExpr : RExpr{
-public:
-	/// operand
-	RExpr val;
-
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		ret["_name"] = "RNotIsPre";
-		ret["val"] = val.jsonOf;
 		return ret;
 	}
 }
@@ -508,33 +429,21 @@ public:
 	}
 }
 
-/// Resolved Enum Member Get Expression
-public class REnumMemberGetExpr : RExpr{
-public:
-	/// the enum
-	RIdentExpr val;
-	/// member name
-	string member;
-
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		ret["_name"] = "REnumMemberGetExpr";
-		ret["val"] = val.jsonOf;
-		ret["member"] = member;
-		return ret;
-	}
-}
-
 /// Resolved Function Expression
 public class RFnExpr : RExpr{
 public:
 	/// function
-	AFn fn; // TODO: NO. Very Bad!
+	AFn fn;
+
+	this(){}
+	this()(auto ref AFn fn){
+		this.fn = fn;
+	}
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "RFnExpr";
-		ret["fn"] = "FUNCTION_NAME"; // TODO: where AFn.toString?????
+		ret["fn"] = fn.toString;
 		return ret;
 	}
 }
@@ -543,13 +452,20 @@ public:
 public class RStructLiteralExpr : RExpr{
 public:
 	/// key value pairs of members
-	RExpr[string] members;
+	/// member names
+	string[] names;
+	/// member values
+	RExpr[] vals;
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		JSONValue obj;
-		foreach (string name, val; members)
-			obj[name] = val.jsonOf;
+		foreach (size_t i; 0 .. names.length){
+			JSONValue sub;
+			sub["name"] = names[i];
+			sub["val"] = vals[i].jsonOf;
+			obj[i] = sub;
+		}
 		ret["members"] = obj;
 		ret["_name"] = "RStructLiteralExpr";
 		return ret;

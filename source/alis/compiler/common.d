@@ -81,8 +81,36 @@ public enum IntrN : string{
 	ArithLShift = "arithLShift",
 	ArithSShift = "arithSShift",
 
+	// booleans
+	BoolNot = "boolNot",
+
+	// comparison
+	Is = "is",
+	IsNot = "isNot",
+
 	// casting
 	Cast = "cast"
+}
+
+/// Returns: true if a string is a valid intrinsic name
+public bool isIntrN(string s) pure {
+	import std.traits : EnumMembers;
+	switch (s){
+		static foreach (Member; EnumMembers!IntrN){
+			case Member:
+		}
+		return true;
+	default:
+		return false;
+	}
+	return false; // just in case
+}
+///
+unittest{
+	assert ("type".isIntrN);
+	assert ("cast".isIntrN);
+	assert ("foo".isIntrN == false);
+	assert ("bar".isIntrN == false);
 }
 
 /// Visibility specifier
@@ -117,10 +145,12 @@ public struct ErrVal(T, E){
 	}
 	/// Returns: error
 	public @property E err() pure {
+		assert (isErr);
 		return _err;
 	}
 	/// Returns: value
 	public @property T val() pure {
+		assert (!isErr);
 		return _val;
 	}
 

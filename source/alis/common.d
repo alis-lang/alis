@@ -30,6 +30,7 @@ public struct AValCT{
 		Symbol, /// an alias to a symbol
 		Type, /// a Data Type
 		Expr, /// an alias to an RExpr
+		Seq, /// alias (sequence)
 	}
 	/// currently stored type
 	Type type = Type.Type;
@@ -41,6 +42,7 @@ public struct AValCT{
 		ASymbol* symS; /// symbol for `Symbol`
 		ADataType typeT; /// data type for `Type`
 		RExpr expr; /// expr in case of `Expr`
+		AValCT[] seq; /// sequence in case of `Seq`
 	}
 
 	string toString() const pure {
@@ -53,6 +55,8 @@ public struct AValCT{
 				return typeT.toString;
 			case Type.Expr:
 				return expr.toString;
+			case Type.Seq:
+				return seq.format!"(%(%r,%))";
 		}
 		return null;
 	}
@@ -67,11 +71,19 @@ public struct AValCT{
 				return typeT == rhs.typeT;
 			case Type.Expr:
 				return expr.toString == rhs.expr.toString; // HACK
+			case Type.Seq:
+				if (seq.length != rhs.seq.length)
+					return false;
+				foreach (size_t i; 0 .. seq.length){
+					if (seq[i] != rhs.seq[i])
+						return false;
+				}
+				return true;
 		}
 		assert(false);
 	}
 
-	size_t toHash() const {
+	/*size_t toHash() const {
 		final switch (type){
 			case Type.Literal:
 				return tuple(Type.Literal, dataL, typeL).toHash;
@@ -81,9 +93,11 @@ public struct AValCT{
 				return tuple(Type.Type, typeT).toHash;
 			case Type.Expr:
 				return tuple(Type.Expr, expr.toString).toHash;
+			case Type.Seq:
+				return tuple(toString.toHash;
 		}
 		assert(false);
-	}
+	}*/
 
 	/// constructor
 	this (ADataType type, ubyte[] data){
@@ -106,6 +120,38 @@ public struct AValCT{
 		this.type = Type.Expr;
 		this.expr = expr;
 	}
+	/// ditto
+	this (AValCT[] seq){
+		this.type = Type.Seq;
+		this.seq = seq.dup;
+	}
+}
+
+/// flattens AValCT[]
+/// Returns: new flattened AValCT[]
+public AValCT[] flatten(AValCT[] seq){
+	size_t i = 0;
+	while (i < seq.length){
+		if (seq[i].type == AValCT.Type.Seq)
+			break;
+		i ++;
+	}
+	if (i >= seq.length) return seq.dup;
+	AValCT[] ret = seq[0 .. i].dup;
+	foreach (ref AValCT val; seq[i .. $]){
+		if (val.type == AValCT.Type.Seq)
+			ret ~= val.seq.flatten;
+		else
+			ret ~= val;
+	}
+	return ret;
+}
+
+/// ditto
+public AValCT[] flatten(AValCT seq){
+	if (seq.type != AValCT.Type.Seq)
+		return [seq];
+	return seq.seq.dup;
 }
 
 /// identifier node unit
@@ -536,6 +582,12 @@ public struct ADataType{
 		}
 	}
 
+	/// Gets initializing bytes for this type
+	ubyte[] initB() const pure {
+		debug stderr.writefln!"STUB: ADataType(%s).initB returning zeroes"(this);
+		return new ubyte[sizeOf / 8]; // TODO: implement initB
+	}
+
 	string toString() const pure {
 		string ret = isConst ? "const " : null;
 		final switch (type){
@@ -621,6 +673,43 @@ public struct ADataType{
 	string decodeStr(const ubyte[] data) const pure {
 		// TODO: implement ADataType.decodeStr
 		return format!"{type: %s, data: %s}"(this.toString, data);
+	}
+
+	ADataType copy() const pure {
+		ADataType ret;
+		ret.type = type;
+		ret.isConst = isConst;
+		final switch (type){
+			case Type.Seq:
+				ret.seqT = seqT.map!(t => t.copy).array;
+				break;
+			case Type.IntX:
+			case Type.UIntX:
+			case Type.FloatX:
+			case Type.CharX:
+				ret.x = x;
+				break;
+			case Type.Bool:
+			case Type.NoInit:
+				break;
+			case Type.Slice:
+			case Type.Array:
+			case Type.Ref:
+				ret.refT = [(*refT).copy].ptr;
+				break;
+			case Type.Fn:
+				ret.retT = [(*retT).copy].ptr;
+				break;
+			case Type.Struct:
+				ret.structS = cast(AStruct*)structS;
+				break;
+			case Type.Union:
+				ret.unionS = cast(AUnion*)unionS;
+				break;
+			case Type.Enum:
+				ret.enumS = cast(AEnum*)enumS;
+		}
+		return ret;
 	}
 
 	/// Returns: `$noinit` data type
@@ -847,7 +936,7 @@ public struct AStruct{
 
 	/// if this is unique
 	@property bool isUnique() const pure {
-		return ident.isNoId;
+		return ident.length && ident[$ - 1].ident.canFind('$');
 	}
 	/// Whether a member exists and is accessible
 	bool exists(string name, IdentU[] ctx = [IdentU.init]) const pure {
@@ -919,7 +1008,7 @@ public struct AUnion{
 	}
 	/// if this is unique
 	@property bool isUnique() const pure {
-		return ident.isNoId;
+		return ident.length && ident[$ - 1].ident.canFind('$');
 	}
 	/// Returns: true if this is an unnamed union
 	@property bool isUnnamed() const pure {
@@ -1022,10 +1111,12 @@ public struct AVar{
 	bool isGlobal = false;
 	/// Visibility outside its parent module
 	Visibility vis;
+	/// unique id. TODO: set this
+	string uid;
 
 	string toString() const pure {
-		return format!"var %s%s:%s=%s off=%d"(isGlobal ? "global" : null, ident,
-				type, initD, offset);
+		return format!"var %s%s[%s]:%s=%s off=%d"(isGlobal ? "global" : null,
+				ident, uid, type, initD, offset);
 	}
 }
 

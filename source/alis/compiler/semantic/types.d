@@ -40,3 +40,45 @@ package ADataType commonType(ADataType[] types){
 	}
 	return ADataType.ofNoInit;
 }
+
+/// casts AValCT (must be of AValCT.Type.Literal) to `target` ADataType
+/// Returns: AValCT containing casted value, or SmErr[]
+package SmErrsVal!AValCT to(AValCT val, ADataType type){
+	debug stderr.writefln!"STUB: to(ADataType: %s) returning as-is `%s`"(
+			type, val);
+	return SmErrsVal!AValCT(val);
+}
+
+/// casts RExpr to `target` ADataType, creating a new RExpr around it, which
+/// does the casting
+package SmErrsVal!RExpr to(RExpr expr, ADataType type){
+	debug stderr.writefln!"STUB: to(ADataType: %s) returning as-is `%s`"(
+			type, expr);
+	return SmErrsVal!RExpr(expr);
+}
+
+/// converts a type to const
+/// Returns: cont type
+package ADataType constOf()(const auto ref ADataType type) pure {
+	ADataType ret = type.copy;
+	if (ret.type == ADataType.Type.Slice || ret.type == ADataType.Type.Array){
+		ret.refT.isConst = true;
+		// array become slice
+		ret.type = ADataType.Type.Slice;
+		return ret;
+	}
+	ret.isConst = true;
+	return ret;
+}
+
+///
+unittest{
+	ADataType constInt = ADataType.ofInt;
+	constInt.isConst = true;
+	ADataType intSlice = ADataType.ofSlice(ADataType.ofInt);
+	ADataType constIntSlice = ADataType.ofSlice(constInt);
+	ADataType intArray = ADataType.ofArray(ADataType.ofInt);
+	assert(ADataType.ofInt.constOf == constInt);
+	assert(intSlice.constOf == constIntSlice);
+	assert(intArray.constOf == constIntSlice);
+}

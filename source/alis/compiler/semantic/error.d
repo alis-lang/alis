@@ -8,7 +8,9 @@ import alis.compiler.common,
 			 alis.common;
 
 import std.format,
-			 std.conv;
+			 std.conv,
+			 std.traits,
+			 std.range;
 
 /// Value or SmErr
 alias SmErrVal(T) = ErrVal!(T, SmErr);
@@ -25,7 +27,6 @@ public struct SmErr{
 		TypeExprExpected, /// Expression should have resolved to type
 		SymExprExpected, /// Expression should have resolved to symbol
 		ParamCountMis, /// mismatched parameter count
-		TypeMis, /// type mismatch
 		RecursiveDep, /// Recursive Dependency
 		IncompatTypes, /// incompatible types
 		EnumMemValMis, /// enum member value missing
@@ -37,7 +38,22 @@ public struct SmErr{
 		UnUnionTypeUnique, /// Unnamed union must have unique types
 		FParamNoDef, /// Function Parameter expected to have default value
 		Unxp, /// Unexpected error in compiler
+		IdentAmbig, /// Ambiguous identifier
+		FnAnonParamDef, /// Anonymous Function cannot have default parameter value
+		TypeInferFail, /// Failed to infer type
+		Bounds, /// Bounds violation
+		CallableIncompat, /// Callable symbol called with incompatible params
+		NotCallable, /// Callable expected, not found (sadly)
+		CallableConflict, /// Multiple callables matched
+		Undef, /// use of undefined identifier
+		ConstAssign, /// assigning to const
+		RefAssign, /// assigning to ref using =
+		AssignNotRefable, /// Assignment LHS is not Ref-able
+		AssignRefNotRef, /// `@=` used with non-ref LHS
+		DerefNoRef, /// trying to deref something that is not a ref
+		ConstConst, /// trying to const a const
 	}
+
 	/// where error happen
 	Location pos;
 	/// error message
@@ -104,14 +120,6 @@ package SmErr errParamCount(ASTNode node, string name, size_t expected,
 			SmErr.Type.ParamCountMis);
 }
 
-/// Type mismatch
-package SmErr errTypeMis(ASTNode node, ADataType expected, ADataType got){
-	return SmErr(node.pos,
-			format!"Mismatched types: expected `%s`, received `%s`"(
-				expected.toString, got.toString),
-			SmErr.Type.TypeMis);
-}
-
 /// Recursive Dependency
 package SmErr errRecDep(Location pos, string name){
 	return SmErr(pos,
@@ -120,8 +128,8 @@ package SmErr errRecDep(Location pos, string name){
 }
 
 /// incompatible types
-package SmErr errIncompatType()(Location pos, ADataType expected,
-		ADataType got){
+package SmErr errIncompatType()(Location pos, string expected,
+		string got){
 	return SmErr(pos,
 			format!"Incompatible Types: Cannot implicitly cast `%s` to `%s`"(
 				got, expected),
@@ -185,4 +193,95 @@ package SmErr errFParamNoDef(Location pos, string name){
 /// Unexpected error in compiler
 package SmErr errUnxp(Location pos, string err){
 	return SmErr(pos, err, SmErr.Type.Unxp);
+}
+
+/// Ambiguous identifier
+package SmErr errIdentAmbig(R)(Location pos, string ident, R matches) if (
+		isInputRange!(R, string)){
+	return SmErr(pos,
+			format!"Identifier %s is ambiguous, matches with: %(%r,%)"(
+				ident, matches), SmErr.Type.IdentAmbig);
+}
+
+/// Anonymous Function cannot have default parameter value
+package SmErr errFnAnonParamDef(Location pos, string name){
+	return SmErr(pos,
+			format!"anonymous function parameter `%s` cannot have default value"(
+				name), SmErr.Type.FnAnonParamDef);
+}
+
+/// Failed to infer type
+package SmErr errTypeInferFail(Location pos, string name){
+	return SmErr(pos, name.format!"type inference failed for `%s`",
+			SmErr.Type.TypeExprExpected);
+}
+
+/// Bounds violation
+package SmErr errBounds(Location pos, size_t max, size_t got){
+	return SmErr(pos, format!"Bounds violation: %d exceeds bound %d"(
+				got, max), SmErr.Type.Bounds);
+}
+/// Callable symbol called with incompatible params
+package SmErr errCallableIncompat(R)(Location pos, string symN, R range) if (
+		isInputRange!(R, string)){
+	return SmErr(pos,
+			format!"incompatible parameters: `%s` cannot be called with (%(%r,%))"(
+				symN, range), SmErr.Type.CallableIncompat);
+}
+
+/// Callable expected, not found (sadly)
+package SmErr errNotCallable(Location pos, string symN){
+	return SmErr(pos, symN.format!"callable expected: `%s` is not callable",
+			SmErr.Type.NotCallable);
+}
+
+/// Multiple callables matched
+package SmErr errCallableConflict(R)(Location pos, string symN, R range) if (
+		isInputRange!(R, string)){
+	return SmErr(pos,
+			format!"multiple matches: for callable `%s` with parameters %(%r%)"(
+				symN, range), SmErr.Type.CallableConflict);
+}
+
+/// use of undefined identifier
+package SmErr errUndef(Location pos, string id){
+	return SmErr(pos, id.format!"undefined identifier: `%s`", SmErr.Type.Undef);
+}
+
+/// assigning to const
+package SmErr errConstAssign(Location pos, string type){
+	return SmErr(pos,
+			type.format!"assignment to const: cannot assign to type `%s`",
+			SmErr.Type.ConstAssign);
+}
+
+/// assigning to ref using =
+package SmErr errRefAssign(Location pos){
+	return SmErr(pos, "assignment to ref: cannot use `=` to assign to ref",
+			SmErr.Type.RefAssign);
+}
+
+/// Assignment LHS is not Ref-able
+package SmErr errAssignNotRefable(Location pos){
+	return SmErr(pos, "assignment to non referenceable value",
+		SmErr.Type.AssignNotRefable);
+}
+
+/// Expression is not  ref-able
+package SmErr errRefableNot(Location pos){
+	return SmErr(pos, "expression is not referenceable",
+			SmErr.Type.AssignRefNotRef);
+}
+
+/// trying to deref something that is not a ref
+package SmErr errDerefNoRef(Location pos, string type){
+	return SmErr(pos,
+			type.format!"only reference can be dereferenced: cannot deref `%s`",
+			SmErr.Type.DerefNoRef);
+}
+
+/// trying to const a const
+package SmErr errConstConst(Location pos, string type){
+	return SmErr(pos, type.format!"constOf const: cannot const `%s`",
+			SmErr.Type.ConstConst);
 }

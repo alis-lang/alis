@@ -30,7 +30,7 @@ import meta;
 
 private alias It = ItL!(mixin(__MODULE__), 1);
 
-private struct St{
+private struct St1{
 	/// errors
 	SmErr[] errs;
 	/// symbol table root
@@ -51,7 +51,7 @@ private struct St{
 
 /// Checks for recursive dependecy before processing an ASTNode
 /// Returns: tre if recursive dependecy will happen after an ASTNode
-private bool isRecDep(ASTNode node, ref St st){
+private bool isRecDep(ASTNode node, ref St1 st){
 	if (node !in st.sMap || st.sMap[node] !in st.dep)
 		return false;
 	st.errs ~= errRecDep(node.pos, st.sMap[node].ident.toString);
@@ -59,7 +59,7 @@ private bool isRecDep(ASTNode node, ref St st){
 }
 
 @ItFn @ITL(1){
-	void modIter(Module node, ref St st){
+	void modIter(Module node, ref St1 st){
 		STab pSt = st.stab;
 		st.stab = st.stab.next[node.ident.IdentU].val;
 		st.ctx ~= node.ident.IdentU;
@@ -68,8 +68,7 @@ private bool isRecDep(ASTNode node, ref St st){
 		st.ctx.length --;
 	}
 
-	void fnIter(FnDef node, ref St st){
-		// TODO: TEST THIS!
+	void fnIter(FnDef node, ref St1 st){
 		if (isRecDep(node, st))
 			return;
 		ASymbol* sym = st.sMap[node];
@@ -88,11 +87,12 @@ private bool isRecDep(ASTNode node, ref St st){
 				continue;
 			}
 			nameSet[param.name] = (void[0]).init;
+			// TODO: handle @auto
 			immutable bool isAuto = cast(AutoExpr)param.type !is null;
 			ADataType type;
 			if (!isAuto){
 				SmErrsVal!ADataType typeRes = eval4Type(param.type, st.stabR, st.ctx,
-						st.dep);
+						st.dep, st.fns);
 				if (typeRes.isErr)
 					st.errs ~= typeRes.err;
 				type = typeRes.val;
@@ -103,7 +103,8 @@ private bool isRecDep(ASTNode node, ref St st){
 				st.errs ~= errAutoNoVal(param.pos);
 			if (param.val){
 				prevHadDef = true;
-				SmErrsVal!AValCT valRes = eval4Val(param.val, st.stabR, st.ctx, st.dep);
+				SmErrsVal!AValCT valRes = eval4Val(param.val, st.stabR, st.ctx, st.dep,
+						st.fns);
 				if (valRes.isErr){
 					st.errs ~= valRes.err;
 					continue;
@@ -112,11 +113,12 @@ private bool isRecDep(ASTNode node, ref St st){
 					type = valRes.val.typeL;
 				else
 				if (!valRes.val.typeL.canCastTo(type))
-					st.errs ~= errIncompatType(param.val.pos, type, valRes.val.typeL);
+					st.errs ~= errIncompatType(param.val.pos, type.toString,
+							valRes.val.typeL.toString);
 				type = valRes.val.typeL;
 				symC.paramsV ~= valRes.val.dataL;
 			} else {
-				symC.paramsV ~= (ubyte[]).init;
+				symC.paramsV ~= type.initB;
 			}
 			symC.paramsN ~= param.name;
 			symC.paramsT ~= type;
@@ -126,13 +128,20 @@ private bool isRecDep(ASTNode node, ref St st){
 		r.ident = symC.ident.toString;
 		r.paramsT = symC.paramsT;
 		r.paramsN = symC.paramsN;
-		r.paramCount = r.paramsT.length; // TODO: get rid of RFn.paramCount
 		symC.uid = fnNameEncode(symC.ident.toString, symC.paramsT);
 		st.fns[symC.uid] = r;
 
-		st.stab.add(symC.uid.IdentU, new STab, symC.vis, st.ctx);
+		STab subSt = new STab;
+		foreach (size_t i; 0 .. symC.paramsN.length){
+			ASymbol* param = new ASymbol(
+					AVar([symC.uid.IdentU, symC.paramsN[i].IdentU],
+						symC.paramsT[i], symC.paramsV[i]));
+			subSt.add(symC.paramsN[i].IdentU, param, param.ident[0 .. 1]);
+		}
+
+		st.stab.add(symC.uid.IdentU, subSt, symC.vis, st.ctx);
 		SmErrsVal!RExpr exprRes = resolve(node.body, st.stabR,
-				st.ctx ~ symC.uid.IdentU, st.dep);
+				st.ctx ~ symC.uid.IdentU, st.dep, st.fns);
 		if (exprRes.isErr){
 			st.errs ~= exprRes.err;
 			return;
@@ -146,7 +155,7 @@ private bool isRecDep(ASTNode node, ref St st){
 		symC.retT = retRes.val;
 	}
 
-	void enumConstIter(EnumConstDef node, ref St st){
+	void enumConstIter(EnumConstDef node, ref St1 st){
 		if (node.isRecDep(st))
 			return;
 		ASymbol* sym = st.sMap[node];
@@ -157,10 +166,11 @@ private bool isRecDep(ASTNode node, ref St st){
 		scope(exit) sym.isComplete = true;
 		AEnumConst* symC = &sym.enumCS;
 
+		// TODO: handle @auto
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
 		if (!isAuto){
 			SmErrsVal!ADataType typeRes = eval4Type(node.type, st.stabR, st.ctx,
-					st.dep);
+					st.dep, st.fns);
 			if (typeRes.isErr){
 				st.errs ~= typeRes.err;
 				return;
@@ -168,7 +178,8 @@ private bool isRecDep(ASTNode node, ref St st){
 			symC.type = typeRes.val;
 		}
 
-		SmErrsVal!AValCT valRes = eval4Val(node.val, st.stabR, st.ctx, st.dep);
+		SmErrsVal!AValCT valRes = eval4Val(node.val, st.stabR, st.ctx, st.dep,
+				st.fns);
 		if (valRes.isErr){
 			st.errs ~= valRes.err;
 			return;
@@ -177,12 +188,13 @@ private bool isRecDep(ASTNode node, ref St st){
 		if (isAuto)
 			symC.type = valRes.val.typeL;
 		if (!valRes.val.typeL.canCastTo(symC.type)){
-			st.errs ~= errIncompatType(node.pos, symC.type, valRes.val.typeL);
+			st.errs ~= errIncompatType(node.pos, symC.type.toString,
+					valRes.val.typeL.toString);
 			return;
 		}
 	}
 
-	void enumSmIter(EnumSmDef node, ref St st){
+	void enumSmIter(EnumSmDef node, ref St1 st){
 		if (node.isRecDep(st))
 			return;
 		ASymbol* sym = st.sMap[node];
@@ -193,10 +205,11 @@ private bool isRecDep(ASTNode node, ref St st){
 		scope(exit) sym.isComplete = true;
 		AEnum* symC = &sym.enumS;
 
+		// TODO: handle @auto
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
 		if (!isAuto){
 			SmErrsVal!ADataType typeRes = eval4Type(node.type, st.stabR, st.ctx,
-					st.dep);
+					st.dep, st.fns);
 			if (typeRes.isErr){
 				st.errs ~= typeRes.err;
 				return;
@@ -215,7 +228,7 @@ private bool isRecDep(ASTNode node, ref St st){
 				return;
 			}
 			SmErrsVal!AValCT valRes = eval4Val(member.value, st.stabR, st.ctx,
-					st.dep);
+					st.dep, st.fns);
 			if (valRes.isErr){
 				st.errs ~= valRes.err;
 				return;
@@ -234,13 +247,23 @@ private bool isRecDep(ASTNode node, ref St st){
 		} else {
 			foreach (size_t i, ref ADataType type; types){
 				if (!type.canCastTo(symC.type))
-					st.errs ~= errIncompatType(node.members[i].pos, symC.type, type);
+					st.errs ~= errIncompatType(node.members[i].pos, symC.type.toString,
+							type.toString);
 			}
+		}
+
+		foreach (size_t i; 0 .. symC.memVal.length){
+			SmErrsVal!AValCT valRes = AValCT(types[i], symC.memVal[i]).to(symC.type);
+			if (valRes.isErr){
+				st.errs ~= valRes.err;
+				continue;
+			}
+			symC.memVal[i] = valRes.val.dataL;
 		}
 		// TODO: cast all symC.memVal[i] from types[i] to symC.type
 	}
 
-	void structIter(StructDef node, ref St st){
+	void structIter(StructDef node, ref St1 st){
 		if (node.isRecDep(st))
 			return;
 		ASymbol* sym = st.sMap[node];
@@ -315,6 +338,7 @@ private bool isRecDep(ASTNode node, ref St st){
 		}
 
 		foreach (AggMemberNamed field; fields){
+			// TODO: handle @auto
 			immutable bool isAuto = cast(AutoExpr)field.type !is null;
 			ADataType type;
 			if (isAuto){
@@ -324,7 +348,7 @@ private bool isRecDep(ASTNode node, ref St st){
 				}
 			} else {
 				SmErrsVal!ADataType typeRes = eval4Type(field.type, st.stabR, st.ctx,
-						st.dep);
+						st.dep, st.fns);
 				if (typeRes.isErr){
 					st.errs ~= typeRes.err;
 					continue;
@@ -333,7 +357,8 @@ private bool isRecDep(ASTNode node, ref St st){
 			}
 			AValCT val;
 			if (field.val){
-				SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx, st.dep);
+				SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx, st.dep,
+						st.fns);
 				if (valRes.isErr){
 					st.errs ~= valRes.err;
 					continue;
@@ -343,7 +368,7 @@ private bool isRecDep(ASTNode node, ref St st){
 					type = val.typeL;
 				} else
 				if (!val.typeL.canCastTo(type)){
-					st.errs ~= errTypeMis(field, type, val.typeL);
+					st.errs ~= errIncompatType(field.pos, type.toString, val.typeL.toString);
 					continue;
 				}
 				symC.initD ~= val.dataL;
@@ -364,7 +389,7 @@ private bool isRecDep(ASTNode node, ref St st){
 		}
 	}
 
-	void varIter(VarDef node, ref St st){
+	void varIter(VarDef node, ref St1 st){
 		if (node.isRecDep(st))
 			return;
 		ASymbol* sym = st.sMap[node];
@@ -376,10 +401,11 @@ private bool isRecDep(ASTNode node, ref St st){
 		AVar* symC = &sym.varS;
 		symC.isGlobal = st.ctx.length <= 1;
 		symC.offset = size_t.max;
+		// TODO: handle @auto
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
 		if (!isAuto){
 			SmErrsVal!ADataType typeVal = eval4Type(node.type, st.stabR, st.ctx,
-					st.dep);
+					st.dep, st.fns);
 			if (typeVal.isErr){
 				st.errs ~= typeVal.err;
 				return;
@@ -387,7 +413,8 @@ private bool isRecDep(ASTNode node, ref St st){
 			symC.type = typeVal.val;
 		}
 		if (node.value){
-			SmErrsVal!AValCT valVal = eval4Val(node.value, st.stabR, st.ctx, st.dep);
+			SmErrsVal!AValCT valVal = eval4Val(node.value, st.stabR, st.ctx, st.dep,
+					st.fns);
 			if (valVal.isErr){
 				st.errs ~= valVal.err;
 				return;
@@ -395,7 +422,8 @@ private bool isRecDep(ASTNode node, ref St st){
 			if (isAuto){
 				symC.type = valVal.val.typeL;
 			} else if (!valVal.val.typeL.canCastTo(symC.type)){
-				st.errs ~= errTypeMis(node.value, symC.type, valVal.val.typeL);
+				st.errs ~= errIncompatType(node.value.pos, symC.type.toString,
+						valVal.val.typeL.toString);
 				return;
 			}
 		} else if (isAuto){
@@ -404,7 +432,7 @@ private bool isRecDep(ASTNode node, ref St st){
 		}
 	}
 
-	void aliasIter(AliasDef node, ref St st){
+	void aliasIter(AliasDef node, ref St1 st){
 		if (node.isRecDep(st))
 			return;
 		ASymbol* sym = st.sMap[node];
@@ -414,7 +442,8 @@ private bool isRecDep(ASTNode node, ref St st){
 		scope(exit) st.dep.remove(sym);
 		scope(exit) sym.isComplete = true;
 		AAlias* symC = &sym.aliasS;
-		SmErrsVal!RExpr exprVal = resolve(node.val, st.stabR, st.ctx, st.dep);
+		SmErrsVal!RExpr exprVal = resolve(node.val, st.stabR, st.ctx, st.dep,
+				st.fns);
 		if (exprVal.isErr){
 			st.errs ~= exprVal.err;
 			return;
@@ -422,7 +451,7 @@ private bool isRecDep(ASTNode node, ref St st){
 		symC.expr = exprVal.val;
 	}
 
-	void unionIter(UnionDef node, ref St st){
+	void unionIter(UnionDef node, ref St1 st){
 		if (node.isRecDep(st))
 			return;
 		ASymbol* sym = st.sMap[node];
@@ -432,13 +461,13 @@ private bool isRecDep(ASTNode node, ref St st){
 		scope(exit) st.dep.remove(sym);
 		scope(exit) sym.isComplete = true;
 		if (NamedUnion sub = cast(NamedUnion)node.def)
-			unionNamedIter(sub, sym, st);
+			unionNamedDo(sub, sym, st);
 		else
 		if (UnnamedUnion sub = cast(UnnamedUnion)node.def)
-			unionUnnamedIter(sub, sym, st);
+			unionUnnamedDo(sub, sym, st);
 	}
 
-	void utestIter(UTest node, ref St st){
+	void utestIter(UTest node, ref St1 st){
 		if (node.isRecDep(st))
 			return;
 		ASymbol* sym = st.sMap[node];
@@ -451,7 +480,133 @@ private bool isRecDep(ASTNode node, ref St st){
 	}
 }
 
-private void unionNamedIter(NamedUnion node, ASymbol* sym, ref St st){
+/// converts a Struct to a given AStruct, provided sym1 state
+private void structDo(Struct s, AStruct* symC, ref St1 st){
+	/// maps aliased name to alias name
+	/// `aliasMap["alias_name"] = "the_real_thing"`
+	string[string] aliasMap;
+	void[0][string] nameSet;
+	Visibility[string] aliasVis;
+	foreach (AggMember memAbs; s.members){
+		AggMemberAlias memAls = cast(AggMemberAlias)memAbs;
+		if (memAls is null) continue;
+		nameSet[memAls.name] = (void[0]).init;
+		if (memAls.name in aliasMap){
+			if (memAls.name == "this")
+				st.errs ~= errMultiInherit(memAls.pos);
+			else
+				st.errs ~= errIdentReuse(memAls.pos, memAls.name);
+			continue;
+		}
+		aliasMap[memAls.name] = memAls.val.ident;
+		aliasVis[memAls.name] = memAls.visibility;
+	}
+
+	// remove indirect aliases
+	while (true){
+		bool done = true;
+		foreach (string name; aliasMap.byKey){
+			if (auto ptr = aliasMap[name] in aliasMap){
+				aliasMap[name] = *ptr;
+				done = false;
+			}
+		}
+		if (done) break;
+	}
+
+	string bName = null;
+	if (string* ptr = "this" in aliasMap)
+		bName = *ptr;
+	AggMemberNamed[] fields = s.members
+		.map!(m => cast(AggMemberNamed)m).filter!(m => m !is null).array;
+	bool erred = false;
+	foreach (AggMemberNamed field; fields){
+		if (field.name == "_") continue;
+		if (field.name in nameSet){
+			st.errs ~= errIdentReuse(field.pos, field.name);
+			erred = true;
+			continue;
+		}
+		if (field.name == "this"){
+			st.errs ~= errFieldThis(field.pos);
+			erred = true;
+			continue;
+		}
+		nameSet[field.name] = (void[0]).init;
+	}
+	if (erred)
+		return;
+	if (bName.length){
+		immutable size_t ind = fields.countUntil!(f => f.name == bName);
+		AggMemberNamed tmp = fields[ind];
+		for (size_t i = ind; i > 0; i --)
+			fields[i] = fields[i - 1];
+		fields[0] = tmp;
+	}
+
+	foreach (AggMemberNamed field; fields){
+		// TODO: handle @auto
+		immutable bool isAuto = cast(AutoExpr)field.type !is null;
+		ADataType type;
+		if (isAuto){
+			if (field.val is null){
+				st.errs ~= errAutoNoVal(field.pos);
+				continue;
+			}
+		} else {
+			SmErrsVal!ADataType typeRes = eval4Type(field.type, st.stabR, st.ctx,
+					st.dep, st.fns);
+			if (typeRes.isErr){
+				st.errs ~= typeRes.err;
+				continue;
+			}
+			type = typeRes.val;
+		}
+		AValCT val;
+		if (field.val){
+			SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx, st.dep,
+					st.fns);
+			if (valRes.isErr){
+				st.errs ~= valRes.err;
+				continue;
+			}
+			val = valRes.val;
+			if (isAuto){
+				type = val.typeL;
+			} else
+				if (!val.typeL.canCastTo(type)){
+					st.errs ~= errIncompatType(field.pos, type.toString,
+							val.typeL.toString);
+					continue;
+				}
+			symC.initD ~= val.dataL;
+		} else {
+			symC.initD ~= type.initB;
+		}
+		foreach (string name; aliasMap.byKey
+				.filter!(n => aliasMap[n] == field.name)){
+			symC.names[name] = symC.types.length;
+			symC.nameVis[name] = aliasVis[name];
+		}
+		symC.names[field.name] = symC.types.length;
+		symC.nameVis[field.name] = field.visibility;
+		symC.types ~= type;
+	}
+}
+
+/// ditto
+package SmErr[] structDo(Struct s, AStruct* sym, STab stabR, IdentU[] ctx,
+		void[0][ASymbol*] dep){
+	St1 st;
+	st.stabR = stabR;
+	st.stab = stabR.findSt(ctx, ctx);
+	st.dep = dep;
+	structDo(s, sym, st);
+	return st.errs;
+}
+
+/// converts a NamedUnion to a given AUnion, provided sym1 state
+package void unionNamedDo(NamedUnion node, ASymbol* sym, ref St1 st){
 	AUnion* symC = &sym.unionS;
 	/// maps aliased name to alias name
 	/// `aliasMap["alias_name"] = "the_real_thing"`
@@ -507,6 +662,7 @@ private void unionNamedIter(NamedUnion node, ASymbol* sym, ref St st){
 	symC.initI = size_t.max;
 	foreach (size_t i, AggMemberNamed field; node.members
 			.map!(m => cast(AggMemberNamed)m).filter!(m => m !is null).enumerate){
+		// TODO: handle @auto
 		immutable bool isAuto = cast(AutoExpr)field.type !is null;
 		ADataType type;
 		if (isAuto){
@@ -516,7 +672,7 @@ private void unionNamedIter(NamedUnion node, ASymbol* sym, ref St st){
 			}
 		} else {
 			SmErrsVal!ADataType typeRes = eval4Type(field.type, st.stabR, st.ctx,
-					st.dep);
+					st.dep, st.fns);
 			if (typeRes.isErr){
 				st.errs ~= typeRes.err;
 				continue;
@@ -529,7 +685,8 @@ private void unionNamedIter(NamedUnion node, ASymbol* sym, ref St st){
 				st.errs ~= errUnionMultiDef(field.pos);
 			}
 			symC.initI = i;
-			SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx, st.dep);
+			SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx, st.dep,
+					st.fns);
 			if (valRes.isErr){
 				st.errs ~= valRes.err;
 				continue;
@@ -539,7 +696,8 @@ private void unionNamedIter(NamedUnion node, ASymbol* sym, ref St st){
 				type = val.typeL;
 			}	else
 			if (!val.typeL.canCastTo(type)){
-				st.errs ~= errTypeMis(field, type, val.typeL);
+				st.errs ~= errIncompatType(field.pos, type.toString,
+						val.typeL.toString);
 				continue;
 			}
 			symC.initD = val.dataL;
@@ -558,12 +716,24 @@ private void unionNamedIter(NamedUnion node, ASymbol* sym, ref St st){
 	}
 }
 
-private void unionUnnamedIter(UnnamedUnion node, ASymbol* sym, ref St st){
+/// ditto
+package SmErr[] unionNamedDo(NamedUnion u, ASymbol* sym, STab stabR,
+		IdentU[] ctx, void[0][ASymbol*] dep){
+	St1 st;
+	st.stabR = stabR;
+	st.stab = stabR.findSt(ctx, ctx);
+	st.dep = dep;
+	unionNamedDo(u, sym, st);
+	return st.errs;
+}
+
+/// converts a UnnamedUnion to a given AUnion, provided sym1 state
+package void unionUnnamedDo(UnnamedUnion node, ASymbol* sym, ref St1 st){
 	AUnion* symC = &sym.unionS;
 	symC.initI = size_t.max;
 	foreach (UnnamedUnionMember member; node.members){
 		SmErrsVal!ADataType typeRes = eval4Type(member.type, st.stabR, st.ctx,
-				st.dep);
+				st.dep, st.fns);
 		if (typeRes.isErr){
 			st.errs ~= typeRes.err;
 			continue;
@@ -572,7 +742,8 @@ private void unionUnnamedIter(UnnamedUnion node, ASymbol* sym, ref St st){
 		if (!member.val) continue;
 		if (symC.initI != size_t.max)
 			st.errs ~= errUnionMultiDef(member.pos);
-		SmErrsVal!AValCT valRes = eval4Val(member.val, st.stabR, st.ctx, st.dep);
+		SmErrsVal!AValCT valRes = eval4Val(member.val, st.stabR, st.ctx, st.dep,
+				st.fns);
 		if (valRes.isErr){
 			st.errs ~= valRes.err;
 			continue;
@@ -590,6 +761,17 @@ private void unionUnnamedIter(UnnamedUnion node, ASymbol* sym, ref St st){
 	}
 }
 
+/// ditto
+package SmErr[] unionUnnamedDo(UnnamedUnion u, ASymbol* sym, STab stabR,
+		IdentU[] ctx, void[0][ASymbol*] dep){
+	St1 st;
+	st.stabR = stabR;
+	st.stab = stabR.findSt(ctx, ctx);
+	st.dep = dep;
+	unionUnnamedDo(u, sym, st);
+	return st.errs;
+}
+
 /// Result Type
 package struct S1R{
 	/// symbol table
@@ -604,12 +786,13 @@ package struct S1R{
 /// Returns: Level 1 Symbol Table, or SmErr[]
 package SmErrsVal!S1R stab1Of(ASTNode node, STab stabR, ASymbol*[ASTNode] sMap,
 		void[0][ASymbol*] dep, IdentU[] ctx = null){
-	St st;
+	St1 st;
 	st.stabR = stabR;
 	st.stab = stabR.findSt(ctx, ctx);
 	st.ctx = ctx.dup;
 	st.sMap = sMap;
 	st.dep = dep;
+	st.fns = new RFn[string];
 	It.exec(node, st);
 	if (st.errs)
 		return SmErrsVal!S1R(st.errs);
@@ -623,7 +806,7 @@ package SmErrsVal!S1R symDo(ASymbol* sym, STab stabR,
 		void[0][ASymbol*] dep){
 	assert (sym);
 	assert (sym.ast);
-	St st;
+	St1 st;
 	st.stabR = stabR;
 	st.ctx = sym.ident[0 .. $ - 1];
 	st.stab = stabR.findSt(st.ctx, st.ctx);

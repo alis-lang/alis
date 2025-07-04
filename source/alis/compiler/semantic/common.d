@@ -17,6 +17,55 @@ import std.algorithm,
 
 debug import std.stdio;
 
+/// Resolved Partial Function Call Expression
+/// **should never occur in a finalized RST**
+package class RFnPartCallExpr : RFnCallExpr{
+package:
+	this(){}
+}
+
+/// Resolved Partial Template Instantiation Expression
+/// **should never occur in a finalized RST**
+package class RTmPartInitExpr : RExpr{
+package:
+	// TODO: include expected param types
+	this(){}
+	// TODO
+}
+
+/// Resolved Partial Intrinsic Call Expression
+/// **should never occur in a finalized RST**
+package class RIntrinsicPartCallExpr : RIntrinsicCallExpr{
+package:
+	/// expected param types
+	ADataType[] paramT;
+	this(){}
+}
+
+/// Wrapper for AValCT
+/// **should never occur in a finalized RST**
+package class RAValCTExpr : RExpr{
+public:
+	/// evaluation result
+	AValCT res;
+	/// the expression itself. can be null
+	RExpr expr;
+
+	this (){}
+	this(AValCT res){
+		this.res = res;
+	}
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["_name"] = "REvaldExpr";
+		ret["res"] = res.toString;
+		if (expr)
+			ret["expr"] = expr.jsonOf;
+		return ret;
+	}
+}
+
 /// Iterator Function Level
 package struct ITL{
 	size_t level;
@@ -102,26 +151,24 @@ public:
 
 	static struct ResRange{
 	private:
-		IdentU _head;
 		IdentU _id;
-		IdentU[] ctx;
+		IdentU[] _ctx;
 		Node!(ASymbol*)[][IdentU][] _maps;
 
 		this(IdentU id, IdentU[] ctx, STab st) pure {
 			this._id = id;
-			this.ctx = ctx.dup;
-			this._head = ctx.length ? ctx[0] : IdentU.init;
+			this._ctx = ctx.dup;
 			_maps ~= st.map;
-			foreach (IdentU i; ctx){
+			foreach (IdentU i; _ctx){
 				if (i !in st.next)
 					break;
 				Node!STab nextNode = st.next[i];
-				if (!nextNode.isVis(ctx))
+				if (!nextNode.isVis(_ctx))
 					break;
 				_maps ~= nextNode.val.map;
 				st = nextNode.val;
 			}
-			_maps ~= [];
+			_maps ~= ForeachType!(typeof(_maps)).init;
 			popFront;
 		}
 
@@ -143,7 +190,7 @@ public:
 			if (_maps.length && (_id in _maps[$ - 1]) !is null)
 				arr = _maps[$ - 1][_id];
 			return arr
-				.filter!(node => node.isVis(ctx))
+				.filter!(node => node.isVis(_ctx))
 				.map!(node => node.val);
 		}
 	}
@@ -273,7 +320,7 @@ public:
 	/// what is being resolved
 	IdentU[] subject;
 	/// result from resolution
-	ASymbol sym;
+	ASymbol* sym;
 
 	/// previous resolution, if any
 	@property ATResN* prev() const pure {
@@ -300,17 +347,4 @@ public:
 	void push(ATResN* r) pure {
 		leaf._next = r;
 	}
-}
-
-/// Imports
-package struct Imports{
-	AModule[] imports; /// unnamed imports
-	AModule[string] importsN; /// named imports
-}
-
-/// Gets a module, for importing
-/// Returns: symbol table of a module
-package AModule mod(string[] modId) pure {
-	/// TODO: implement modSTab
-	return AModule();
 }
