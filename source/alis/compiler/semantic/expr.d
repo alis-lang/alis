@@ -13,6 +13,7 @@ import alis.common,
 			 alis.compiler.semantic.typeofexpr,
 			 alis.compiler.semantic.types,
 			 alis.compiler.semantic.call,
+			 alis.compiler.semantic.canref,
 			 alis.compiler.ast,
 			 alis.compiler.ast.iter,
 			 alis.compiler.ast.rst;
@@ -1163,7 +1164,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			return;
 		}
 		if (lhsType.type != ADataType.Type.Ref){
-			st.errs ~= errAssignRefNotRef(node.lhs.pos);
+			st.errs ~= errRefableNot(node.lhs.pos);
 			return;
 		}
 
@@ -1285,11 +1286,41 @@ private bool expT(Location pos, ADataType type, ref St st){
 	}
 
 	void opRefPreIter(OpRefPre node, ref St st){
-		if (st.params.length){
-			st.errs ~= errNotCallable(node.pos, "reference");
+		RExpr expr; {
+			SmErrsVal!RExpr res = resolve(node.operand, st.stabR, st.ctx,
+					st.dep, st.fns);
+			if (res.err){
+				st.errs ~= res.err;
+				return;
+			}
+			expr = res.val;
+		}
+		ADataType type; {
+			SmErrsVal!ADataType res = typeOf(expr, st.stabR, st.ctx);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			type = res.val;
+		}
+		if (!expr.canRef){
+			st.errs ~= errRefableNot(node.pos);
 			return;
 		}
-		st.errs ~= errUnsup(node); // TODO: implement
+		RRefExpr r = new RRefExpr;
+		r.pos = node.pos;
+		r.val = expr;
+		r.type = ADataType.ofRef(type);
+		r.hasType = true;
+		if (st.params.length && r.type.callabilityOf(st.params) == size_t.max){
+			st.errs ~= errCallableIncompat(node.pos, r.type.toString,
+					st.params.map!(p => p.toString));
+			return;
+		}
+		if (st.isExpT)
+			st.res = r.to(st.expT).val;
+		else
+			st.res = r;
 	}
 
 	void opTagPreIter(OpTagPre node, ref St st){

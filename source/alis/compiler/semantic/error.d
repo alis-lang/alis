@@ -267,9 +267,10 @@ package SmErr errAssignNotRefable(Location pos){
 		SmErr.Type.AssignNotRefable);
 }
 
-/// `@=` used with non-ref LHS
-package SmErr errAssignRefNotRef(Location pos){
-	return SmErr(pos, "`@=` only accepts ref on LHS", SmErr.Type.AssignRefNotRef);
+/// Expression is not  ref-able
+package SmErr errRefableNot(Location pos){
+	return SmErr(pos, "expression is not referenceable",
+			SmErr.Type.AssignRefNotRef);
 }
 
 /// trying to deref something that is not a ref
