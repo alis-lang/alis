@@ -649,7 +649,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.res = r.to(st.expT).val;
 		else
 			st.res = r;
-		// TODO: error out if intrinsic not callable && st.params.length
+		// TODO: implement intrinsics!!
 	}
 
 	void opCallExprIter(OpCallExpr node, ref St st){

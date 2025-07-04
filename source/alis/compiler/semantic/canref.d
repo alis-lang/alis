@@ -20,14 +20,8 @@ private struct St{
 private alias It = RtL!(mixin(__MODULE__), 0);
 
 @ItFn @ITL(0){
-	void catchAll(RExpr, ref St st){
-		st.res = false;
-	}
 	void varIter(RVarExpr, ref St st){
 		st.res = true;
-	}
-	void intrinsicExpr(RIntrinsicExpr, ref St st){
-		st.res = false; // TODO
 	}
 	// TODO: implement the rest of all this
 }
