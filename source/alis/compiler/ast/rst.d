@@ -271,9 +271,6 @@ public:
 	}
 }
 
-/// Resolved Intrinsic Expression
-public abstract class RIntrinsicExpr : RExpr{}
-
 /// Resolved Assignment Expression
 public class RVarAssignExpr : RExpr{
 public:
