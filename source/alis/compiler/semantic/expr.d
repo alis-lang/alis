@@ -642,14 +642,15 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.res = r;
 			return;
 		}
-		RIntrinsicExpr r = new RIntrinsicExpr;
+		// TODO: implement intrinsics!!
+		st.errs ~= errUnsup(node.pos, "creating RIntrinsic");
+		/*RIntrinsicExpr r = new RIntrinsicExpr;
 		r.pos = node.pos;
 		r.name = node.name;
 		if (st.isExpT)
 			st.res = r.to(st.expT).val;
 		else
-			st.res = r;
-		// TODO: implement intrinsics!!
+			st.res = r;*/
 	}
 
 	void opCallExprIter(OpCallExpr node, ref St st){
@@ -1010,7 +1011,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 						st.params.map!(p => p.toString));
 				return;
 			}
-			RIntrinsicCallExpr r = new RIntrinsicCallExpr;
+			// TODO: create new $arrInd intrinsic instance here
+			st.errs ~= errUnsup(node.pos, "creating RIntrinsic");
+			/*RIntrinsicCallExpr r = new RIntrinsicCallExpr;
 			r.pos = node.pos;
 			r.name = IntrN.ArrayInd;
 			r.params = [sub, params[0]];
@@ -1018,7 +1021,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			if (st.isExpT)
 				st.res = r.to(st.expT).val;
 			else
-				st.res = r;
+				st.res = r;*/
 			return;
 		}
 

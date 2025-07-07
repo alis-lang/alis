@@ -35,8 +35,12 @@ package:
 
 /// Resolved Partial Intrinsic Call Expression
 /// **should never occur in a finalized RST**
-package class RIntrinsicPartCallExpr : RIntrinsicCallExpr{
+package class RIntrinsicPartCallExpr : RExpr{
 package:
+	/// intrinsic name
+	string name;
+	/// parameters
+	RExpr[] params;
 	/// expected param types
 	ADataType[] paramT;
 	this(){}
