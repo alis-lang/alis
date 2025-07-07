@@ -272,35 +272,7 @@ public:
 }
 
 /// Resolved Intrinsic Expression
-public class RIntrinsicExpr : RExpr{
-public:
-	/// intrinsic name
-	string name;
-
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		ret["name"] = name;
-		ret["_name"] = "RIntrinsicExpr";
-		return ret;
-	}
-}
-
-/// Resolved Intrinsic Call Expression
-public class RIntrinsicCallExpr : RExpr{
-public:
-	/// intrinsic name
-	string name;
-	/// parameters
-	RExpr[] params;
-
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		ret["name"] = name;
-		ret["params"] = params.map!(p => p.jsonOf).array;
-		ret["_name"] = "RIntrinsicCallExpr";
-		return ret;
-	}
-}
+public abstract class RIntrinsicExpr : RExpr{}
 
 /// Resolved Assignment Expression
 public class RVarAssignExpr : RExpr{
