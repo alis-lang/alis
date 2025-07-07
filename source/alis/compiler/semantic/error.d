@@ -52,6 +52,7 @@ public struct SmErr{
 		AssignRefNotRef, /// `@=` used with non-ref LHS
 		DerefNoRef, /// trying to deref something that is not a ref
 		ConstConst, /// trying to const a const
+		IntrUnk, /// unknown intrinsic
 	}
 
 	/// where error happen
@@ -284,4 +285,9 @@ package SmErr errDerefNoRef(Location pos, string type){
 package SmErr errConstConst(Location pos, string type){
 	return SmErr(pos, type.format!"constOf const: cannot const `%s`",
 			SmErr.Type.ConstConst);
+}
+
+/// unknown intrinsic
+package SmErr errIntrUnk(Location pos, string intrN){
+	return SmErr(pos, intrN.format!"unknown intrinsic: `%s`", SmErr.Type.IntrUnk);
 }
