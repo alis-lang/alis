@@ -112,7 +112,7 @@ public size_t callabilityOf(F...)(string intrN, AValCT[] params) if (
 }
 
 /// resolves an intrinsic, provided its params (if any)
-public SmErrsVal!RIntrinsicExpr resolve(F...)(Location pos, string intrN,
+public SmErrsVal!RExpr resolve(F...)(Location pos, string intrN,
 		AValCT[] params, STab stabR, IdentU[] ctx, void[0][ASymbol*] dep,
 		RFn[string] fns) if (allSatisfy!(IsExprTranslator, F)){
 	switch (intrN){
@@ -123,6 +123,6 @@ public SmErrsVal!RIntrinsicExpr resolve(F...)(Location pos, string intrN,
 			return Fn(pos, stabR, ctx, dep, fns, params);
 		}
 	default:
-		return SmErrsVal!RIntrinsicExpr(errIntrUnk(pos, intrN));
+		return SmErrsVal!RExpr([errIntrUnk(pos, intrN)]);
 	}
 }

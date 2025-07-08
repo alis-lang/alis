@@ -12,8 +12,8 @@ import alis.common,
 			 alis.compiler.ast,
 			 alis.compiler.ast.rst;
 
-private alias CallabilityCheckers = CallabilityCheckersOf!(mixin(__MODULE__));
-private alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
+package alias CallabilityCheckers = CallabilityCheckersOf!(mixin(__MODULE__));
+package alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
 
 @Intr("ctWrite"){
 	@CallabilityChecker
