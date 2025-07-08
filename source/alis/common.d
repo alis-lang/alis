@@ -154,6 +154,15 @@ public AValCT[] flatten(AValCT seq){
 	return seq.seq.dup;
 }
 
+/// Returns: true if an AValCT[] is flat
+public bool isFlat(AValCT[] seq){
+	foreach (AValCT val; seq){
+		if (val.type == AValCT.Type.Seq)
+			return false;
+	}
+	return true;
+}
+
 /// identifier node unit
 public struct IdentU{
 public:
