@@ -16,9 +16,6 @@ private alias It = RtL!(mixin(__MODULE__), 0);
 
 private struct St{
 	SmErr[] errs;
-	STab stabR;
-	STab stab;
-	IdentU[] ctx;
 	ADataType res;
 }
 
@@ -33,8 +30,8 @@ private struct St{
 
 /// finds data type of RExpr
 /// Returns: data type or SmErr[]
-package SmErrsVal!ADataType typeOf(RExpr expr, STab stabR, IdentU[] ctx){
-	St st = St(null, stabR, stabR.findSt(ctx, ctx), ctx, ADataType.ofNoInit);
+package SmErrsVal!ADataType typeOf(RExpr expr){
+	St st = St(null, ADataType.ofNoInit);
 	It.exec(expr, st);
 	if (st.errs.length){
 		debug {

@@ -61,7 +61,7 @@ public struct AValCT{
 		return null;
 	}
 
-	bool opEquals()(const auto ref AValCT rhs) const pure {
+	/*bool opEquals()(const auto ref AValCT rhs) const pure {
 		final switch (type){
 			case Type.Literal:
 				return typeL == rhs.typeL && dataL == rhs.dataL;
@@ -81,7 +81,7 @@ public struct AValCT{
 				return true;
 		}
 		assert(false);
-	}
+	}*/
 
 	/*size_t toHash() const {
 		final switch (type){

@@ -70,6 +70,20 @@ public:
 	}
 }
 
+/// converts/wraps an AValCT into RExpr
+RExpr toRExpr()(auto ref AValCT val){
+	final switch (val.type){
+		case AValCT.Type.Literal:
+		case AValCT.Type.Symbol:
+		case AValCT.Type.Type:
+			return new RAValCTExpr(val);
+		case AValCT.Type.Expr:
+			return val.expr;
+		case AValCT.Type.Seq:
+			assert (false, "RExpr.of(AValCT) received AValCT.Type.Seq");
+	}
+}
+
 /// Iterator Function Level
 package struct ITL{
 	size_t level;

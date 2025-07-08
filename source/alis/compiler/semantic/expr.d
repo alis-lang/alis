@@ -60,7 +60,7 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 /// Returns: true if error-free, false if error added
 private bool expT(Location pos, RExpr expr, ref St st){
 	if (!st.isExpT) return true;
-	SmErrsVal!ADataType typeRes = typeOf(expr, st.stabR, st.ctx);
+	SmErrsVal!ADataType typeRes = typeOf(expr);
 	if (typeRes.isErr){
 		st.errs ~= typeRes.err;
 		return false;
@@ -146,7 +146,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 				break;
 			case ASymbol.Type.Var:
 				r = new RVarExpr(res.varS);
-				SmErrsVal!ADataType typeRes = typeOf(r, st.stabR, st.ctx);
+				SmErrsVal!ADataType typeRes = typeOf(r);
 				if (typeRes.isErr){
 					st.errs ~= typeRes.err;
 					return;
@@ -189,7 +189,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			}
 			r.block.statements ~= stmntRes.val;
 		}
-		SmErrsVal!ADataType typeRes = typeOf(r, st.stabR, st.ctx);
+		SmErrsVal!ADataType typeRes = typeOf(r);
 		if (typeRes.isErr){
 			st.errs ~= typeRes.err;
 			return;
@@ -685,7 +685,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		RExpr r;
 		if (RFnPartCallExpr pFnCall = cast(RFnPartCallExpr)callee){
 			ADataType fnType; {
-				SmErrsVal!ADataType res = typeOf(pFnCall.callee, st.stabR, st.ctx);
+				SmErrsVal!ADataType res = typeOf(pFnCall.callee);
 				if (res.isErr){
 					st.errs ~= res.err;
 					return;
@@ -734,7 +734,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			call.pos = node.pos;
 			call.callee = callee;
 			ADataType fnType; {
-				SmErrsVal!ADataType res = typeOf(callee, st.stabR, st.ctx);
+				SmErrsVal!ADataType res = typeOf(callee);
 				if (res.isErr){
 					st.errs ~= res.err;
 					return;
@@ -755,7 +755,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			r = call;
 		}
 		if (!expT(node.pos, r, st)) return;
-		SmErrsVal!ADataType typeRes = typeOf(r, st.stabR, st.ctx);
+		SmErrsVal!ADataType typeRes = typeOf(r);
 		if (typeRes.isErr){
 			st.errs ~= typeRes.err;
 			return;
@@ -780,7 +780,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			lhsExpr = res.val;
 		}
 		ADataType lhsType; {
-			SmErrsVal!ADataType res = typeOf(lhsExpr, st.stabR, st.ctx);
+			SmErrsVal!ADataType res = typeOf(lhsExpr);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
@@ -865,7 +865,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			r = resA.val;
 		}
 		ADataType rType; {
-			SmErrsVal!ADataType typeRes = typeOf(r, st.stabR, st.ctx);
+			SmErrsVal!ADataType typeRes = typeOf(r);
 			if (typeRes.isErr){
 				st.errs ~= typeRes.err;
 				return;
@@ -881,19 +881,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		RFnPartCallExpr pFCall = new RFnPartCallExpr;
 		pFCall.pos = node.pos;
 		pFCall.callee = r;
-		pFCall.params = lhsVal.map!(
-				function (AValCT val){
-					final switch (val.type){
-						case AValCT.Type.Literal:
-						case AValCT.Type.Symbol:
-						case AValCT.Type.Type:
-							return new RAValCTExpr(val);
-						case AValCT.Type.Expr:
-							return val.expr;
-						case AValCT.Type.Seq:
-							assert (false, "noooo");
-					}
-				}).array;
+		pFCall.params = lhsVal.map!(val => val.toRExpr).array;
 		if (st.isExpT)
 			st.res = pFCall.to(st.expT).val;
 		else
@@ -914,7 +902,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			sub = subRes.val;
 		}
 		ADataType subType; {
-			SmErrsVal!ADataType subTypeRes = typeOf(sub, st.stabR, st.ctx);
+			SmErrsVal!ADataType subTypeRes = typeOf(sub);
 			if (subTypeRes.isErr){
 				st.errs ~= subTypeRes.err;
 				return;
@@ -990,7 +978,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 				continue;
 			}
 			params ~= exprRes.val;
-			SmErrsVal!ADataType typeRes = typeOf(params[$ - 1], st.stabR, st.ctx);
+			SmErrsVal!ADataType typeRes = typeOf(params[$ - 1]);
 			if (typeRes.isErr){
 				st.errs ~= typeRes.err;
 				continue;
@@ -1053,7 +1041,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			lhsExpr = res.val;
 		}
 		ADataType lhsType; {
-			SmErrsVal!ADataType res = typeOf(lhsExpr, st.stabR, st.ctx);
+			SmErrsVal!ADataType res = typeOf(lhsExpr);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
@@ -1082,7 +1070,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			rhsExpr = res.val;
 		}
 		ADataType rhsType; {
-			SmErrsVal!ADataType res = typeOf(rhsExpr, st.stabR, st.ctx);
+			SmErrsVal!ADataType res = typeOf(rhsExpr);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
@@ -1119,7 +1107,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 				return;
 			}
 			lhsExpr = lhsRes.val;
-			SmErrsVal!ADataType typeRes = typeOf(lhsExpr, st.stabR, st.ctx);
+			SmErrsVal!ADataType typeRes = typeOf(lhsExpr);
 			if (typeRes.isErr){
 				st.errs ~= typeRes.err;
 				return;
@@ -1155,7 +1143,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			lhsExpr = res.val;
 		}
 		ADataType lhsType; {
-			SmErrsVal!ADataType res = typeOf(lhsExpr, st.stabR, st.ctx);
+			SmErrsVal!ADataType res = typeOf(lhsExpr);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
@@ -1181,7 +1169,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			rhsExpr = res.val;
 		}
 		ADataType rhsType; {
-			SmErrsVal!ADataType res = typeOf(rhsExpr, st.stabR, st.ctx);
+			SmErrsVal!ADataType res = typeOf(rhsExpr);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
@@ -1213,7 +1201,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			sub = res.val;
 		}
 		ADataType subType; {
-			SmErrsVal!ADataType res = typeOf(sub, st.stabR, st.ctx);
+			SmErrsVal!ADataType res = typeOf(sub);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
@@ -1299,7 +1287,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			expr = res.val;
 		}
 		ADataType type; {
-			SmErrsVal!ADataType res = typeOf(expr, st.stabR, st.ctx);
+			SmErrsVal!ADataType res = typeOf(expr);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
