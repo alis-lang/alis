@@ -22,7 +22,7 @@ package enum CallabilityChecker;
 
 /// tag as AST -> RST translater
 /// parameters must be:
-/// - `Location`
+/// - `IntrinsicExpr`
 /// - `STab`
 /// - `IdentU[]` ctx
 /// - `void[0][ASymbol*]` dep
@@ -61,7 +61,7 @@ private template IsExprTranslator(alias Fn){
 		hasUDA!(Fn, ExprTranslator) &&
 		hasUDA!(Fn, Intr) && Parameters!Fn.length == 6 &&
 		(
-		 is (Location : Parameters!Fn[0]) &&
+		 is (IntrinsicExpr : Parameters!Fn[0]) &&
 		 is (STab : Parameters!Fn[1]) &&
 		 is (IdentU[] : Parameters!Fn[2]) &&
 		 is (void[0][ASymbol*] : Parameters!Fn[3]) &&
@@ -112,17 +112,17 @@ public size_t callabilityOf(F...)(string intrN, AValCT[] params) if (
 }
 
 /// resolves an intrinsic, provided its params (if any)
-public SmErrsVal!RExpr resolve(F...)(Location pos, string intrN,
+public SmErrsVal!RExpr resolve(F...)(IntrinsicExpr intr,
 		AValCT[] params, STab stabR, IdentU[] ctx, void[0][ASymbol*] dep,
 		RFn[string] fns) if (allSatisfy!(IsExprTranslator, F)){
-	switch (intrN){
+	switch (intr.name){
 		static foreach (Fn; F){
 			static foreach (Intr i; getUDAs!(Fn, Intr)){
 				case i.name:
 			}
-			return Fn(pos, stabR, ctx, dep, fns, params);
+			return Fn(intr, stabR, ctx, dep, fns, params);
 		}
 	default:
-		return SmErrsVal!RExpr([errIntrUnk(pos, intrN)]);
+		return SmErrsVal!RExpr([errIntrUnk(intr.pos, intr.name)]);
 	}
 }
