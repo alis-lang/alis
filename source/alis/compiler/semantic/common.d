@@ -40,9 +40,7 @@ package:
 	/// intrinsic name
 	string name;
 	/// parameters
-	RExpr[] params;
-	/// expected param types
-	ADataType[] paramT;
+	AValCT[] params;
 	this(){}
 }
 
