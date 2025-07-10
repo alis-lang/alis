@@ -51,7 +51,7 @@ public:
 	/// evaluation result
 	AValCT res;
 	/// the expression itself. can be null
-	RExpr expr;
+	RExpr expr; // TODO: is it used?
 
 	this (){}
 	this(AValCT res){
@@ -65,6 +65,24 @@ public:
 		if (expr)
 			ret["expr"] = expr.jsonOf;
 		return ret;
+	}
+
+	/// convert to an actual RExpr
+	final RExpr toRExpr(){
+		final switch (res.type){
+			case AValCT.Type.Literal:
+				RLiteralExpr r = new RLiteralExpr;
+				r.pos = pos;
+				r.value = res.dataL;
+				r.type = res.typeL;
+				return r;
+			case AValCT.Type.Symbol:
+			case AValCT.Type.Type:
+			case AValCT.Type.Seq:
+				assert (false, "unsupported AValCT.Type in RAValCTExpr.toRExpr");
+			case AValCT.Type.Expr:
+				return res.expr;
+		}
 	}
 }
 
