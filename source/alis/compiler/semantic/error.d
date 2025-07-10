@@ -120,7 +120,14 @@ package SmErr errParamCount(ASTNode node, string name, size_t expected,
 				name, expected, got),
 			SmErr.Type.ParamCountMis);
 }
-
+/// ditto
+package SmErr errParamCount(Location pos, string name, size_t expected,
+		size_t got){
+	return SmErr(pos,
+			format!"Mismatched parameter count for `%s`: expected %d, received %d"(
+				name, expected, got),
+			SmErr.Type.ParamCountMis);
+}
 /// Recursive Dependency
 package SmErr errRecDep(Location pos, string name){
 	return SmErr(pos,
