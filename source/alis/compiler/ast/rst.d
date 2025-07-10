@@ -416,10 +416,10 @@ public:
 public class RFnExpr : RExpr{
 public:
 	/// function
-	AFn fn;
+	AFn* fn;
 
 	this(){}
-	this()(auto ref AFn fn){
+	this()(AFn* fn){
 		this.fn = fn;
 	}
 
