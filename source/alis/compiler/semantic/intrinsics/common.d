@@ -22,7 +22,8 @@ package enum CallabilityChecker;
 
 /// tag as AST -> RST translater
 /// parameters must be:
-/// - `IntrinsicExpr`
+/// - `string` name
+/// - `Location`
 /// - `STab`
 /// - `IdentU[]` ctx
 /// - `void[0][ASymbol*]` dep
@@ -59,14 +60,15 @@ private template IsExprTranslator(alias Fn){
 	enum IsExprTranslator =
 		isCallable!Fn &&
 		hasUDA!(Fn, ExprTranslator) &&
-		hasUDA!(Fn, Intr) && Parameters!Fn.length == 6 &&
+		hasUDA!(Fn, Intr) && Parameters!Fn.length == 7 &&
 		(
-		 is (IntrinsicExpr : Parameters!Fn[0]) &&
-		 is (STab : Parameters!Fn[1]) &&
-		 is (IdentU[] : Parameters!Fn[2]) &&
-		 is (void[0][ASymbol*] : Parameters!Fn[3]) &&
-		 is (RFn[string] : Parameters!Fn[4]) &&
-		 is (AValCT[] : Parameters!Fn[5])
+		 is (string : Parameters!Fn[0]) &&
+		 is (Location : Parameters!Fn[1]) &&
+		 is (STab : Parameters!Fn[2]) &&
+		 is (IdentU[] : Parameters!Fn[3]) &&
+		 is (void[0][ASymbol*] : Parameters!Fn[4]) &&
+		 is (RFn[string] : Parameters!Fn[5]) &&
+		 is (AValCT[] : Parameters!Fn[6])
 		) &&
 		is (ReturnType!Fn : SmErrsVal!RExpr);
 }
@@ -112,17 +114,17 @@ public size_t callabilityOf(F...)(string intrN, AValCT[] params) if (
 }
 
 /// resolves an intrinsic, provided its params (if any)
-public SmErrsVal!RExpr resolve(F...)(IntrinsicExpr intr,
+public SmErrsVal!RExpr resolveIntrN(F...)(string name, Location pos,
 		AValCT[] params, STab stabR, IdentU[] ctx, void[0][ASymbol*] dep,
 		RFn[string] fns) if (allSatisfy!(IsExprTranslator, F)){
-	switch (intr.name){
+	switch (name){
 		static foreach (Fn; F){
 			static foreach (Intr i; getUDAs!(Fn, Intr)){
 				case i.name:
 			}
-			return Fn(intr, stabR, ctx, dep, fns, params);
+			return Fn(name, pos, stabR, ctx, dep, fns, params);
 		}
 	default:
-		return SmErrsVal!RExpr([errIntrUnk(intr.pos, intr.name)]);
+		return SmErrsVal!RExpr([errIntrUnk(pos, name)]);
 	}
 }

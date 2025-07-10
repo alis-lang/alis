@@ -21,7 +21,7 @@ package alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
 		return true;
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr ctWriteTranslate(IntrinsicExpr, STab,
+	SmErrsVal!RExpr ctWriteTranslate(string, Location, STab,
 			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
 		import std.stdio : writefln;
 		writefln!"CTWRITE: %(%s%)"(params);
