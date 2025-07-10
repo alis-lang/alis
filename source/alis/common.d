@@ -282,13 +282,14 @@ public struct ASymbol{
 			case Type.Union:
 			case Type.Enum:
 			case Type.Var:
-			case Type.Alias:
 			case Type.Import:
 			case Type.EnumConst:
 			case Type.UTest:
 				return false;
-			case Type.Template:
+			case Type.Alias:
+				return false; // TODO: implement for Alias
 			case Type.Fn:
+			case Type.Template:
 				return true;
 		}
 	}
@@ -345,6 +346,25 @@ public struct ASymbol{
 				return utestS.vis;
 		}
 		assert(false);
+	}
+
+	/// Returns: true if this symbol can be a data type
+	@property bool isDType() const pure {
+		final switch (type){
+			case ASymbol.Type.Struct:
+			case ASymbol.Type.Union:
+			case ASymbol.Type.Enum:
+				return true;
+			case ASymbol.Type.EnumConst:
+			case ASymbol.Type.Fn:
+			case ASymbol.Type.Var:
+			case ASymbol.Type.Import:
+			case ASymbol.Type.UTest:
+			case ASymbol.Type.Template:
+				return false;
+			case ASymbol.Type.Alias:
+				return false; // TODO: implement for Alias
+		}
 	}
 
 	/// possible Symbol types
