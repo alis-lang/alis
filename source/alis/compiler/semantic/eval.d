@@ -43,7 +43,7 @@ struct St{
 		st.res = AValCT(node.type, node.value.dup);
 	}
 
-	void intrExpr(RIntrinsicExpr node, ref St st){
+	/*void intrExpr(RIntrinsicExpr node, ref St st){
 		switch (node.name){
 			case IntrN.NoInit:
 				st.res = AValCT(ADataType.ofNoInit); return;
@@ -70,14 +70,14 @@ struct St{
 			default:
 				st.errs ~= errUnsup(node.pos, node.name.format!"intrinsic call $%s");
 		}
-	}
+	}*/
 
 	void exprIter(RExpr node, ref St st){
 		st.errs ~= errUnsup(node);
 	}
 }
 
-private void intrXBitType(RIntrinsicCallExpr node, ref St st){
+/*private void intrXBitType(RIntrinsicCallExpr node, ref St st){
 	AValCT[] params;
 	params = node.params
 		.map!(p => eval(p, st.stabR, st.ctx))
@@ -132,7 +132,7 @@ private void intrCTWrite(RIntrinsicCallExpr node, ref St st){
 		writefln!"CTWRITE: %s"(s);
 	}
 	st.res = ADataType.ofNoInit.AValCT;
-}
+}*/
 
 /// Evaluates an `expr`. Resulting AVAlCT can be any of 3 `AValCT.Type`,
 /// in case something is suitable as `Type.Symbol` and something else,

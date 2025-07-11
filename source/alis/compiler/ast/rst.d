@@ -80,10 +80,10 @@ public:
 	}
 }
 
-/// Resovled Statement
+/// Resolved Statement
 public abstract class RStatement : Statement{}
 
-/// Resovled Block
+/// Resolved Block
 public class RBlock : RStatement{
 public:
 	/// statements
@@ -106,7 +106,7 @@ public:
 	}
 }
 
-/// Resovled Return Statement
+/// Resolved Return Statement
 public class RReturn : RStatement{
 public:
 	/// return value, can be null
@@ -136,7 +136,7 @@ public:
 	}
 }
 
-/// resovled if statement node
+/// resolved if statement node
 public class RIf : RStatement{
 public:
 	/// condition
@@ -238,6 +238,20 @@ public:
 	}
 }
 
+/// No-op
+public class RNoOpExpr : RExpr{
+private:
+	static RNoOpExpr _instance;
+	this(){}
+public:
+	/// instance of this
+	static @property instance(){
+		if (_instance is null)
+			_instance = new RNoOpExpr;
+		return _instance;
+	}
+}
+
 /// Resolved Var Get expression
 public class RVarExpr : RExpr{
 public:
@@ -267,37 +281,6 @@ public:
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "RBlockExpr";
 		ret["block"] = block.jsonOf;
-		return ret;
-	}
-}
-
-/// Resolved Intrinsic Expression
-public class RIntrinsicExpr : RExpr{
-public:
-	/// intrinsic name
-	string name;
-
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		ret["name"] = name;
-		ret["_name"] = "RIntrinsicExpr";
-		return ret;
-	}
-}
-
-/// Resolved Intrinsic Call Expression
-public class RIntrinsicCallExpr : RExpr{
-public:
-	/// intrinsic name
-	string name;
-	/// parameters
-	RExpr[] params;
-
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		ret["name"] = name;
-		ret["params"] = params.map!(p => p.jsonOf).array;
-		ret["_name"] = "RIntrinsicCallExpr";
 		return ret;
 	}
 }
@@ -336,7 +319,7 @@ public:
 	}
 }
 
-/// Resovled Dereference Expression
+/// Resolved Dereference Expression
 public class RDerefExpr : RExpr{
 public:
 	/// value
@@ -381,7 +364,7 @@ public:
 	}
 }
 
-/// Resovled Prefix `@` Expression
+/// Resolved Prefix `@` Expression
 public class RRefExpr : RExpr{
 public:
 	/// operand
@@ -433,10 +416,10 @@ public:
 public class RFnExpr : RExpr{
 public:
 	/// function
-	AFn fn;
+	AFn* fn;
 
 	this(){}
-	this()(auto ref AFn fn){
+	this()(AFn* fn){
 		this.fn = fn;
 	}
 
