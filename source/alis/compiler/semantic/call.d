@@ -34,6 +34,11 @@ package size_t callabilityOf(AValCT val, AValCT[] params){
 	return size_t.max; // TODO: kinda sad tbh, nothing is callable :(
 }
 
+/// ditto
+package size_t callabilityOf(RExpr callee, AValCT[] params){
+	return size_t.max; // TODO: kinda sad tbh, nothing is callable :(
+}
+
 /// generates RST for calling something.
 /// works for RAValCTExpr as callee as well
 /// Returns: SmErr[] or RExpr
