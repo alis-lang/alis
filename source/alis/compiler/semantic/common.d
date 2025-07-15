@@ -44,6 +44,15 @@ package:
 	this(){}
 }
 
+/// Enum Member Get Expression
+package class REnumMemberGetExpr : RLiteralExpr{
+package:
+	/// enum
+	AEnum* enumS;
+	/// member name
+	string name;
+}
+
 /// Wrapper for AValCT
 /// **should never occur in a finalized RST**
 package class RAValCTExpr : RExpr{
