@@ -100,6 +100,7 @@ package SmErrsVal!RExpr call(RExpr callee, AValCT[] params){
 
 	if (fn){
 		// let us call the function!
+		// TODO: type cast the params!
 		RFnCallExpr call = new RFnCallExpr;
 		call.pos = callee.pos;
 		call.callee = fn;
