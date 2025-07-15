@@ -14,6 +14,7 @@ import alis.common,
 			 alis.compiler.semantic.types,
 			 alis.compiler.semantic.call,
 			 alis.compiler.semantic.canref,
+			 alis.compiler.semantic.intrinsics,
 			 alis.compiler.ast,
 			 alis.compiler.ast.iter,
 			 alis.compiler.ast.rst;
@@ -130,19 +131,15 @@ private bool expT(Location pos, ADataType type, ref St st){
 		RExpr r;
 		switch (res.type){
 			case ASymbol.Type.Struct:
-				r = new RAValCTExpr(ADataType.of(&res.structS).AValCT);
-				break;
 			case ASymbol.Type.Union:
-				r = new RAValCTExpr(ADataType.of(&res.unionS).AValCT);
-				break;
 			case ASymbol.Type.Enum:
-				r = new RAValCTExpr(ADataType.of(&res.enumS).AValCT);
+				r = new RAValCTExpr(res.AValCT);
 				break;
 			case ASymbol.Type.EnumConst:
 				r = new RAValCTExpr(AValCT(res.enumCS.type, res.enumCS.data));
 				break;
 			case ASymbol.Type.Fn:
-				r = new RFnExpr(res.fnS);
+				r = new RFnExpr(&res.fnS);
 				break;
 			case ASymbol.Type.Var:
 				r = new RVarExpr(res.varS);
@@ -355,7 +352,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 					st.params.map!(p => p.toString));
 			return;
 		}
-		RExpr res = new RFnExpr(*symC);
+		RExpr res = new RFnExpr(symC);
 		if (!expT(node.pos, res, st)) return;
 		st.res = res;
 	}
@@ -683,29 +680,13 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 
 		RExpr r;
-		if (RFnPartCallExpr pFnCall = cast(RFnPartCallExpr)callee){
-			ADataType fnType; {
-				SmErrsVal!ADataType res = typeOf(pFnCall.callee);
-				if (res.isErr){
-					st.errs ~= res.err;
-					return;
-				}
-				fnType = res.val;
+		if (RPartCallExpr pFnCall = cast(RPartCallExpr)callee){
+			SmErrsVal!RExpr res = pFnCall.callee.call(pFnCall.params ~ params);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
 			}
-			assert (fnType.type == ADataType.Type.Fn);
-			assert (fnType.paramT.length == paramsExpr.length + pFnCall.params.length,
-					"WOT!?");
-			immutable size_t offset = pFnCall.params.length;
-			foreach (size_t i, RExpr param; paramsExpr){
-				SmErrsVal!RExpr castRes = param.to(fnType.paramT[offset + i]);
-				if (castRes.isErr){
-					st.errs ~= castRes.err;
-					continue;
-				}
-				pFnCall.params ~= castRes.val;
-			}
-			if (pFnCall.params.length != fnType.paramT.length) return;
-			r = pFnCall;
+			r = res.val;
 		} else
 		if (RTmPartInitExpr pTmCall = cast(RTmPartInitExpr)callee){
 			st.errs ~= errUnsup(node.pos, "Template instantiation");
@@ -715,44 +696,22 @@ private bool expT(Location pos, ADataType type, ref St st){
 			r = pTmCall;
 		} else
 		if (RIntrinsicPartCallExpr iCall = cast(RIntrinsicPartCallExpr)callee){
-			assert (iCall.params.length + paramsExpr.length == iCall.paramT.length,
-					"WOT!?");
-			immutable size_t offset = iCall.params.length;
-			foreach (size_t i, RExpr param; paramsExpr){
-				SmErrsVal!RExpr castRes = param.to(iCall.paramT[offset + i]);
-				if (castRes.isErr){
-					st.errs ~= castRes.err;
-					continue;
-				}
-				iCall.params ~= castRes.val;
+			iCall.params ~= params;
+			SmErrsVal!RExpr res = resolveIntrN(iCall.name, iCall.pos, iCall.params,
+					st.stabR, st.ctx, st.dep, st.fns);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
 			}
-			if (iCall.params.length != iCall.paramT.length) return;
-			iCall.params ~= paramsExpr;
-			r = iCall;
+			st.res = res.val;
+			return;
 		} else {
-			RFnCallExpr call = new RFnCallExpr;
-			call.pos = node.pos;
-			call.callee = callee;
-			ADataType fnType; {
-				SmErrsVal!ADataType res = typeOf(callee);
-				if (res.isErr){
-					st.errs ~= res.err;
-					return;
-				}
-				fnType = res.val;
+			SmErrsVal!RExpr res = callee.call(params);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
 			}
-			assert (fnType.type == ADataType.Type.Fn);
-			assert (fnType.paramT.length == paramsExpr.length, "WOT!?");
-			foreach (size_t i, RExpr param; paramsExpr){
-				SmErrsVal!RExpr castRes = param.to(fnType.paramT[i]);
-				if (castRes.isErr){
-					st.errs ~= castRes.err;
-					continue;
-				}
-				call.params ~= castRes.val;
-			}
-			if (call.params.length != fnType.paramT.length) return;
-			r = call;
+			r = res.val;
 		}
 		if (!expT(node.pos, r, st)) return;
 		SmErrsVal!ADataType typeRes = typeOf(r);
@@ -789,6 +748,22 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 
 		if (IdentExpr rhsId = cast(IdentExpr)node.rhs){
+			if (RAValCTExpr val = cast(RAValCTExpr)lhsExpr){
+				if (val.res.type == AValCT.Type.Symbol &&
+						val.res.symS.type == ASymbol.Type.Enum){
+					AEnum* enumS = &val.res.symS.enumS;
+					if (enumS.memId.canFind(rhsId.ident)){
+						REnumMemberGetExpr r = new REnumMemberGetExpr;
+						r.pos = node.pos;
+						r.enumS = enumS;
+						r.name = rhsId.ident;
+						r.value = enumS.memVal[enumS.memId.countUntil(rhsId.ident)];
+						r.type = enumS.type;
+						st.res = r;
+						return;
+					}
+				}
+			}
 			string member = null;
 			ADataType memberType;
 			Visibility memberVis;
@@ -809,10 +784,6 @@ private bool expT(Location pos, ADataType type, ref St st){
 						memberType = lhsType.unionS.types[lhsType.unionS.names[member]];
 						memberVis = lhsType.unionS.nameVis[member];
 					}
-					break;
-				case ADataType.Type.Enum:
-					if (lhsType.enumS.memId.canFind(rhsId.ident))
-						member = rhsId.ident;
 					break;
 				default:
 					break;
@@ -854,41 +825,97 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		AValCT[] pTypes = lhsVal ~ st.params;
 
-		// L.R(params) -> R(L, params)
-		RExpr r; {
-			SmErrsVal!RExpr resA = resolve(node.rhs, st.stabR, st.ctx, st.dep,
-					st.fns, pTypes);
-			if (resA.isErr){
-				st.errs ~= resA.err;
+		// rhs is intrinsic
+		if (IntrinsicExpr intr = cast(IntrinsicExpr)node.rhs){
+			if (st.params && intr.name.callabilityOf(pTypes) != size_t.max){
+				RIntrinsicPartCallExpr r = new RIntrinsicPartCallExpr;
+				r.pos = intr.pos;
+				r.name = intr.name;
+				r.params = lhsVal;
+				if (st.isExpT){
+					debug stderr.writeln("st.isExpT in partial intrinsic call!");
+					/*assert (false,
+							"cannot expect data type from partial intrinsic call");*/
+				}
+				st.res = r;
+				return;
+			} else
+			if (intr.name.callabilityOf(lhsVal) != size_t.max){
+				RExpr r; {
+					SmErrsVal!RExpr res = resolveIntrN(intr.name, intr.pos, lhsVal,
+							st.stabR, st.ctx, st.dep, st.fns);
+					if (res.isErr){
+						st.errs ~= res.err;
+						return;
+					}
+					r = res.val;
+				}
+				ADataType rType; {
+					SmErrsVal!ADataType res = typeOf(r);
+					if (res.isErr){
+						st.errs ~= res.err;
+						return;
+					}
+					rType = res.val;
+				}
+				if (st.params.length && rType.callabilityOf(st.params) == size_t.max){
+					st.errs ~= errCallableIncompat(node.pos, rType.toString,
+							st.params.map!(p => p.toString));
+					return;
+				}
+				if (!expT(node.pos, rType, st)) return;
+				st.res = r;
 				return;
 			}
-			r = resA.val;
-		}
-		ADataType rType; {
-			SmErrsVal!ADataType typeRes = typeOf(r);
-			if (typeRes.isErr){
-				st.errs ~= typeRes.err;
-				return;
-			}
-			rType = typeRes.val;
-		}
-		if (!expT(node.pos, r, st)) return;
-		if (st.params.length && rType.callabilityOf(pTypes) == size_t.max){
-			st.errs ~= errCallableIncompat(node.pos, rType.toString,
+			st.errs ~= errCallableIncompat(intr.pos, intr.name,
 					pTypes.map!(p => p.toString));
+			st.errs ~= errCallableIncompat(intr.pos, intr.name,
+					lhsVal.map!(p => p.toString));
 			return;
 		}
-		RFnPartCallExpr pFCall = new RFnPartCallExpr;
-		pFCall.pos = node.pos;
-		pFCall.callee = r;
-		pFCall.params = lhsVal.map!(val => val.toRExpr).array;
-		if (st.isExpT)
-			st.res = pFCall.to(st.expT).val;
-		else
-			st.res = pFCall;
-		// A.B(params) -> B(A)(params) ?
-		//SmErrsVal!RExpr resB = resolve(node.rhs, )
-		// TODO: implement UFCS on templates
+
+		bool isPartial;
+		RExpr r; {
+			SmErr[] errs;
+			SmErrsVal!RExpr res = resolve(node.rhs, st.stabR, st.ctx, st.dep,
+					st.fns, pTypes);
+			if (res.isErr){
+				errs = res.err;
+				res = resolve(node.rhs, st.stabR, st.ctx, st.dep, st.fns, lhsVal);
+				if (res.isErr){
+					st.errs ~= errs;
+					st.errs ~= res.err;
+					return;
+				}
+				res = call(res.val, lhsVal);
+				if (res.isErr){
+					st.errs ~= res.err;
+					return;
+				}
+				r = res.val;
+				isPartial = false;
+			} else {
+				isPartial = true;
+				r = res.val;
+			}
+		}
+
+		immutable size_t callability = r.callabilityOf(isPartial ? pTypes : lhsVal);
+		if (!expT(node.pos, r, st)) return;
+		if (callability == size_t.max){
+			st.errs ~= errCallableIncompat(node.pos, r.toString,
+					(isPartial ? pTypes : lhsVal).map!(p => p.toString));
+			return;
+		}
+		if (!isPartial){
+			st.res = r;
+			return;
+		}
+		RPartCallExpr pCall = new RPartCallExpr;
+		pCall.pos = node.pos;
+		pCall.callee = r;
+		pCall.params = lhsVal;
+		st.res = pCall;
 	}
 
 	void opIndexExprIter(OpIndexExpr node, ref St st){

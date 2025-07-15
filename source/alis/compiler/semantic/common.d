@@ -17,10 +17,12 @@ import std.algorithm,
 
 debug import std.stdio;
 
-/// Resolved Partial Function Call Expression
+/// Partial call to a resolved expr
 /// **should never occur in a finalized RST**
-package class RFnPartCallExpr : RFnCallExpr{
+package class RPartCallExpr : RExpr{
 package:
+	RExpr callee;
+	AValCT[] params;
 	this(){}
 }
 
