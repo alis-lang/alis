@@ -55,12 +55,10 @@ package SmErrsVal!RExpr call(RExpr callee, AValCT[] params){
 			final switch (val.res.type){
 				case AValCT.Type.Symbol:
 					ASymbol* sym = val.res.symS;
-					if (sym.type == ASymbol.Type.Fn){
-						fn = new RFnExpr(&sym.fnS);
-						break;
-					}
+					if (sym.type == ASymbol.Type.Fn)
+						return fnCall(&sym.fnS, params);
+
 					// if symbol is type, do type conversion
-					if (!sym.isDType) break;
 					ADataType type;
 					switch (sym.type){
 						case ASymbol.Type.Struct:
@@ -75,11 +73,14 @@ package SmErrsVal!RExpr call(RExpr callee, AValCT[] params){
 						default:
 							assert(false, "w o t");
 					}
+					if (type == ADataType.ofNoInit)
+						break;
 					if (params.length != 1)
 						return SmErrsVal!RExpr([errParamCount(callee.pos,
 									val.res.typeT.toString, 1, params.length)]);
 					return params[0].toRExpr.to(type);
 					break;
+
 				case AValCT.Type.Literal:
 					break;
 				case AValCT.Type.Type:
@@ -98,16 +99,45 @@ package SmErrsVal!RExpr call(RExpr callee, AValCT[] params){
 		}
 	}
 
-	if (fn){
-		// let us call the function!
-		// TODO: type cast the params!
-		RFnCallExpr call = new RFnCallExpr;
-		call.pos = callee.pos;
-		call.callee = fn;
-		call.params = params.map!(p => p.toRExpr).array;
-		return SmErrsVal!RExpr(fn);
-	}
+	if (fn)
+		return fnCall(fn, params);
 
 	return SmErrsVal!RExpr([errUnsup(callee.pos,
 				typeid(callee).to!string.format!"calling %s")]);
+}
+
+/// generates RST for calling a function
+/// works for RAValCTExpr as callee as well
+/// Returns: SmErr[] or RExpr
+pragma(inline, true)
+package SmErrsVal!RExpr fnCall(AFn* fnSym, AValCT[] params){
+	return fnCall(new RFnExpr(fnSym), params);
+}
+
+/// ditto
+package SmErrsVal!RExpr fnCall(RFnExpr callee, AValCT[] params){
+	RFnCallExpr call = new RFnCallExpr;
+	call.pos = callee.pos;
+	call.callee = callee;
+	// TODO: type cast the params!
+	call.params = params.map!(p => p.toRExpr).array;
+	return SmErrsVal!RExpr(callee);
+}
+
+/// ditto
+package SmErrsVal!RExpr fnCall(RExpr expr, AValCT[] params){
+	ADataType type; {
+		SmErrsVal!ADataType typeRes = expr.typeOf;
+		if (typeRes.isErr)
+			return SmErrsVal!RExpr(typeRes.err);
+		type = typeRes.val;
+	}
+	if (type.type != ADataType.Type.Fn)
+		return SmErrsVal!RExpr([errNotCallable(expr.pos, type.toString)]);
+	RFnCallExpr call = new RFnCallExpr;
+	call.pos = expr.pos;
+	call.callee = expr;
+	// TODO: type cast the params!
+	call.params = params.map!(p => p.toRExpr).array;
+	return SmErrsVal!RExpr(call);
 }
