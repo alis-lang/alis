@@ -1842,18 +1842,27 @@ template sum $($type T) {
 }
 ```
 
-Calling a function template can be done as:
+A Function Template **cannot** receive template parameters, it can only
+receive function call parameters, as such, all template parameters must be
+related to function parameters:
 
 ```
-var int c = sum(int)(5, 10);
-// or
-var int c = sum(5, 10); // T is inferred
-// or
-var int c = 5.sum(10);
+fn identity $($type T) (T val) -> val;
+
+5 == 5.identity;
+5 == identity(5);
 ```
 
-The compiler is able to determine what value to use for `T`, only if the
-`fn $(..)` declaration is used.
+To receive additional template parameters, which are not used in parameters:
+
+```
+template foo $(alias... S){
+	fn this $($type T) (T val) -> val;
+}
+
+// Seq passed for `S`. Cannot pass T directly, inferred from 5
+foo(Seq) (5); 
+```
 
 ## Enums
 
