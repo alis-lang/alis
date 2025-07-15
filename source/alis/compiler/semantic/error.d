@@ -247,8 +247,16 @@ package SmErr errNotCallable(Location pos, string symN){
 package SmErr errCallableConflict(R)(Location pos, string symN, R range) if (
 		isInputRange!(R, string)){
 	return SmErr(pos,
-			format!"multiple matches: for callable `%s` with parameters %(%r%)"(
+			format!"ambiguous call: for callable `%s` with parameters %(%r%)"(
 				symN, range), SmErr.Type.CallableConflict);
+}
+/// ditto
+package SmErr errCallableConflict(R0, R1)(Location pos,
+		R0 paramsA, R1 paramsB) if (
+		isInputRange!(R0, string) && isInputRange!(R1, string)){
+	return SmErr(pos,
+			format!"ambiguous call: matches with both: (%(%r%)) and (%(%r%))"(
+				paramsA, paramsB), SmErr.Type.CallableConflict);
 }
 
 /// use of undefined identifier
