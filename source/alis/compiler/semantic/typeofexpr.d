@@ -30,7 +30,7 @@ private struct St{
 
 /// finds data type of RExpr
 /// Returns: data type or SmErr[]
-package SmErrsVal!ADataType typeOf(RExpr expr){
+public SmErrsVal!ADataType typeOf(RExpr expr){
 	St st = St(null, ADataType.ofNoInit);
 	It.exec(expr, st);
 	if (st.errs.length){
