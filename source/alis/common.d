@@ -73,44 +73,6 @@ public struct AValCT{
 		return null;
 	}
 
-	/*bool opEquals()(const auto ref AValCT rhs) const pure {
-		final switch (type){
-			case Type.Literal:
-				return typeL == rhs.typeL && dataL == rhs.dataL;
-			case Type.Symbol:
-				return symS == rhs.symS;
-			case Type.Type:
-				return typeT == rhs.typeT;
-			case Type.Expr:
-				return expr.toString == rhs.expr.toString; // HACK
-			case Type.Seq:
-				if (seq.length != rhs.seq.length)
-					return false;
-				foreach (size_t i; 0 .. seq.length){
-					if (seq[i] != rhs.seq[i])
-						return false;
-				}
-				return true;
-		}
-		assert(false);
-	}*/
-
-	/*size_t toHash() const {
-		final switch (type){
-			case Type.Literal:
-				return tuple(Type.Literal, dataL, typeL).toHash;
-			case Type.Symbol:
-				return tuple(Type.Symbol, symS).toHash;
-			case Type.Type:
-				return tuple(Type.Type, typeT).toHash;
-			case Type.Expr:
-				return tuple(Type.Expr, expr.toString).toHash;
-			case Type.Seq:
-				return tuple(toString.toHash;
-		}
-		assert(false);
-	}*/
-
 	/// constructor
 	this (ADataType type, ubyte[] data){
 		this.type = Type.Literal;
@@ -137,6 +99,44 @@ public struct AValCT{
 		this.type = Type.Seq;
 		this.seq = seq.dup;
 	}
+
+	/// Gets Data Type associated with this AValCT.
+	/// In case of symbol, Struct/Union/Enum becomes the type
+	/// In case of Literal, the data's type becomes the type
+	/// In case of Type, returned as-is
+	/// In case of Expr, typeOf(Expr)
+	/// Returns: ADataType associated with AValCT
+	ADataType asType(){
+		import alis.compiler.semantic.typeofexpr;
+		final switch (type){
+			case Type.Symbol:
+				switch (symS.type){
+					case ASymbol.Type.Struct:
+						return ADataType.of(&symS.structS);
+					case ASymbol.Type.Union:
+						return ADataType.of(&symS.unionS);
+					case ASymbol.Type.Enum:
+						return ADataType.of(&symS.enumS);
+					default:
+						return ADataType.ofNoInit; // TODO HACK: proper error needed here!
+				}
+			case Type.Literal:
+				return typeL;
+			case Type.Type:
+				return typeT;
+			case Type.Expr:
+				return expr.typeOf.val; // TODO handle failure
+			case Type.Seq:
+				assert (false, "AValCT.Type.Seq in AValCT.asType");
+		}
+	}
+
+	/// Returns: new flattened AValCT[]
+	public AValCT[] flatten(){
+		if (type != AValCT.Type.Seq)
+			return [this];
+		return seq.dup;
+	}
 }
 
 /// flattens AValCT[]
@@ -159,13 +159,6 @@ public AValCT[] flatten(AValCT[] seq){
 	return ret;
 }
 
-/// ditto
-public AValCT[] flatten(AValCT seq){
-	if (seq.type != AValCT.Type.Seq)
-		return [seq];
-	return seq.seq.dup;
-}
-
 /// Returns: true if an AValCT[] is flat
 public bool isFlat(AValCT[] seq){
 	foreach (AValCT val; seq){
@@ -173,37 +166,6 @@ public bool isFlat(AValCT[] seq){
 			return false;
 	}
 	return true;
-}
-
-/// Gets Data Type associated with an AValCT.
-/// In case of symbol, Struct/Union/Enum becomes the type
-/// In case of Literal, the data's type becomes the type
-/// In case of Type, returned as-is
-/// In case of Expr, typeOf(Expr)
-/// Returns: ADataType associated with AValCT
-public ADataType asType()(auto ref AValCT val){
-	import alis.compiler.semantic.typeofexpr;
-	final switch (val.type){
-		case AValCT.Type.Symbol:
-			switch (val.symS.type){
-				case ASymbol.Type.Struct:
-					return ADataType.of(&val.symS.structS);
-				case ASymbol.Type.Union:
-					return ADataType.of(&val.symS.unionS);
-				case ASymbol.Type.Enum:
-					return ADataType.of(&val.symS.enumS);
-				default:
-					return ADataType.ofNoInit; // TODO HACK: proper error needed here!
-			}
-		case AValCT.Type.Literal:
-			return val.typeL;
-		case AValCT.Type.Type:
-			return val.typeT;
-		case AValCT.Type.Expr:
-			return val.expr.typeOf.val; // TODO handle failure
-		case AValCT.Type.Seq:
-			assert (false, "AValCT.Type.Seq in AValCT.asType");
-	}
 }
 
 /// identifier node unit
