@@ -181,7 +181,7 @@ public bool isFlat(AValCT[] seq){
 /// In case of Type, returned as-is
 /// In case of Expr, typeOf(Expr)
 /// Returns: ADataType associated with AValCT
-public ADataType asType()(const auto ref AValCT val){
+public ADataType asType()(auto ref AValCT val){
 	import alis.compiler.semantic.typeofexpr;
 	final switch (val.type){
 		case AValCT.Type.Symbol:
@@ -200,7 +200,7 @@ public ADataType asType()(const auto ref AValCT val){
 		case AValCT.Type.Type:
 			return val.typeT;
 		case AValCT.Type.Expr:
-			return val.expr.typeOf;
+			return val.expr.typeOf.val; // TODO handle failure
 		case AValCT.Type.Seq:
 			assert (false, "AValCT.Type.Seq in AValCT.asType");
 	}
