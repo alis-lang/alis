@@ -119,8 +119,28 @@ package SmErrsVal!RExpr fnCall(RFnExpr callee, AValCT[] params){
 	RFnCallExpr call = new RFnCallExpr;
 	call.pos = callee.pos;
 	call.callee = callee;
-	// TODO: type cast the params!
-	call.params = params.map!(p => p.toRExpr).array;
+	AFn* symC = callee.fn;
+	SmErr[] errs;
+	RExpr[] casted = new RExpr[symC.paramsT.length];
+	assert (params.length <= symC.paramsT.length);
+	foreach (size_t i, AValCT paramVal; params){
+		SmErrsVal!RExpr res = paramVal.toRExpr.to(symC.paramsT[i]);
+		if (res.isErr){
+			errs ~= res.err;
+			continue;
+		}
+		casted[i] = res.val;
+	}
+	if (errs.length)
+		return SmErrsVal!RExpr(errs);
+	foreach (size_t i; params.length .. symC.paramsT.length){
+		RLiteralExpr val = new RLiteralExpr;
+		val.pos = callee.pos;
+		val.type = symC.paramsT[i];
+		val.value = symC.paramsV[i];
+		casted[i] = val;
+	}
+	call.params = casted;
 	return SmErrsVal!RExpr(callee);
 }
 
@@ -137,7 +157,19 @@ package SmErrsVal!RExpr fnCall(RExpr expr, AValCT[] params){
 	RFnCallExpr call = new RFnCallExpr;
 	call.pos = expr.pos;
 	call.callee = expr;
-	// TODO: type cast the params!
-	call.params = params.map!(p => p.toRExpr).array;
+	SmErr[] errs;
+	RExpr[] casted = new RExpr[type.paramT.length];
+	assert (params.length == type.paramT.length);
+	foreach (size_t i, AValCT paramVal; params){
+		SmErrsVal!RExpr res = paramVal.toRExpr.to(type.paramT[i]);
+		if (res.isErr){
+			errs ~= res.err;
+			continue;
+		}
+		casted[i] = res.val;
+	}
+	if (errs.length)
+		return SmErrsVal!RExpr(errs);
+	call.params = casted;
 	return SmErrsVal!RExpr(call);
 }
