@@ -77,7 +77,8 @@ private template IsExprTranslator(alias Fn){
 package template CallabilityCheckersOf(alias M){
 	alias CallabilityCheckersOf = AliasSeq!();
 	static foreach (string N; __traits(allMembers, M)){
-		static if (IsCallabilityChecker!(__traits(getMember, M, N))){
+		static if (AliasSeq!(__traits(getMember, M, N)).length == 1 &&
+				IsCallabilityChecker!(__traits(getMember, M, N))){
 			CallabilityCheckersOf = AliasSeq!(CallabilityCheckersOf,
 					__traits(getMember, M, N));
 		}
@@ -88,7 +89,8 @@ package template CallabilityCheckersOf(alias M){
 package template ExprTranslatorsOf(alias M){
 	alias ExprTranslatorsOf = AliasSeq!();
 	static foreach (string N; __traits(allMembers, M)){
-		static if (IsExprTranslator!(__traits(getMember, M, N))){
+		static if (AliasSeq!(__traits(getMember, M, N)).length == 1 &&
+				IsExprTranslator!(__traits(getMember, M, N))){
 			ExprTranslatorsOf = AliasSeq!(ExprTranslatorsOf,
 					__traits(getMember, M, N));
 		}
@@ -106,7 +108,7 @@ public size_t callabilityOf(F...)(string intrN, AValCT[] params) if (
 			static foreach (Intr i; getUDAs!(Fn, Intr)){
 				case i.name:
 			}
-			return Fn(params);
+			return Fn(params) == true ? 0 : size_t.max;
 		}
 	default:
 		return size_t.max;
