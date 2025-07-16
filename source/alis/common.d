@@ -32,6 +32,18 @@ public struct AValCT{
 		Expr, /// an alias to an RExpr
 		Seq, /// alias (sequence)
 	}
+
+	/// whether this is a value
+	@property bool isVal() const pure {
+		switch (type){
+			case Type.Literal:
+			case Type.Expr:
+				return true;
+			default:
+				return false;
+		}
+	}
+
 	/// currently stored type
 	Type type = Type.Type;
 	union{
@@ -161,6 +173,37 @@ public bool isFlat(AValCT[] seq){
 			return false;
 	}
 	return true;
+}
+
+/// Gets Data Type associated with an AValCT.
+/// In case of symbol, Struct/Union/Enum becomes the type
+/// In case of Literal, the data's type becomes the type
+/// In case of Type, returned as-is
+/// In case of Expr, typeOf(Expr)
+/// Returns: ADataType associated with AValCT
+public ADataType asType()(const auto ref AValCT val){
+	import alis.compiler.semantic.typeofexpr;
+	final switch (val.type){
+		case AValCT.Type.Symbol:
+			switch (val.symS.type){
+				case ASymbol.Type.Struct:
+					return ADataType.of(&val.symS.structS);
+				case ASymbol.Type.Union:
+					return ADataType.of(&val.symS.unionS);
+				case ASymbol.Type.Enum:
+					return ADataType.of(&val.symS.enumS);
+				default:
+					return ADataType.ofNoInit; // TODO HACK: proper error needed here!
+			}
+		case AValCT.Type.Literal:
+			return val.typeL;
+		case AValCT.Type.Type:
+			return val.typeT;
+		case AValCT.Type.Expr:
+			return val.expr.typeOf;
+		case AValCT.Type.Seq:
+			assert (false, "AValCT.Type.Seq in AValCT.asType");
+	}
 }
 
 /// identifier node unit
