@@ -93,8 +93,10 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			if (!isAuto){
 				SmErrsVal!ADataType typeRes = eval4Type(param.type, st.stabR, st.ctx,
 						st.dep, st.fns);
-				if (typeRes.isErr)
+				if (typeRes.isErr){
 					st.errs ~= typeRes.err;
+					return;
+				}
 				type = typeRes.val;
 			}
 			if (prevHadDef && param.val is null)
