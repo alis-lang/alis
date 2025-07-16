@@ -621,7 +621,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		call.pos = node.pos;
 		IdentExpr callee = new IdentExpr;
 		callee.pos = node.pos;
-		callee.ident = "opPre";
+		callee.ident = "opBin";
 		call.callee = callee;
 		LiteralStringExpr op = new LiteralStringExpr;
 		op.pos = node.pos;
