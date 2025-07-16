@@ -632,12 +632,12 @@ private bool expT(Location pos, ADataType type, ref St st){
 
 	void intrinsicExprIter(IntrinsicExpr node, ref St st){
 		assert (node.name.isIntrN);
+		if (callabilityOf(node.name, st.params) == size_t.max){
+			st.errs ~= errCallableIncompat(node.pos, node.name.format!"$%s",
+					st.params.map!(p => p.toString));
+			return;
+		}
 		if (st.params.length){
-			if (callabilityOf(node.name, st.params) == size_t.max){
-				st.errs ~= errCallableIncompat(node.pos, node.name.format!"$%s",
-						st.params.map!(p => p.toString));
-				return;
-			}
 			RIntrinsicPartCallExpr r = new RIntrinsicPartCallExpr;
 			r.pos = node.pos;
 			r.name = node.name;
@@ -870,9 +870,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 				st.res = r;
 				return;
 			}
-			st.errs ~= errCallableIncompat(intr.pos, intr.name,
+			st.errs ~= errCallableIncompat(intr.pos, intr.name.format!"$%s",
 					pTypes.map!(p => p.toString));
-			st.errs ~= errCallableIncompat(intr.pos, intr.name,
+			st.errs ~= errCallableIncompat(intr.pos, intr.name.format!"$%s",
 					lhsVal.map!(p => p.toString));
 			return;
 		}
@@ -1032,6 +1032,11 @@ private bool expT(Location pos, ADataType type, ref St st){
 			SmErrsVal!AValCT paramVal = eval(params[0], st.stabR, st.ctx);
 			if (paramVal.isErr){
 				st.errs ~= paramVal.err;
+				return;
+			}
+			if (callabilityOf(IntrN.ArrayInd, [subVal, paramVal.val]) == size_t.max){
+				st.errs ~= errCallableIncompat(node.pos, IntrN.ArrayInd.format!"$%s",
+						[subVal, paramVal.val].map!(p => p.toString));
 				return;
 			}
 			SmErrsVal!RExpr res = resolveIntrN(IntrN.ArrayInd, node.pos,
