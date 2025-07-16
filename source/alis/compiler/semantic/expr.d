@@ -633,21 +633,24 @@ private bool expT(Location pos, ADataType type, ref St st){
 	void intrinsicExprIter(IntrinsicExpr node, ref St st){
 		assert (node.name.isIntrN);
 		if (st.params.length){
+			if (callabilityOf(node.name, st.params) == size_t.max){
+				st.errs ~= errCallableIncompat(node.pos, node.name.format!"$%s",
+						st.params.map!(p => p.toString));
+				return;
+			}
 			RIntrinsicPartCallExpr r = new RIntrinsicPartCallExpr;
 			r.pos = node.pos;
 			r.name = node.name;
 			st.res = r;
 			return;
 		}
-		// TODO: implement intrinsics!!
-		st.errs ~= errUnsup(node.pos, "creating RIntrinsic");
-		/*RIntrinsicExpr r = new RIntrinsicExpr;
-		r.pos = node.pos;
-		r.name = node.name;
-		if (st.isExpT)
-			st.res = r.to(st.expT).val;
-		else
-			st.res = r;*/
+		SmErrsVal!RExpr res = resolveIntrN(node.name, node.pos, st.params,
+				st.stabR, st.ctx, st.dep, st.fns);
+		if (res.isErr){
+			st.errs ~= res.err;
+			return;
+		}
+		st.res = res.val;
 	}
 
 	void opCallExprIter(OpCallExpr node, ref St st){
@@ -936,6 +939,14 @@ private bool expT(Location pos, ADataType type, ref St st){
 			}
 			subType = subTypeRes.val;
 		}
+		AValCT subVal; {
+			SmErrsVal!AValCT subValRes = eval(sub, st.stabR, st.ctx);
+			if (subValRes.isErr){
+				st.errs ~= subValRes.err;
+				return;
+			}
+			subVal = subValRes.val;
+		}
 
 		if (subType.type == ADataType.Type.Seq){
 			if (node.indexes.length != 0){
@@ -960,14 +971,6 @@ private bool expT(Location pos, ADataType type, ref St st){
 				st.errs ~= errIncompatType(node.indexes[0].pos, "uint",
 						ind.typeT.toString);
 				return;
-			}
-			AValCT subVal; {
-				SmErrsVal!AValCT subValRes = eval(sub, st.stabR, st.ctx);
-				if (subValRes.isErr){
-					st.errs ~= subValRes.err;
-					return;
-				}
-				subVal = subValRes.val;
 			}
 			if (subVal.type != AValCT.Type.Seq){
 				st.errs ~= errIncompatType(node.lhs.pos, "sequence", sub.toString);
@@ -1026,17 +1029,19 @@ private bool expT(Location pos, ADataType type, ref St st){
 						st.params.map!(p => p.toString));
 				return;
 			}
-			// TODO: create new $arrInd intrinsic instance here
-			st.errs ~= errUnsup(node.pos, "creating RIntrinsic");
-			/*RIntrinsicCallExpr r = new RIntrinsicCallExpr;
-			r.pos = node.pos;
-			r.name = IntrN.ArrayInd;
-			r.params = [sub, params[0]];
-			if (!expT(node.pos, r, st)) return;
-			if (st.isExpT)
-				st.res = r.to(st.expT).val;
-			else
-				st.res = r;*/
+			SmErrsVal!AValCT paramVal = eval(params[0], st.stabR, st.ctx);
+			if (paramVal.isErr){
+				st.errs ~= paramVal.err;
+				return;
+			}
+			SmErrsVal!RExpr res = resolveIntrN(IntrN.ArrayInd, node.pos,
+					[subVal, paramVal.val],
+					st.stabR, st.ctx, st.dep, st.fns);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			st.res = res.val;
 			return;
 		}
 
