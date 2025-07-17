@@ -180,6 +180,7 @@ public struct OptVal(T){
 	}
 	/// Returns: value
 	public @property T val() pure {
+		assert (_isVal);
 		return _val;
 	}
 
