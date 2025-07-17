@@ -14,7 +14,7 @@ import std.string,
 			 std.algorithm,
 			 std.digest.crc;
 
-import alis.compiler.common : ASTNode;
+import alis.compiler.common;
 
 public import alis.compiler.ast.rst : RExpr;
 
@@ -34,13 +34,23 @@ public struct AValCT{
 	}
 
 	/// whether this is a value
-	@property bool isVal() const pure {
-		switch (type){
+	@property bool isVal(){
+		import alis.compiler.semantic.typeofexpr;
+		final switch (type){
 			case Type.Literal:
-			case Type.Expr:
 				return true;
-			default:
+			case Type.Symbol:
+				return symS.type == ASymbol.Type.EnumConst;
+			case Type.Type:
 				return false;
+			case Type.Expr:
+				return !expr.typeOf.isErr;
+			case Type.Seq:
+				foreach (AValCT val; seq){
+					if (!val.isVal)
+						return false;
+				}
+				return true;
 		}
 	}
 
@@ -101,31 +111,25 @@ public struct AValCT{
 	}
 
 	/// Gets Data Type associated with this AValCT.
-	/// In case of symbol, Struct/Union/Enum becomes the type
+	/// In case of symbol, Struct/Union/Enum becomes the type, otherwise none
 	/// In case of Literal, the data's type becomes the type
 	/// In case of Type, returned as-is
-	/// In case of Expr, typeOf(Expr)
-	/// Returns: ADataType associated with AValCT
-	ADataType asType(){
+	/// In case of Expr, typeOf(Expr). if typeOf errors, no value
+	/// Returns: Optional ADataType
+	OptVal!ADataType asType(){
 		import alis.compiler.semantic.typeofexpr;
 		final switch (type){
 			case Type.Symbol:
-				switch (symS.type){
-					case ASymbol.Type.Struct:
-						return ADataType.of(&symS.structS);
-					case ASymbol.Type.Union:
-						return ADataType.of(&symS.unionS);
-					case ASymbol.Type.Enum:
-						return ADataType.of(&symS.enumS);
-					default:
-						return ADataType.ofNoInit; // TODO HACK: proper error needed here!
-				}
+				return symS.asType;
 			case Type.Literal:
-				return typeL;
+				return typeL.OptVal!ADataType;
 			case Type.Type:
-				return typeT;
+				return typeT.OptVal!ADataType;
 			case Type.Expr:
-				return expr.typeOf.val; // TODO handle failure
+				auto res = expr.typeOf;
+				if (res.isErr)
+					return OptVal!ADataType();
+				return res.val.OptVal!ADataType;
 			case Type.Seq:
 				assert (false, "AValCT.Type.Seq in AValCT.asType");
 		}
@@ -369,6 +373,27 @@ public struct ASymbol{
 				return false;
 			case ASymbol.Type.Alias:
 				return false; // TODO: implement for Alias
+		}
+	}
+
+	/// Returns: this symbol, as a type, in Optional ADataType.
+	/// Only valid if `this.isDType`
+	@property OptVal!ADataType asType() pure {
+		final switch (type){
+			case ASymbol.Type.Struct:
+				return ADataType.of(&structS).OptVal!ADataType;
+			case ASymbol.Type.Union:
+				return ADataType.of(&unionS).OptVal!ADataType;
+			case ASymbol.Type.Enum:
+				return ADataType.of(&enumS).OptVal!ADataType;
+			case ASymbol.Type.EnumConst:
+			case ASymbol.Type.Fn:
+			case ASymbol.Type.Var:
+			case ASymbol.Type.Import:
+			case ASymbol.Type.UTest:
+			case ASymbol.Type.Template:
+			case ASymbol.Type.Alias:
+				return OptVal!ADataType();
 		}
 	}
 
