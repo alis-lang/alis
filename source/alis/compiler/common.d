@@ -186,7 +186,7 @@ public struct OptVal(T){
 
 	/// constructor
 	this(T val) pure {
-		this.val = val;
+		this._val = val;
 	}
 }
 
