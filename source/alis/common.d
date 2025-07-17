@@ -638,11 +638,11 @@ public struct ADataType{
 				return 1;
 			case Type.Slice:
 				if (sizeOnStack)
-					return sizeOnStack;
+					return sizeOnStack + size_t.sizeof;
 				return 2 * null.sizeof; // ptr + length
 			case Type.Array:
 				if (sizeOnStack)
-					return sizeOnStack;
+					return sizeOnStack + size_t.sizeof;
 				return 3 * null.sizeof; // ptr + length + capacity
 			case Type.Fn:
 				return 2 * null.sizeof; // ptr + closurePtr
