@@ -473,13 +473,13 @@ public:
 public class RLiteralExpr : RExpr{
 public:
 	/// value
-	ubyte[] value;
+	void[] value;
 	/// type
 	ADataType type;
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
-		ret["value"] = value;
+		ret["value"] = cast(ubyte[])value;
 		ret["type"] = type.toString;
 		ret["_name"] = "RLiteralExpr";
 		return ret;

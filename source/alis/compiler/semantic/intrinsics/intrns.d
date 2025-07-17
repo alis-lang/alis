@@ -67,7 +67,7 @@ package alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
 	SmErrsVal!RExpr noinitvalTranslate(string, Location pos, STab,
 			IdentU[], void[0][ASymbol*], RFn[string], AValCT[]){
 		RAValCTExpr r = new RAValCTExpr(
-				AValCT(ADataType.ofNoInit, cast(ubyte[])null));
+				AValCT(ADataType.ofNoInit, cast(void[])null));
 		r.pos = pos;
 		return SmErrsVal!RExpr(r);
 	}
@@ -82,7 +82,13 @@ bool bitXCanCall(AValCT[] params){
 	if (params.length > 1)
 		return false;
 	AValCT p = params[0];
-	if (!p.asType.canCastTo(ADataType.ofInt))
+	ADataType pType; {
+		OptVal!ADataType res = p.asType;
+		if (!res.isVal)
+			return false;
+		pType = res.val;
+	}
+	if (!pType.canCastTo(ADataType.ofInt))
 		return false;
 	int x = p.to(ADataType.ofInt).val.dataL.as!int; // TODO: handle `to` properly
 	if (x <= 0)
@@ -143,4 +149,8 @@ bool bitXCanCall(AValCT[] params){
 		r.pos = pos;
 		return SmErrsVal!RExpr(r);
 	}
+}
+
+@Intr(IntrN.Slice){
+
 }

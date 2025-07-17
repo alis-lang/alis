@@ -58,7 +58,7 @@ public struct AValCT{
 	Type type = Type.Type;
 	union{
 		struct{
-			ubyte[] dataL; /// data for `Literal`
+			void[] dataL; /// data for `Literal`
 			ADataType typeL; /// data type for `Literal`
 		}
 		ASymbol* symS; /// symbol for `Symbol`
@@ -84,7 +84,7 @@ public struct AValCT{
 	}
 
 	/// constructor
-	this (ADataType type, ubyte[] data){
+	this (ADataType type, void[] data){
 		this.type = Type.Literal;
 		this.dataL = data;
 		this.typeL = type;
@@ -579,9 +579,9 @@ public struct ADataType{
 	}
 
 	/// Gets initializing bytes for this type
-	ubyte[] initB() const pure {
+	void[] initB() const pure {
 		debug stderr.writefln!"STUB: ADataType(%s).initB returning zeroes"(this);
-		return new ubyte[sizeOf / 8]; // TODO: implement initB
+		return new void[sizeOf / 8]; // TODO: implement initB
 	}
 
 	string toString() const pure {
@@ -630,7 +630,8 @@ public struct ADataType{
 	@property size_t sizeOf() const pure {
 		final switch (type){
 			case Type.Seq:
-				return seqT.fold!((size_t a, const ADataType e) => a + e.sizeOf)(size_t.init);
+				return seqT.fold!((size_t a, const ADataType e) => a + e.sizeOf)
+					(size_t.init);
 			case Type.IntX, Type.UIntX, Type.FloatX, Type.CharX:
 				return x;
 			case Type.Bool:
@@ -666,9 +667,9 @@ public struct ADataType{
 
 	/// Decodes a byte array as per this data type into string representation
 	/// Returns: string representation
-	string decodeStr(const ubyte[] data) const pure {
+	string decodeStr(const void[] data) const pure {
 		// TODO: implement ADataType.decodeStr
-		return format!"{type: %s, data: %s}"(this.toString, data);
+		return format!"{type: %s, data: %s}"(this.toString, cast(ubyte[])data);
 	}
 
 	ADataType copy() const pure {
@@ -922,7 +923,7 @@ public struct AStruct{
 	/// data types for each field
 	ADataType[] types;
 	/// initialisation data for each field
-	ubyte[][] initD;
+	void[][] initD;
 	/// maps member names to indexes. Many to One
 	size_t[string] names;
 	/// visibility for each name
@@ -963,7 +964,7 @@ public struct AStruct{
 						.map!(n => (nameVis[n] == Visibility.Default ? ""
 							: nameVis[n] == Visibility.Pub ? "pub "
 							: nameVis[n] == Visibility.IPub ? "ipub " : "idk ")
-							.format!"%s%s"(n)).array, initD[i]
+							.format!"%s%s"(n)).array, cast(ubyte[])initD[i]
 						)));
 	}
 }
@@ -981,7 +982,7 @@ public struct AUnion{
 	/// initialisation type's index
 	size_t initI;
 	/// initialisation data
-	ubyte[] initD;
+	void[] initD;
 	/// Visibility outside its parent module
 	Visibility vis;
 
@@ -1022,7 +1023,8 @@ public struct AUnion{
 						.map!(n => (nameVis[n] == Visibility.Default ? ""
 							: nameVis[n] == Visibility.Pub ? "pub "
 							: nameVis[n] == Visibility.IPub ? "ipub " : "idk ")
-							.format!"%s%s"(n)).array, initI == i ? initD.format!"=%s" : ""
+							.format!"%s%s"(n)).array,
+							initI == i ? (cast(ubyte[])initD).format!"=%s" : ""
 						)));
 
 	}
@@ -1037,13 +1039,14 @@ public struct AEnum{
 	/// member identifiers
 	string[] memId;
 	/// member values
-	ubyte[][] memVal;
+	void[][] memVal;
 	/// Visibility outside its parent module
 	Visibility vis;
 
 	string toString() const pure {
 		return format!"enum %s:%s{%(%r,%)}"(ident, type,
-				memId.length.iota.map!(i => format!"%s=%s"(memId[i], memVal[i])));
+				memId.length.iota
+				.map!(i => format!"%s=%s"(memId[i], cast(ubyte[])memVal[i])));
 	}
 }
 
@@ -1054,12 +1057,12 @@ public struct AEnumConst{
 	/// type
 	ADataType type;
 	/// value bytes
-	ubyte[] data;
+	void[] data;
 	/// Visibility outside its parent module
 	Visibility vis;
 
 	string toString() const pure {
-		return format!"enum %s:%s=%s;"(ident, type, data);
+		return format!"enum %s:%s=%s;"(ident, type, cast(ubyte[])data);
 	}
 }
 
@@ -1074,7 +1077,7 @@ public struct AFn{
 	/// parameter types
 	ADataType[] paramsT;
 	/// parameter default values, if any
-	ubyte[][] paramsV;
+	void[][] paramsV;
 	/// unique id. this is also the label name in ABC
 	string uid;
 	/// whether this is an alis function (true) or an external (false)
@@ -1088,7 +1091,8 @@ public struct AFn{
 					(isAlisFn ? "" : "external "),
 					ident, uid,
 					paramsN.length.iota
-						.map!(i => format!"%s %s=%s"(paramsN[i], paramsT[i], paramsV[i])),
+						.map!(i => format!"%s %s=%s"(paramsN[i], paramsT[i],
+								cast(ubyte[])paramsV[i])),
 					retT);
 	}
 }
@@ -1100,7 +1104,7 @@ public struct AVar{
 	/// data type
 	ADataType type;
 	/// initialisation data
-	ubyte[] initD;
+	void[] initD;
 	/// offset
 	size_t offset;
 	/// whether is global or local
@@ -1112,7 +1116,7 @@ public struct AVar{
 
 	string toString() const pure {
 		return format!"var %s%s[%s]:%s=%s off=%d"(isGlobal ? "global" : null,
-				ident, uid, type, initD, offset);
+				ident, uid, type, cast(ubyte[])initD, offset);
 	}
 }
 

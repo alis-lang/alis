@@ -67,13 +67,14 @@ public:
 				"Instruction Parameters count mismatch");
 		enum S = SizeofSum!(InstArgs!I) + ushort.sizeof;
 		ubyte[S] block;
-		block[0 .. ushort.sizeof] = (cast(ushort)staticIndexOf!(I, IS)).asBytes;
+		block[0 .. ushort.sizeof] =
+			cast(ubyte[])(cast(ushort)staticIndexOf!(I, IS)).asBytes;
 		size_t off = ushort.sizeof;
 		static foreach (size_t i, Arg; T){
 			static if (is (Arg == string)){
 				static assert(is (InstArgs!I[i] == string));
 				_dOff ~= _abc.code.length + off;
-				block[off .. off + string.sizeof] = params[i].asBytes;
+				block[off .. off + string.sizeof] = cast(ubyte[])params[i].asBytes;
 			} else
 			static if (is (Arg == Lab)){
 				static assert (is (InstArgs!I[i] == size_t));
@@ -84,11 +85,11 @@ public:
 				static assert (isIntegral!(InstArgs!I[i]));
 				static assert (is (Arg : InstArgs!I[i]));
 				block[off .. off + InstArgs!I[i].sizeof] =
-					(cast(InstArgs!I[i])(params[i])).asBytes;
+					cast(ubyte[])(cast(InstArgs!I[i])(params[i])).asBytes;
 			} else {
 				static assert (is (Arg : InstArgs!I[i]));
 				block[off .. off + InstArgs!I[i].sizeof] =
-					(cast(InstArgs!I[i])params[i]).asBytes;
+					cast(ubyte[])(cast(InstArgs!I[i])params[i]).asBytes;
 			}
 			off += InstArgs!I[i].sizeof;
 		}
@@ -107,9 +108,10 @@ public:
 		// adjust _dOff
 		foreach (size_t off; _dOff){
 			ubyte[] data = ret.code[off .. off + (ubyte[]).sizeof].as!(ubyte[]);
-			ret.code[off .. off + size_t.sizeof] = ret.code.length.asBytes;
+			ret.code[off .. off + size_t.sizeof] =
+				cast(ubyte[])ret.code.length.asBytes;
 			ret.code[off + size_t.sizeof .. off + (2 * size_t.sizeof)] =
-				(ret.code.length + data.length).asBytes;
+				cast(ubyte[])(ret.code.length + data.length).asBytes;
 			ret.code ~= data;
 		}
 
@@ -120,7 +122,7 @@ public:
 				throw new Exception(format!"Label `%s` used but not declared"(
 							_labOffN[i]));
 			ret.code[_labOff[i] .. _labOff[i] + size_t.sizeof] =
-				ret.labels[labInd].asBytes;
+				cast(ubyte[])ret.labels[labInd].asBytes;
 		}
 		return ret;
 	}
@@ -198,7 +200,7 @@ public ABC parseABC(T...)(string[] lines)
 						throw new Exception(format!
 								"line %d: `%s` expects %d arguments, got %d"
 								(lineNo + 1, inst, InstArity!Inst, splits.length));
-					ret.code ~= (cast(ushort)ind).asBytes;
+					ret.code ~= cast(ubyte[])(cast(ushort)ind).asBytes;
 					ret.code.length += SizeofSum!(InstArgs!Inst);
 					break pass1S;
 			}
@@ -251,13 +253,13 @@ private ubyte[] parseArgs(alias Inst)(ref ABC code, string[] args){
 				if (!code.labelNames.canFind(args[i][1 .. $]))
 					throw new Exception(format!"Label `%s` used but not declared"
 							(args[i][1 .. $]));
-				ret ~= (cast(Arg)
+				ret ~= cast(ubyte[])(cast(Arg)
 						code.labels[code.labelNames.countUntil(args[i][1 .. $])]).asBytes;
 			} else {
-				ret ~= parseData!Arg(args[i]).asBytes;
+				ret ~= cast(ubyte[])parseData!Arg(args[i]).asBytes;
 			}
 		} else {
-			ret ~= parseData!Arg(args[i]).asBytes;
+			ret ~= cast(ubyte[])parseData!Arg(args[i]).asBytes;
 		}
 	}
 	return ret;
@@ -312,28 +314,31 @@ public ubyte[] toBin(ref ABC code, ubyte[8] magicPostfix = 0,
 
 	// header
 	stream[0 .. 7] = cast(ubyte[])"ALISBC-";
-	stream[7 .. 9] = ByteUnion!ushort(ALISBC_VERSION).bytes;
+	stream[7 .. 9] = cast(ubyte[])ByteUnion!ushort(ALISBC_VERSION).bytes;
 	stream[9 .. 17] = magicPostfix;
 
 	// metadata
-	stream[17 .. 25] = ByteUnion!(size_t, 8)(metadata.length).bytes;
+	stream[17 .. 25] = cast(ubyte[])ByteUnion!(size_t, 8)(metadata.length).bytes;
 	stream[25 .. 25 + metadata.length] = metadata;
 	size_t seek = 25 + metadata.length;
 
 	// labels
-	stream[seek .. seek + 8] = ByteUnion!(size_t, 8)(code.labels.length).bytes;
+	stream[seek .. seek + 8] =
+		cast(ubyte[])ByteUnion!(size_t, 8)(code.labels.length).bytes;
 	seek += 8;
 	foreach (i, name; code.labelNames){
-		stream[seek .. seek + 8] = ByteUnion!(size_t, 8)(code.labels[i]).bytes;
+		stream[seek .. seek + 8] =
+			cast(ubyte[])ByteUnion!(size_t, 8)(code.labels[i]).bytes;
 		seek += 8;
-		stream[seek .. seek + 8] = ByteUnion!(size_t, 8)(name.length).bytes;
+		stream[seek .. seek + 8] =
+			cast(ubyte[])ByteUnion!(size_t, 8)(name.length).bytes;
 		seek += 8;
 		stream[seek .. seek + name.length] = cast(ubyte[])cast(char[])name;
 		seek += name.length;
 	}
 
 	// instructions data
-	stream[seek .. seek + 8] = ByteUnion!(size_t, 8)(code.end).bytes;
+	stream[seek .. seek + 8] = cast(ubyte[])ByteUnion!(size_t, 8)(code.end).bytes;
 	seek += 8;
 	stream[seek .. seek + code.code.length] = code.code;
 	seek += code.code.length;
@@ -362,7 +367,8 @@ public ABC fromBin(ubyte[] stream, ref ubyte[8] magicPostfix,
 		throw new Exception("Stream size if less than minimum possible size");
 	if (stream[0 .. 7] != "ALISBC-")
 		throw new Exception("Invalid header in stream");
-	if (stream[7 .. 9] != ByteUnion!(ushort, 2)(ALISBC_VERSION).bytes)
+	if (stream[7 .. 9] !=
+			cast(ubyte[])ByteUnion!(ushort, 2)(ALISBC_VERSION).bytes)
 		throw new Exception("Stream is of different ByteCode version.\n" ~
 				"\tStream: " ~ ByteUnion!ushort(stream[7 .. 9]).data.to!string ~
 				"\tSupported: " ~ ALISBC_VERSION);

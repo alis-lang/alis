@@ -227,16 +227,16 @@ package char charUnescape(char c){
 	}
 }
 
-/// Reads a ubyte[] as a type
+/// Reads a void[] as a type
 /// Returns: value in type T
-pragma(inline, true) package T as(T)(ubyte[] data) {
+pragma(inline, true) package T as(T)(void[] data) {
 	assert(data.length >= T.sizeof);
 	return *(cast(T*)data.ptr);
 }
 
-/// Returns: ubyte[] against a value of type T
-pragma(inline, true) package ubyte[] asBytes(T)(T val) {
-	ubyte[] ret;
+/// Returns: void[] against a value of type T
+pragma(inline, true) package void[] asBytes(T)(T val) {
+	void[] ret;
 	ret.length = T.sizeof;
-	return ret[] = (cast(ubyte*)&val)[0 .. T.sizeof];
+	return ret[] = (cast(void*)&val)[0 .. T.sizeof];
 }
