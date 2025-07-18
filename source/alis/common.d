@@ -543,13 +543,8 @@ public struct ADataType{
 	union{
 		/// X-bits for `IntX`, `UIntX`, `FloatX`, or `CharX`
 		ubyte x;
-		struct{
-			/// type being referenced, for `Ref`, `Slice`, or `Array`
-			ADataType* refT;
-			/// size in bytes, if the array is on stack, for `Slice`, or `Array`
-			/// if not on stack, will be 0
-			size_t sizeOnStack;
-		}
+		/// type being referenced, for `Ref`, `Slice`, or `Array`
+		ADataType* refT;
 		/// type sequence, for `Seq`
 		ADataType[] seqT;
 		/// Struct reference for `Struct`
@@ -637,12 +632,8 @@ public struct ADataType{
 			case Type.Bool:
 				return 1;
 			case Type.Slice:
-				if (sizeOnStack)
-					return sizeOnStack + size_t.sizeof;
 				return 2 * null.sizeof; // ptr + length
 			case Type.Array:
-				if (sizeOnStack)
-					return sizeOnStack + size_t.sizeof;
 				return 3 * null.sizeof; // ptr + length + capacity
 			case Type.Fn:
 				return 2 * null.sizeof; // ptr + closurePtr
@@ -768,7 +759,6 @@ public struct ADataType{
 		ADataType ret;
 		ret.type = Type.Slice;
 		ret.refT = [elemT].ptr;
-		ret.sizeOnStack = 0;
 		return ret;
 	}
 
@@ -777,16 +767,14 @@ public struct ADataType{
 		ADataType ret;
 		ret.type = Type.Array;
 		ret.refT = [elemT].ptr;
-		ret.sizeOnStack = 0;
 		return ret;
 	}
 
-	static ADataType ofString(size_t sizeOnStack = 0) pure {
+	static ADataType ofString() pure {
 		ADataType str;
 		str.type = Type.Slice;
 		str.refT = [ADataType.ofChar(8)].ptr;
 		str.refT.isConst = true;
-		str.sizeOnStack = sizeOnStack;
 		return str; // $slice(const char)
 	}
 

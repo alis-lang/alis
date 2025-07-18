@@ -451,7 +451,6 @@ private bool expT(Location pos, ADataType type, ref St st){
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
 		r.type = ADataType.ofString.constOf;
-		r.type.sizeOnStack = node.val.length;
 		r.hasType = true;
 		r.value = cast(ubyte[])(node.val.dup);
 		if (!expT(node.pos, r, st)) return;
