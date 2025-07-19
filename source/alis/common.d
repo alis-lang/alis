@@ -39,56 +39,59 @@ public struct AVal{
 			static if (std.traits.isNumeric!(T[0])){
 				static if (isFloatingPoint!(T[0])){
 					if (type.type != ADataType.Type.FloatX ||
-							type.x > T.sizeof * 8)
-						return OptVal!T();
+							type.x > T[0].sizeof * 8)
+						return OptVal!(T[0])();
 					switch (data.length){
 						static foreach (Type; AliasSeq!(float, double)){
 							static if (T[0].sizeof >= Type.sizeof){
-								case Type.sizeof * 8:
-									return OptVal!T(data.as!Type);
+								case Type.sizeof:
+									return OptVal!(T[0])(data.as!Type);
 							}
 						}
 					default:
 						debug stderr.writefln!"invalid data found in AVal.as";
-						return OptVal!T();
+						return OptVal!(T[0])();
 					}
 				} else
-				static if (isUnsigned!(T[0])){
+				static if (isIntegral!(T[0])){
 					if (type.type == ADataType.Type.IntX){
-						if (T[0].sizeof < type.x * 8)
-							return OptVal!T();
+						if (T[0].sizeof * 8 < type.x)
+							return OptVal!(T[0])();
 						switch (data.length){
 							static foreach (Type; SignedInts){
 								static if (T[0].sizeof >= Type.sizeof){
-									case Type.sizeof * 8:
-										return OptVal!T(cast(T)data.as!Type);
+									case Type.sizeof:
+										return OptVal!(T[0])(cast(T[0])data.as!Type);
 								}
 							}
 						default:
 							debug stderr.writefln!"invalid data found in AVal.as";
-							return OptVal!T();
+							return OptVal!(T[0])();
 						}
 					} else
 					if (type.type == ADataType.Type.UIntX){
 						switch (data.length){
 							static foreach (Type; UnsignedInts){
 								static if (T[0].sizeof >= Type.sizeof){
-									case Type.sizeof * 8:
-										return OptVal!T(cast(T)data.as!Type);
+									case Type.sizeof:
+										return OptVal!(T[0])(cast(T[0])data.as!Type);
 								}
 							}
 						default:
 							debug stderr.writefln!"invalid data found in AVal.as";
-							return OptVal!T();
+							return OptVal!(T[0])();
 						}
 					}
 				}
 
 			} else
+			static if (is (T[0] == char)){
+				return OptVal!(T[0])((cast(char[])data)[0]);
+			} else
 			static if (isBoolean!T){
 				if (type.type != ADataType.Type.Bool)
-					return OptVal!T();
-				return OptVal!T(cast(ubyte)data[0] != 0);
+					return OptVal!(T[0])();
+				return OptVal!(T[0])((cast(ubyte[])data)[0] != 0);
 
 			} else
 			static if (isPointer!T){
@@ -97,21 +100,22 @@ public struct AVal{
 			} else
 			static if (is (T == string) || (isArray!T && is(ElementType!T == dchar))){
 				if (type != ADataType.ofString)
-					return OptVal!T();
+					return OptVal!(T[0])();
 				char* ptr = data[0 .. ptrdiff_t.sizeof].as!(char*);
 				size_t len = data[ptrdiff_t.sizeof .. $].as!size_t;
-				return OptVal!T(cast(string)ptr[0 .. len]);
+				return OptVal!(T[0])(cast(string)ptr[0 .. len]);
 
 			} else
 			static if (isArray!T){
-				if (type.type != ADataType.Type.Slice)
-					return OptVal!T();
+				if (type.type != ADataType.Type.Slice &&
+						type.type != ADataType.Type.Array)
+					return OptVal!(T[0])();
 				ADataType elemT = *type.refT;
 				if (elemT != ADataType.of!(ElementType!T))
-					return OptVal!T();
+					return OptVal!(T[0])();
 				ElementType!T* ptr = data[0 .. ptrdiff_t.sizeof].as!(ElementType!T*);
 				size_t len = data[ptrdiff_t.sizeof .. $].as!size_t;
-				return AVal!T(ptr[0 .. len]);
+				return OptVal!T(cast(T[0])ptr[0 .. len]);
 
 			} else
 			static if (isFunction!(T[0]) || isFunctionPointer!(T[0])){
@@ -126,7 +130,8 @@ public struct AVal{
 			static if (is (T[0] == enum)){
 				static assert (false, "AVal.as does not suppport Enum yet");
 			} else {
-				static assert (false, "Unsupported data type for AVal.as");
+				static assert (false,
+						T.stringof.format!"Unsupported data type for AVal.as %s");
 			}
 		} else {
 			static assert (false, "AVal does not yet support Sequences fully");
@@ -140,11 +145,14 @@ public struct AVal{
 		static if (std.traits.isNumeric!T){
 			void[] d = val.asBytes;
 			ADataType t = ADataType.of!T;
-			assert (t.sizeOf == d.length);
+			assert (t.sizeOf >= d.length);
 			return AVal(t, d).OptVal!AVal;
 		} else
+		static if (is (T == char)){
+			return AVal(ADataType.ofChar, [val]).OptVal!AVal;
+		} else
 		static if (isBoolean!T){
-			return AVal(ADataType.ofBool, v ? [true] : [false]).OptVal!AVal;
+			return AVal(ADataType.ofBool, val ? [true] : [false]).OptVal!AVal;
 		} else
 		static if (isPointer!T){
 			static assert (false, "AVal for pointers not yet implemented");
@@ -185,7 +193,8 @@ public struct AVal{
 
 	/// constructor
 	this(ADataType type, void[] data) pure {
-		assert (data.length == type.sizeOf, "very bad!");
+		assert (data.length == type.sizeOf,
+				format!"%d != %d"(data.length, type.sizeOf));
 		this.type = type;
 		this.data = data;
 	}
@@ -211,14 +220,18 @@ public struct AVal{
 	}
 }
 
-private void test(){
-	AVal s = AVal("hello world");
-	assert(s.as!string.val == "hello world");
-}
-
 ///
 unittest{
-	test();
+	assert("hello world".AVal.as!string.val == "hello world");
+	assert(AVal('a').as!char.val == 'a');
+	assert(AVal(5.5).as!double.val == 5.5);
+	assert(AVal(5).as!int.val == 5);
+	assert(AVal(5).as!ulong.val == 5);
+	assert(AVal(5).as!long.val == 5);
+	assert(true.AVal.as!bool.val == true);
+	assert(false.AVal.as!bool.val == false);
+	assert([1,2].AVal.as!(int[]).val == [1, 2]);
+
 }
 
 /// an Alis CompileTime Value
@@ -827,7 +840,7 @@ public struct ADataType{
 				return seqT.fold!((size_t a, const ADataType e) => a + e.sizeOf)
 					(size_t.init);
 			case Type.IntX, Type.UIntX, Type.FloatX:
-				return x;
+				return x / 8;
 			case Type.Char:
 			case Type.Bool:
 				return 1;
@@ -903,14 +916,17 @@ public struct ADataType{
 	/// Returns: ADataType equivalent of `T`
 	static ADataType of(T...)() pure if (T.length && allSatisfy!(isType, T)) {
 		static if (T.length == 1){
-			static if (isNumeric!(T[0])){
+			static if (std.traits.isNumeric!(T[0])){
 				static if (isFloatingPoint!(T[0]))
-					return ADataType.ofFloat(T.sizeof * 8);
+					return ADataType.ofFloat(T[0].sizeof * 8);
 				static if (isUnsigned!(T[0]))
-					return ADataType.ofUInt(T.sizeof * 8);
-				return ADataType.ofInt(T.sizeof * 8);
+					return ADataType.ofUInt(T[0].sizeof * 8);
+				return ADataType.ofInt(T[0].sizeof * 8);
 			} else
-			static if (isBoolean!T){
+			static if (is (T[0] == char)){
+				return ADataType.ofChar;
+			} else
+			static if (isBoolean!(T[0])){
 				return ADataType.ofBool;
 			} else
 			static if (isPointer!(T[0])){
@@ -1061,47 +1077,6 @@ public struct ADataType{
 		ret.type = Type.Enum;
 		ret.enumS = enumT;
 		return ret;
-	}
-
-	/// Returns: ADataType against a D type
-	static ADataType of(T)() pure {
-		static if (is (T == string) || is (T == const char[])){
-			return ofString;
-		} else
-		static if (is (T == char[])){
-			return ofArray(ADataType.ofChar(8));
-		} else
-		static if (isUnsigned!T) {
-			return ofUInt(T.sizeof * 8);
-		} else
-		static if (isSigned!T) {
-			return ofInt(T.sizeof * 8);
-		} else
-		static if (isFloatingPoint!T){
-			return ofFloat(T.sizeof * 8);
-		} else
-		static if (isSomeChar!T){
-			return ofChar(T.sizeof * 8);
-		} else
-		static if (is (T == bool)){
-			return ofBool;
-		} else
-		static if (isFunction!T || isFunctionPointer!T){
-			return ofFn(ReturnType!T, [staticMap!(of, Parameters!T)]);
-		} else
-		static if (is (T == struct)){
-			static assert (false, "creating ADataType of D struct not implemented");
-			// TODO: convert D struct to AStruct
-		} else
-		static if (is (T == union)){
-			static assert (false, "creating ADataType of D union not implemented");
-			// TODO: convert D union to AUnion
-		} else
-		static if (is (T == enum)){
-			static assert (false, "creating ADataType of D enum not implemented");
-			// TODO: convert D enum to AEnum or AEnumConst
-		}
-		assert(false);
 	}
 
 	bool opEquals()(auto ref const ADataType rhs) const pure {

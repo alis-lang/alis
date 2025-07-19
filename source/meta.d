@@ -120,7 +120,7 @@ private template SignedInts_Impl(){
 alias UnsignedInts = UnsignedInts_Impl!();
 
 private template UnsignedInts_Impl(){
-	alias SignedInts_Impl = AliasSeq!(ubyte, ushort, uint);
+	alias UnsignedInts_Impl = AliasSeq!(ubyte, ushort, uint);
 	static if (size_t.sizeof > uint.sizeof)
-		SignedInts_Impl = AliasSeq!(SignedInts_Impl, size_t);
+		UnsignedInts_Impl = AliasSeq!(UnsignedInts_Impl, size_t);
 }
