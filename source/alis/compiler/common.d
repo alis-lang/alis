@@ -155,13 +155,38 @@ public struct ErrVal(T, E){
 	}
 
 	/// constructor
-	this(E err){
+	this(E err) pure {
 		this._isErr = true;
 		this._err = err;
 	}
 	/// ditto
-	this(T val){
+	this(T val) pure {
 		this._isErr = false;
+		this._val = val;
+	}
+}
+
+/// An optional value
+public struct OptVal(T){
+	private bool _isVal = false;
+	private union{
+		T _val;
+		void[0] _none = (void[0]).init;
+	}
+
+	/// Returns: true if this value exists
+	public @property bool isVal() const pure {
+		return _isVal;
+	}
+	/// Returns: value
+	public @property T val() pure {
+		assert (_isVal);
+		return _val;
+	}
+
+	/// constructor
+	this(T val) pure {
+		this._isVal = true;
 		this._val = val;
 	}
 }
@@ -203,16 +228,16 @@ package char charUnescape(char c){
 	}
 }
 
-/// Reads a ubyte[] as a type
+/// Reads a void[] as a type
 /// Returns: value in type T
-pragma(inline, true) package T as(T)(ubyte[] data) {
+pragma(inline, true) package T as(T)(void[] data) {
 	assert(data.length >= T.sizeof);
 	return *(cast(T*)data.ptr);
 }
 
-/// Returns: ubyte[] against a value of type T
-pragma(inline, true) package ubyte[] asBytes(T)(T val) {
-	ubyte[] ret;
+/// Returns: void[] against a value of type T
+pragma(inline, true) package void[] asBytes(T)(T val) {
+	void[] ret;
 	ret.length = T.sizeof;
-	return ret[] = (cast(ubyte*)&val)[0 .. T.sizeof];
+	return ret[] = (cast(void*)&val)[0 .. T.sizeof];
 }

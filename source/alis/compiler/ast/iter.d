@@ -59,7 +59,7 @@ private template ItFnsFor(N, F...) if (
 
 /// Whether a type T is relevant for iteration
 private template IsRel(T){
-	static if (isArray!T){
+	static if (isArray!T && !is (T == void[])){
 		alias IsRel = IsRel!(ForeachType!T);
 	} else {
 		static if (isAssociativeArray!T){

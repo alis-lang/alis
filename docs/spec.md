@@ -283,7 +283,7 @@ Floats:
 Characters:
 
 - `char` - an 8 bit character
-- `$char(X)` - an X bits character
+- `$char` - an 8 bit character // TODO
 
 Others:
 
@@ -1642,7 +1642,7 @@ Implicit casting is provided by default for:
 - `$float(A)` to `$float(B)` where `A < B`
 - `$int(A)` to `$float(B)` where `A <= B`
 - `$uint(A)` to `$float(B)` where `A < B`
-- `$uint(A)` to `$char(B)` where `A <= B`
+- `$uint(A)` to `$char` where `A == 8`
 - `$int(X)` to `bool` for any `X`
 - `$uint(X)` to `bool` for any `X`
 - `T` to `const T` for any type `T`
@@ -1842,18 +1842,27 @@ template sum $($type T) {
 }
 ```
 
-Calling a function template can be done as:
+A Function Template **cannot** receive template parameters, it can only
+receive function call parameters, as such, all template parameters must be
+related to function parameters:
 
 ```
-var int c = sum(int)(5, 10);
-// or
-var int c = sum(5, 10); // T is inferred
-// or
-var int c = 5.sum(10);
+fn identity $($type T) (T val) -> val;
+
+5 == 5.identity;
+5 == identity(5);
 ```
 
-The compiler is able to determine what value to use for `T`, only if the
-`fn $(..)` declaration is used.
+To receive additional template parameters, which are not used in parameters:
+
+```
+template foo $(alias... S){
+	fn this $($type T) (T val) -> val;
+}
+
+// Seq passed for `S`. Cannot pass T directly, inferred from 5
+foo(Seq) (5); 
+```
 
 ## Enums
 
@@ -1991,46 +2000,21 @@ This also means that Sequences cannot be multi-dimensional.
 
 # Calling Through Dot Operator
 
-You can write `a.b` instead of `b(a)`. For example, if you have a function
-`foo`:
+The dot operator can be used to pass parameters to callables, i.e: functions &
+templates.
+
+When resolving `a.b`, first it tries if `"b"` is a member of `a`'s type. If so,
+it resolves to `$member(a, "b")`.
+
+If `"b"` is not a member of `a`, then `a.b` translates to `b(a)`. This applies
+to both cases: where `b` is a function, and where `b` is a template. This
+applies to where `a` is a sequence as well:
 
 ```
 (a, b).foo(c);
 // is equivalent to:
 foo(a, b, c);
 ```
-
-Similarly, if `foo` is a template, not declared as `fn foo $(...)`, the above
-is applicable. The only special case is when `foo` is declared as
-`fn foo $(...)`:
-
-```
-fn foo $(alias... T) (T val) -> ...{...}
-```
-
-In this case, `a.foo(b)` will pass `a` as function parameter, and `b` as a
-template parameter, and the compiler will attempt to infer any template
-parameters.
-
-An example of this is the `to` template:
-
-```
-fn to $($type To : int, $type From) (From val) -> int{...}
-// can be used as:
-"15".to(int)
-// "15" is function parameter, int is template paramter
-```
-
-However, if a function template is declared through `template`, this does not
-apply:
-
-```
-template foo $(alias... T){
-	fn this(T val) -> ...{...}
-}
-```
-
-In the above case, `a.foo(b)` will pass `a, b` as template parameters.
 
 ---
 
@@ -2053,7 +2037,7 @@ directly dependent on the underlying data structures in the compiler/runtime.
 - `int(X)` - data type, signed integer of X bits
 - `uint(X)` - data type, unsigned integer of X bits
 - `float(X)` - data type, floating point number of X bits
-- `char(X)` - data type,  an X bits character
+- `char` - data type, an 8 bit character
 - `slice(X)` - data type, fixed size contiguous block, elements of type `X`
 - `array(X)` - data type, contiguous block, elements of type `X`
 - `vt` - an intrinsic data type for Virtual Table.
@@ -2073,6 +2057,9 @@ directly dependent on the underlying data structures in the compiler/runtime.
 - `unionIs(T)` - whether a union's tag indicates `this` member being stored
 - `unionIs(T.M)` - whether a union's tag indicates `M` member being stored, or
 	member of type `M`.
+- `members(T)` - gets member names as string sequence for a union/struct type
+	`T`.
+- `member(alias V, string N)` - gets member with name `"N"` for value `V`.
 
 ## Attributes
 
