@@ -145,7 +145,7 @@ bool bitXCanCall(AValCT[] params){
 		ubyte x = size_t.sizeof * 8;
 		if (params.length == 0)
 			x = cast(ubyte)params[0].to(ADataType.ofInt).val.dataL.as!int; // HACK
-		RAValCTExpr r = new RAValCTExpr(ADataType.ofChar(x).AValCT);
+		RAValCTExpr r = new RAValCTExpr(ADataType.ofChar.AValCT);
 		r.pos = pos;
 		return SmErrsVal!RExpr(r);
 	}

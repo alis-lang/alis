@@ -59,7 +59,7 @@ package SmErrsVal!RExpr to(RExpr expr, ADataType type){
 
 /// converts a type to const
 /// Returns: cont type
-package ADataType constOf()(const auto ref ADataType type) pure {
+public ADataType constOf()(const auto ref ADataType type) pure {
 	ADataType ret = type.copy;
 	if (ret.type == ADataType.Type.Slice || ret.type == ADataType.Type.Array){
 		ret.refT.isConst = true;

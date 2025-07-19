@@ -468,7 +468,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofChar(8).constOf;
+		r.type = ADataType.ofChar.constOf;
 		r.hasType = true;
 		r.value = [cast(ubyte)node.val];
 		if (!expT(node.pos, r, st)) return;
@@ -557,7 +557,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
-		r.res = ADataType.ofChar(8).AValCT;
+		r.res = ADataType.ofChar.AValCT;
 		if (!expT(node.pos, r, st)) return;
 		st.res = r;
 	}

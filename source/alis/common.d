@@ -22,6 +22,30 @@ debug import std.stdio;
 
 public import alis.compiler.common : Visibility; // TODO move it here
 
+/// Alis value, with ADataType
+public struct AVal{
+	void[] data; /// the data
+	ADataType type; /// data type
+	@disable this();
+
+	/// decodes this data into a type `T`
+	public T decode(T)() pure {
+		return T.init; // TODO: implement this
+	}
+
+	/// constructor
+	this(ADataType type, void[] data){
+		assert (data.length == type.sizeOf, "very bad!");
+		this.type = type;
+		this.data = data;
+	}
+
+	/// ditto
+	this(T)(T val){
+
+	}
+}
+
 /// an Alis CompileTime Value
 public struct AValCT{
 	/// possible types
@@ -525,7 +549,7 @@ public struct ADataType{
 		IntX, /// an integer of X bits
 		UIntX, /// an unsigned integer of X bits
 		FloatX, /// a floating point number of X bits
-		CharX, /// a character of X bits
+		Char, /// a 1 byte character
 		Bool, /// a boolean
 		Slice, /// a slice
 		Array, /// an array
@@ -541,7 +565,7 @@ public struct ADataType{
 	/// type
 	Type type = Type.Struct;
 	union{
-		/// X-bits for `IntX`, `UIntX`, `FloatX`, or `CharX`
+		/// X-bits for `IntX`, `UIntX`, `FloatX`
 		ubyte x;
 		/// type being referenced, for `Ref`, `Slice`, or `Array`
 		ADataType* refT;
@@ -564,7 +588,7 @@ public struct ADataType{
 	/// Returns: whether this is a primitive type
 	@property isPrimitive() const {
 		switch (type){
-			case Type.IntX, Type.UIntX, Type.FloatX, Type.CharX, Type.Bool:
+			case Type.IntX, Type.UIntX, Type.FloatX, Type.Char, Type.Bool:
 				return true;
 			case Type.Slice:
 				return this == ADataType.ofString;
@@ -590,8 +614,8 @@ public struct ADataType{
 				return ret ~ x.format!"$uint(%d)";
 			case Type.FloatX:
 				return ret ~ x.format!"$float(%d)";
-			case Type.CharX:
-				return ret ~ x.format!"$char(%d)";
+			case Type.Char:
+				return ret ~ "$char";
 			case Type.Bool:
 				return ret ~ "bool";
 			case Type.Slice:
@@ -627,8 +651,9 @@ public struct ADataType{
 			case Type.Seq:
 				return seqT.fold!((size_t a, const ADataType e) => a + e.sizeOf)
 					(size_t.init);
-			case Type.IntX, Type.UIntX, Type.FloatX, Type.CharX:
+			case Type.IntX, Type.UIntX, Type.FloatX:
 				return x;
+			case Type.Char:
 			case Type.Bool:
 				return 1;
 			case Type.Slice:
@@ -674,9 +699,9 @@ public struct ADataType{
 			case Type.IntX:
 			case Type.UIntX:
 			case Type.FloatX:
-			case Type.CharX:
 				ret.x = x;
 				break;
+			case Type.Char:
 			case Type.Bool:
 			case Type.NoInit:
 				break;
@@ -698,6 +723,22 @@ public struct ADataType{
 				ret.enumS = cast(AEnum*)enumS;
 		}
 		return ret;
+	}
+
+	/// Returns: ADataType equivalent of `T`
+	static ADataType of(T)() pure {
+		static if (isNumeric!T){
+			static if (isFloatingPoint!T)
+				return ADataType.ofFloat(T.sizeof * 8);
+			static if (isUnsigned!T)
+				return ADataType.ofUInt(T.sizeof * 8);
+			return ADataType.ofInt(T.sizeof * 8);
+		} else
+		static if (is (T == bool)){
+			return ADataType.ofBool;
+		} else
+		static if (is (T == string))
+			return ADataType.ofString;
 	}
 
 	/// Returns: `$noinit` data type
@@ -740,10 +781,9 @@ public struct ADataType{
 	}
 
 	/// Returns: Char of X bits type
-	static ADataType ofChar(ubyte x = dchar.sizeof * 8) pure {
+	static ADataType ofChar() pure {
 		ADataType ret;
-		ret.type = Type.CharX;
-		ret.x = x;
+		ret.type = Type.Char;
 		return ret;
 	}
 
@@ -771,9 +811,10 @@ public struct ADataType{
 	}
 
 	static ADataType ofString() pure {
+		import alis.compiler.semantic.types : constOf; // TODO move it here
 		ADataType str;
 		str.type = Type.Slice;
-		str.refT = [ADataType.ofChar(8)].ptr;
+		str.refT = [ADataType.ofChar.constOf].ptr;
 		str.refT.isConst = true;
 		return str; // $slice(const char)
 	}
@@ -875,8 +916,8 @@ public struct ADataType{
 			case Type.IntX:
 			case Type.UIntX:
 			case Type.FloatX:
-			case Type.CharX:
 				return x == rhs.x;
+			case Type.Char:
 			case Type.Bool:
 				return true;
 			case Type.Slice:
