@@ -35,11 +35,8 @@ public struct AVal{
 	/// Returns: Optional value of type `T`
 	public OptVal!T as(T...)() pure if (T.length && allSatisfy!(isType, T)){
 		static if (T.length == 1){
+			assert (type.sizeof == data.length);
 			static if (isNumeric!(T[0])){
-				if (data.length != type.x * 8){
-					debug stderr.writefln!"invalid data found in AVal.as";
-					return OptVal!T();
-				}
 				static if (isFloatingPoint!(T[0])){
 					if (type.type != ADataType.Type.FloatX ||
 							type.x > T.sizeof * 8)
@@ -89,15 +86,32 @@ public struct AVal{
 
 			} else
 			static if (isBoolean!T){
+				if (type.type != ADataType.Type.Bool)
+					return OptVal!T();
+				return OptVal!T(cast(ubyte)data[0] != 0);
 
 			} else
 			static if (isPointer!T){
+				static assert (false, "AVal for pointers not yet implemented");
 
 			} else
-			static if (is (T == string) || isStaticArray!T){
+			static if (is (T == string)){
+				if (type != ADataType.ofString)
+					return OptVal!T();
+				char* ptr = data[0 .. ptrdiff_t.sizeof].as!(char*);
+				size_t len = data[ptrdiff_t.sizeof .. $].as!size_t;
+				return AVal!T(cast(string)ptr[0 .. len]);
 
 			} else
 			static if (isArray!T){
+				if (type.type != ADataType.Type.Slice)
+					return OptVal!T();
+				ADataType elemT = type.refT;
+				if (elemT != ADataType.of!(ElementType!T))
+					return OptVal!T();
+				ElementType!T* ptr = data[0 .. ptrdiff_t.sizeof].as!(ElementType!T*);
+				size_t len = data[ptrdiff_t.sizeof .. $].as!size_t;
+				return AVal!T(ptr[0 .. len]);
 
 			} else
 			static if (isFunction!(T[0]) || isFunctionPointer!(T[0])){
@@ -115,7 +129,7 @@ public struct AVal{
 				static assert (false, "Unsupported data type for AVal.as");
 			}
 		} else {
-
+			static assert (false, "AVal does not yet support Sequences fully");
 		}
 		return T.init; // TODO: implement this
 	}
