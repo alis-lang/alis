@@ -35,8 +35,8 @@ public struct AVal{
 	/// Returns: Optional value of type `T`
 	public OptVal!T as(T...)() pure if (T.length && allSatisfy!(isType, T)){
 		static if (T.length == 1){
-			assert (type.sizeof == data.length);
-			static if (isNumeric!(T[0])){
+			assert (type.sizeOf == data.length);
+			static if (std.traits.isNumeric!(T[0])){
 				static if (isFloatingPoint!(T[0])){
 					if (type.type != ADataType.Type.FloatX ||
 							type.x > T.sizeof * 8)
@@ -95,18 +95,18 @@ public struct AVal{
 				static assert (false, "AVal for pointers not yet implemented");
 
 			} else
-			static if (is (T == string)){
+			static if (is (T == string) || (isArray!T && is(ElementType!T == dchar))){
 				if (type != ADataType.ofString)
 					return OptVal!T();
 				char* ptr = data[0 .. ptrdiff_t.sizeof].as!(char*);
 				size_t len = data[ptrdiff_t.sizeof .. $].as!size_t;
-				return AVal!T(cast(string)ptr[0 .. len]);
+				return OptVal!T(cast(string)ptr[0 .. len]);
 
 			} else
 			static if (isArray!T){
 				if (type.type != ADataType.Type.Slice)
 					return OptVal!T();
-				ADataType elemT = type.refT;
+				ADataType elemT = *type.refT;
 				if (elemT != ADataType.of!(ElementType!T))
 					return OptVal!T();
 				ElementType!T* ptr = data[0 .. ptrdiff_t.sizeof].as!(ElementType!T*);
@@ -131,13 +131,13 @@ public struct AVal{
 		} else {
 			static assert (false, "AVal does not yet support Sequences fully");
 		}
-		return T.init; // TODO: implement this
+		assert (false);
 	}
 
 	/// encodes some data
 	/// Returns: Optional AVal if done, empty if failed
 	public static OptVal!AVal of(T)(T val) pure {
-		static if (isNumeric!T){
+		static if (std.traits.isNumeric!T){
 			void[] d = val.asBytes;
 			ADataType t = ADataType.of!T;
 			assert (t.sizeOf == d.length);
@@ -180,21 +180,23 @@ public struct AVal{
 		} else {
 			static assert (false, "Unsupported data type for AVal.of");
 		}
-		return OptVal!AVal();
+		assert (false);
 	}
 
 	/// constructor
-	this(ADataType type, void[] data){
+	this(ADataType type, void[] data) pure {
 		assert (data.length == type.sizeOf, "very bad!");
 		this.type = type;
 		this.data = data;
 	}
 
 	/// ditto
-	this(T...)(T val) if (T.length && allSatisfy!(isType, T)){
+	this(T...)(T val) pure if (T.length && allSatisfy!(isType, T)){
 		this.type = ADataType.of!T;
 		static if (T.length == 1){
-			this = encode(val);
+			OptVal!AVal v = of(val);
+			assert (v.isVal);
+			this = v.val;
 		} else {
 			enum SizeOfSeq = ADataType.of!T.sizeOf;
 			data = new void[SizeOfSeq];
@@ -207,6 +209,16 @@ public struct AVal{
 			}}
 		}
 	}
+}
+
+private void test(){
+	AVal s = AVal("hello world");
+	assert(s.as!string.val == "hello world");
+}
+
+///
+unittest{
+	test();
 }
 
 /// an Alis CompileTime Value
@@ -1089,7 +1101,7 @@ public struct ADataType{
 			static assert (false, "creating ADataType of D enum not implemented");
 			// TODO: convert D enum to AEnum or AEnumConst
 		}
-		return ADataType;
+		assert(false);
 	}
 
 	bool opEquals()(auto ref const ADataType rhs) const pure {

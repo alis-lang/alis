@@ -186,6 +186,7 @@ public struct OptVal(T){
 
 	/// constructor
 	this(T val) pure {
+		this._isVal = true;
 		this._val = val;
 	}
 }
