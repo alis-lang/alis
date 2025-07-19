@@ -9,12 +9,15 @@ import std.string,
 			 std.traits,
 			 std.range,
 			 std.conv,
+			 std.meta,
 			 std.format,
 			 std.typecons,
 			 std.algorithm,
 			 std.digest.crc;
 
 import alis.compiler.common;
+
+import meta;
 
 public import alis.compiler.ast.rst : RExpr;
 
@@ -29,7 +32,91 @@ public struct AVal{
 	@disable this();
 
 	/// decodes this data into a type `T`
-	public T as(T)() pure {
+	/// Returns: Optional value of type `T`
+	public OptVal!T as(T...)() pure if (T.length && allSatisfy!(isType, T)){
+		static if (T.length == 1){
+			static if (isNumeric!(T[0])){
+				if (data.length != type.x * 8){
+					debug stderr.writefln!"invalid data found in AVal.as";
+					return OptVal!T();
+				}
+				static if (isFloatingPoint!(T[0])){
+					if (type.type != ADataType.Type.FloatX ||
+							type.x > T.sizeof * 8)
+						return OptVal!T();
+					switch (data.length){
+						static foreach (Type; AliasSeq!(float, double)){
+							static if (T[0].sizeof >= Type.sizeof){
+								case Type.sizeof * 8:
+									return OptVal!T(data.as!Type);
+							}
+						}
+					default:
+						debug stderr.writefln!"invalid data found in AVal.as";
+						return OptVal!T();
+					}
+				} else
+				static if (isUnsigned!(T[0])){
+					if (type.type == ADataType.Type.IntX){
+						if (T[0].sizeof < type.x * 8)
+							return OptVal!T();
+						switch (data.length){
+							static foreach (Type; SignedInts){
+								static if (T[0].sizeof >= Type.sizeof){
+									case Type.sizeof * 8:
+										return OptVal!T(cast(T)data.as!Type);
+								}
+							}
+						default:
+							debug stderr.writefln!"invalid data found in AVal.as";
+							return OptVal!T();
+						}
+					} else
+					if (type.type == ADataType.Type.UIntX){
+						switch (data.length){
+							static foreach (Type; UnsignedInts){
+								static if (T[0].sizeof >= Type.sizeof){
+									case Type.sizeof * 8:
+										return OptVal!T(cast(T)data.as!Type);
+								}
+							}
+						default:
+							debug stderr.writefln!"invalid data found in AVal.as";
+							return OptVal!T();
+						}
+					}
+				}
+
+			} else
+			static if (isBoolean!T){
+
+			} else
+			static if (isPointer!T){
+
+			} else
+			static if (is (T == string) || isStaticArray!T){
+
+			} else
+			static if (isArray!T){
+
+			} else
+			static if (isFunction!(T[0]) || isFunctionPointer!(T[0])){
+				static assert (false, "AVal.as does not suppport Fn yet");
+			} else
+			static if (is (T[0] == struct)){
+				static assert (false, "AVal.as does not suppport Struct yet");
+			} else
+			static if (is (T[0] == union)){
+				static assert (false, "AVal.as does not suppport Union yet");
+			} else
+			static if (is (T[0] == enum)){
+				static assert (false, "AVal.as does not suppport Enum yet");
+			} else {
+				static assert (false, "Unsupported data type for AVal.as");
+			}
+		} else {
+
+		}
 		return T.init; // TODO: implement this
 	}
 
@@ -66,18 +153,18 @@ public struct AVal{
 			return AVal(t, d).OptVal!AVal;
 		} else
 		static if (isFunction!(T[0]) || isFunctionPointer!(T[0])){
-			static assert (false, "AVal.encode does not suppport Fn yet");
+			static assert (false, "AVal.of does not suppport Fn yet");
 		} else
 		static if (is (T[0] == struct)){
-			static assert (false, "AVal.encode does not suppport Struct yet");
+			static assert (false, "AVal.of does not suppport Struct yet");
 		} else
 		static if (is (T[0] == union)){
-			static assert (false, "AVal.encode does not suppport Union yet");
+			static assert (false, "AVal.of does not suppport Union yet");
 		} else
 		static if (is (T[0] == enum)){
-			static assert (false, "AVal.encode does not suppport Enum yet");
+			static assert (false, "AVal.of does not suppport Enum yet");
 		} else {
-			static assert (false, "Unsupported data type for AVal.encode");
+			static assert (false, "Unsupported data type for AVal.of");
 		}
 		return OptVal!AVal();
 	}
