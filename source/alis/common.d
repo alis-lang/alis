@@ -42,7 +42,7 @@ public struct AVal{
 
 	/// ditto
 	this(T)(T val){
-
+		this.type = ADataType.of!T;
 	}
 }
 
@@ -726,42 +726,46 @@ public struct ADataType{
 	}
 
 	/// Returns: ADataType equivalent of `T`
-	static ADataType of(T)() pure {
-		static if (isNumeric!T){
-			static if (isFloatingPoint!T)
-				return ADataType.ofFloat(T.sizeof * 8);
-			static if (isUnsigned!T)
-				return ADataType.ofUInt(T.sizeof * 8);
-			return ADataType.ofInt(T.sizeof * 8);
-		} else
-		static if (is (T == bool)){
-			return ADataType.ofBool;
-		} else
-		static if (isPointer!T){
-			return ADataType.ofRef(ADataType.of!(PointerTarget!T));
-		} else
-		static if (is (T == string)){
-			return ADataType.ofString;
-		} else
-		static if (isStaticArray!T){
-			return ADataType.ofSlice(ADataType.of!(ElementType!T));
-		} else
-		static if (isArray!T){
-			return ADataType.ofArray(ADataType.of!(ElementType!T));
-		} else
-		static if (isFunction!T || isFunctionPointer!T){
-			static assert (false, "ADataType.of(T) does not suppport Fn yet");
-		} else
-		static if (is (T == struct)){
-			static assert (false, "ADataType.of(T) does not suppport Struct yet");
-		} else
-		static if (is (T == union)){
-			static assert (false, "ADataType.of(T) does not suppport Union yet");
-		} else
-		static if (is (T == enum)){
-			static assert (false, "ADataType.of(T) does not suppport Enum yet");
+	static ADataType of(T...)() pure if (T.length && allSatisfy!(isType, T)) {
+		static if (T.length == 1){
+			static if (isNumeric!(T[0])){
+				static if (isFloatingPoint!(T[0]))
+					return ADataType.ofFloat(T.sizeof * 8);
+				static if (isUnsigned!(T[0]))
+					return ADataType.ofUInt(T.sizeof * 8);
+				return ADataType.ofInt(T.sizeof * 8);
+			} else
+			static if (is (T[0] == bool)){
+				return ADataType.ofBool;
+			} else
+			static if (isPointer!(T[0])){
+				return ADataType.ofRef(ADataType.of!(PointerTarget!(T[0])));
+			} else
+			static if (is (T[0] == string)){
+				return ADataType.ofString;
+			} else
+			static if (isStaticArray!(T[0])){
+				return ADataType.ofSlice(ADataType.of!(ElementType!(T[0])));
+			} else
+			static if (isArray!(T[0])){
+				return ADataType.ofArray(ADataType.of!(ElementType!(T[0])));
+			} else
+			static if (isFunction!(T[0]) || isFunctionPointer!(T[0])){
+				static assert (false, "ADataType.of(T) does not suppport Fn yet");
+			} else
+			static if (is (T[0] == struct)){
+				static assert (false, "ADataType.of(T) does not suppport Struct yet");
+			} else
+			static if (is (T[0] == union)){
+				static assert (false, "ADataType.of(T) does not suppport Union yet");
+			} else
+			static if (is (T[0] == enum)){
+				static assert (false, "ADataType.of(T) does not suppport Enum yet");
+			} else {
+				static assert (false, "Unsupported data type for ADataType.of(T)");
+			}
 		} else {
-			static assert (false, "Unsupported data type for ADataType.of(T)");
+			return ADataType.ofSeq([staticMap!(ADataType.of, T)]);
 		}
 	}
 
