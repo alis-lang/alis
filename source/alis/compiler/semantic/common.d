@@ -84,8 +84,8 @@ public:
 			case AValCT.Type.Literal:
 				RLiteralExpr r = new RLiteralExpr;
 				r.pos = pos;
-				r.value = res.dataL;
-				r.type = res.typeL;
+				r.value = res.val.data;
+				r.type = res.val.type;
 				return r;
 			case AValCT.Type.Symbol:
 			case AValCT.Type.Type:

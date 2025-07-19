@@ -136,7 +136,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 				r = new RAValCTExpr(res.AValCT);
 				break;
 			case ASymbol.Type.EnumConst:
-				r = new RAValCTExpr(AValCT(res.enumCS.type, res.enumCS.data));
+				r = new RAValCTExpr(AVal(res.enumCS.type, res.enumCS.data).AValCT);
 				break;
 			case ASymbol.Type.Fn:
 				r = new RFnExpr(&res.fnS);
@@ -977,7 +977,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 				return;
 			}
 			ind = ind.to(ADataType.ofUInt).val;
-			size_t indI = ind.dataL.as!size_t;
+			size_t indI = ind.val.data.as!size_t;
 			if (indI >= subVal.seq.length){
 				st.errs ~= errBounds(node.indexes[0].pos, subVal.seq.length, indI);
 				return;
@@ -1388,9 +1388,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		AValCT val;
 		if (lhs.canCastTo(rhs)){
-			val = AValCT(ADataType.ofBool, true.asBytes);
+			val = true.AVal.AValCT;
 		} else {
-			val = AValCT(ADataType.ofBool, false.asBytes);
+			val = false.AVal.AValCT;
 		}
 		RAValCTExpr r = new RAValCTExpr(val);
 		r.pos = node.pos;

@@ -28,8 +28,7 @@ public import alis.compiler.common : Visibility; // TODO move it here
 /// Alis value, with ADataType
 public struct AVal{
 	void[] data; /// the data
-	ADataType type; /// data type
-	@disable this();
+	ADataType type = ADataType.ofNoInit; /// data type
 
 	/// decodes this data into a type `T`
 	/// Returns: Optional value of type `T`
@@ -191,6 +190,40 @@ public struct AVal{
 		assert (false);
 	}
 
+	public string toString() const pure {
+		final switch (type.type){
+		case ADataType.Type.Seq:
+			break;
+		case ADataType.Type.IntX:
+			break;
+		case ADataType.Type.UIntX:
+			break;
+		case ADataType.Type.FloatX:
+			break;
+		case ADataType.Type.Char:
+			break;
+		case ADataType.Type.Bool:
+			break;
+		case ADataType.Type.Slice:
+			break;
+		case ADataType.Type.Array:
+			break;
+		case ADataType.Type.Ref:
+			break;
+		case ADataType.Type.Fn:
+			break;
+		case ADataType.Type.Struct:
+			break;
+		case ADataType.Type.Union:
+			break;
+		case ADataType.Type.Enum:
+			break;
+		case ADataType.Type.NoInit:
+			break;
+		}
+		assert (false);
+	}
+
 	/// constructor
 	this(ADataType type, void[] data) pure {
 		assert (data.length == type.sizeOf,
@@ -269,10 +302,7 @@ public struct AValCT{
 	/// currently stored type
 	Type type = Type.Type;
 	union{
-		struct{
-			void[] dataL; /// data for `Literal`
-			ADataType typeL; /// data type for `Literal`
-		}
+		AVal val; /// value for `Literal`
 		ASymbol* symS; /// symbol for `Symbol`
 		ADataType typeT; /// data type for `Type`
 		RExpr expr; /// expr in case of `Expr`
@@ -282,7 +312,7 @@ public struct AValCT{
 	string toString() const pure {
 		final switch (type){
 			case Type.Literal:
-				return typeL.decodeStr(dataL);
+				return val.toString;
 			case Type.Symbol:
 				return symS.toString;
 			case Type.Type:
@@ -296,10 +326,9 @@ public struct AValCT{
 	}
 
 	/// constructor
-	this (ADataType type, void[] data){
+	this (AVal val){
 		this.type = Type.Literal;
-		this.dataL = data;
-		this.typeL = type;
+		this.val = val;
 	}
 	/// ditto
 	this (ASymbol* sym){
@@ -334,7 +363,7 @@ public struct AValCT{
 			case Type.Symbol:
 				return symS.asType;
 			case Type.Literal:
-				return typeL.OptVal!ADataType;
+				return val.type.OptVal!ADataType;
 			case Type.Type:
 				return typeT.OptVal!ADataType;
 			case Type.Expr:

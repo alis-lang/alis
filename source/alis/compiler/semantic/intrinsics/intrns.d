@@ -67,7 +67,7 @@ package alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
 	SmErrsVal!RExpr noinitvalTranslate(string, Location pos, STab,
 			IdentU[], void[0][ASymbol*], RFn[string], AValCT[]){
 		RAValCTExpr r = new RAValCTExpr(
-				AValCT(ADataType.ofNoInit, cast(void[])null));
+				AVal(ADataType.ofNoInit, cast(void[])null).AValCT);
 		r.pos = pos;
 		return SmErrsVal!RExpr(r);
 	}
@@ -77,23 +77,16 @@ package alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
 @Intr(IntrN.Int)
 @Intr(IntrN.UInt)
 @Intr(IntrN.Float)
-@Intr(IntrN.Char)
 bool bitXCanCall(AValCT[] params){
 	if (params.length > 1)
 		return false;
 	AValCT p = params[0];
-	ADataType pType; {
-		OptVal!ADataType res = p.asType;
-		if (!res.isVal)
-			return false;
-		pType = res.val;
-	}
-	if (!pType.canCastTo(ADataType.ofInt))
+	if (p.type != AValCT.Type.Literal)
 		return false;
-	int x = p.to(ADataType.ofInt).val.dataL.as!int; // TODO: handle `to` properly
-	if (x <= 0)
+	OptVal!size_t x = p.val.as!size_t;
+	if (!x.isVal || x.val <= 0)
 		return false;
-	switch (x){
+	switch (x.val){
 		case 8, 16, 32:
 			static if (size_t.sizeof * 8 == 64){
 				case 64:
@@ -111,7 +104,7 @@ bool bitXCanCall(AValCT[] params){
 			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
 		ubyte x = size_t.sizeof * 8;
 		if (params.length == 0)
-			x = cast(ubyte)params[0].to(ADataType.ofInt).val.dataL.as!int; // HACK
+			x = cast(ubyte)params[0].val.as!size_t.val;
 		RAValCTExpr r = new RAValCTExpr(ADataType.ofInt(x).AValCT);
 		r.pos = pos;
 		return SmErrsVal!RExpr(r);
@@ -122,7 +115,7 @@ bool bitXCanCall(AValCT[] params){
 			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
 		ubyte x = size_t.sizeof * 8;
 		if (params.length == 0)
-			x = cast(ubyte)params[0].to(ADataType.ofInt).val.dataL.as!int; // HACK
+			x = cast(ubyte)params[0].val.as!size_t.val;
 		RAValCTExpr r = new RAValCTExpr(ADataType.ofUInt(x).AValCT);
 		r.pos = pos;
 		return SmErrsVal!RExpr(r);
@@ -133,7 +126,7 @@ bool bitXCanCall(AValCT[] params){
 			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
 		ubyte x = size_t.sizeof * 8;
 		if (params.length == 0)
-			x = cast(ubyte)params[0].to(ADataType.ofInt).val.dataL.as!int; // HACK
+			x = cast(ubyte)params[0].val.as!size_t.val;
 		RAValCTExpr r = new RAValCTExpr(ADataType.ofFloat(x).AValCT);
 		r.pos = pos;
 		return SmErrsVal!RExpr(r);
@@ -141,10 +134,7 @@ bool bitXCanCall(AValCT[] params){
 
 	@Intr(IntrN.Char)
 	SmErrsVal!RExpr charTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
-		ubyte x = size_t.sizeof * 8;
-		if (params.length == 0)
-			x = cast(ubyte)params[0].to(ADataType.ofInt).val.dataL.as!int; // HACK
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[]){
 		RAValCTExpr r = new RAValCTExpr(ADataType.ofChar.AValCT);
 		r.pos = pos;
 		return SmErrsVal!RExpr(r);
