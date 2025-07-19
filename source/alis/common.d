@@ -737,8 +737,32 @@ public struct ADataType{
 		static if (is (T == bool)){
 			return ADataType.ofBool;
 		} else
-		static if (is (T == string))
+		static if (isPointer!T){
+			return ADataType.ofRef(ADataType.of!(PointerTarget!T));
+		} else
+		static if (is (T == string)){
 			return ADataType.ofString;
+		} else
+		static if (isStaticArray!T){
+			return ADataType.ofSlice(ADataType.of!(ElementType!T));
+		} else
+		static if (isArray!T){
+			return ADataType.ofArray(ADataType.of!(ElementType!T));
+		} else
+		static if (isFunction!T || isFunctionPointer!T){
+			static assert (false, "ADataType.of(T) does not suppport Fn yet");
+		} else
+		static if (is (T == struct)){
+			static assert (false, "ADataType.of(T) does not suppport Struct yet");
+		} else
+		static if (is (T == union)){
+			static assert (false, "ADataType.of(T) does not suppport Union yet");
+		} else
+		static if (is (T == enum)){
+			static assert (false, "ADataType.of(T) does not suppport Enum yet");
+		} else {
+			static assert (false, "Unsupported data type for ADataType.of(T)");
+		}
 	}
 
 	/// Returns: `$noinit` data type
