@@ -29,13 +29,56 @@ public struct AVal{
 	@disable this();
 
 	/// decodes this data into a type `T`
-	public T decode(T)() pure {
+	public T as(T)() pure {
 		return T.init; // TODO: implement this
 	}
 
-	/// encodes to data into `data` bytes as per `type`
+	/// encodes some data
 	/// Returns: Optional AVal if done, empty if failed
-	public static OptVal!AVal encode(T)(T val) pure {
+	public static OptVal!AVal of(T)(T val) pure {
+		static if (isNumeric!T){
+			void[] d = val.asBytes;
+			ADataType t = ADataType.of!T;
+			assert (t.sizeOf == d.length);
+			return AVal(t, d).OptVal!Aval;
+		} else
+		static if (isBoolean!T){
+			return AVal(ADataType.ofBool, v ? [0x01] : [0x00]).OptVal!Aval;
+		} else
+		static if (isPointer!T){
+			static assert (false, "AVal for pointers not yet implemented");
+		} else
+		static if (is (T == string) || isStaticArray!T){
+			void[] d = new void[size_t.sizeof * 2];
+			d[0 .. size_t.sizeof] = val.ptr.asBytes;
+			d[size_t.sizeof .. $] = val.length.asBytes;
+			ADataType t = ADataType.of!T;
+			assert (t.sizeOf == d.length);
+			return AVal(t, d).OptVal!AVal;
+		} else
+		static if (isArray!T){
+			void[] d = new void[size_t.sizeof * 3];
+			d[0 .. size_t.sizeof] = val.ptr.asBytes;
+			d[size_t.sizeof .. 2 * size_t.sizeof] = val.length.asBytes;
+			d[2 * size_t.sizeof .. $][] = val.length.asBytes; // TODO: use capacity
+			ADataType t = ADataType.of!T;
+			assert (t.sizeOf == d.length);
+			return AVal(t, d).OptVal!AVal;
+		} else
+		static if (isFunction!(T[0]) || isFunctionPointer!(T[0])){
+			static assert (false, "AVal.encode does not suppport Fn yet");
+		} else
+		static if (is (T[0] == struct)){
+			static assert (false, "AVal.encode does not suppport Struct yet");
+		} else
+		static if (is (T[0] == union)){
+			static assert (false, "AVal.encode does not suppport Union yet");
+		} else
+		static if (is (T[0] == enum)){
+			static assert (false, "AVal.encode does not suppport Enum yet");
+		} else {
+			static assert (false, "Unsupported data type for AVal.encode");
+		}
 		return OptVal!AVal();
 	}
 
@@ -754,7 +797,7 @@ public struct ADataType{
 					return ADataType.ofUInt(T.sizeof * 8);
 				return ADataType.ofInt(T.sizeof * 8);
 			} else
-			static if (is (T[0] == bool)){
+			static if (isBoolean!T){
 				return ADataType.ofBool;
 			} else
 			static if (isPointer!(T[0])){
