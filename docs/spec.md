@@ -283,7 +283,7 @@ Floats:
 Characters:
 
 - `char` - an 8 bit character
-- `$char(X)` - an X bits character
+- `$char` - an 8 bit character // TODO
 
 Others:
 
@@ -1642,7 +1642,7 @@ Implicit casting is provided by default for:
 - `$float(A)` to `$float(B)` where `A < B`
 - `$int(A)` to `$float(B)` where `A <= B`
 - `$uint(A)` to `$float(B)` where `A < B`
-- `$uint(A)` to `$char(B)` where `A <= B`
+- `$uint(A)` to `$char` where `A == 8`
 - `$int(X)` to `bool` for any `X`
 - `$uint(X)` to `bool` for any `X`
 - `T` to `const T` for any type `T`
@@ -2037,7 +2037,7 @@ directly dependent on the underlying data structures in the compiler/runtime.
 - `int(X)` - data type, signed integer of X bits
 - `uint(X)` - data type, unsigned integer of X bits
 - `float(X)` - data type, floating point number of X bits
-- `char(X)` - data type,  an X bits character
+- `char` - data type, an 8 bit character
 - `slice(X)` - data type, fixed size contiguous block, elements of type `X`
 - `array(X)` - data type, contiguous block, elements of type `X`
 - `vt` - an intrinsic data type for Virtual Table.
