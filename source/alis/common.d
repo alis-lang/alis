@@ -40,10 +40,10 @@ public struct AVal{
 			void[] d = val.asBytes;
 			ADataType t = ADataType.of!T;
 			assert (t.sizeOf == d.length);
-			return AVal(t, d).OptVal!Aval;
+			return AVal(t, d).OptVal!AVal;
 		} else
 		static if (isBoolean!T){
-			return AVal(ADataType.ofBool, v ? [0x01] : [0x00]).OptVal!Aval;
+			return AVal(ADataType.ofBool, v ? [true] : [false]).OptVal!AVal;
 		} else
 		static if (isPointer!T){
 			static assert (false, "AVal for pointers not yet implemented");
