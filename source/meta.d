@@ -106,3 +106,21 @@ template ParentSubset(C, T...) if (T.length > 0){
 		alias ParentSubset = Filter!(IsInT, AliasSeq!(C, BaseClassesTuple!C));
 	}
 }
+
+/// Signed integers, ordered from lowest to highest size
+alias SignedInts = SignedInts_Impl!();
+
+private template SignedInts_Impl(){
+	alias SignedInts_Impl = AliasSeq!(byte, short, int);
+	static if (ptrdiff_t.sizeof > int.sizeof)
+		SignedInts_Impl = AliasSeq!(SignedInts_Impl, ptrdiff_t);
+}
+
+/// Unsigned integers, ordered from lowest to highest size
+alias UnsignedInts = UnsignedInts_Impl!();
+
+private template UnsignedInts_Impl(){
+	alias SignedInts_Impl = AliasSeq!(ubyte, ushort, uint);
+	static if (size_t.sizeof > uint.sizeof)
+		SignedInts_Impl = AliasSeq!(SignedInts_Impl, size_t);
+}
