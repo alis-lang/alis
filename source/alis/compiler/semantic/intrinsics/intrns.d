@@ -141,6 +141,34 @@ bool bitXCanCall(AValCT[] params){
 	}
 }
 
-@Intr(IntrN.Slice){
+@CallabilityChecker
+@Intr(IntrN.Slice)
+@Intr(IntrN.Array)
+bool firstAndOnlyParamShallBeADataType(AValCT[] params){
+	if (params.length != 1)
+		return false;
+	if (params[0].type == AValCT.Type.Type)
+		return true;
+	if (params[0].type == AValCT.Type.Symbol &&
+			params[0].symS.isDType)
+		return true;
+	return false;
+}
 
+@Intr(IntrN.Slice) @ExprTranslator
+SmErrsVal!RExpr sliceTranslate(string, Location pos, STab,
+		IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+	RAValCTExpr r = new RAValCTExpr(
+			ADataType.ofSlice(params[0].asType.val).AValCT);
+	r.pos = pos;
+	return SmErrsVal!RExpr(r);
+}
+
+@Intr(IntrN.Array) @ExprTranslator
+SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
+		IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+	RAValCTExpr r = new RAValCTExpr(
+			ADataType.ofArray(params[0].asType.val).AValCT);
+	r.pos = pos;
+	return SmErrsVal!RExpr(r);
 }
