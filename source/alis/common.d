@@ -33,6 +33,12 @@ public struct AVal{
 		return T.init; // TODO: implement this
 	}
 
+	/// encodes to data into `data` bytes as per `type`
+	/// Returns: Optional AVal if done, empty if failed
+	public static OptVal!AVal encode(T)(T val) pure {
+		return OptVal!AVal();
+	}
+
 	/// constructor
 	this(ADataType type, void[] data){
 		assert (data.length == type.sizeOf, "very bad!");
@@ -41,8 +47,21 @@ public struct AVal{
 	}
 
 	/// ditto
-	this(T)(T val){
+	this(T...)(T val) if (T.length && allSatisfy!(isType, T)){
 		this.type = ADataType.of!T;
+		static if (T.length == 1){
+			this = encode(val);
+		} else {
+			enum SizeOfSeq = ADataType.of!T.sizeOf;
+			data = new void[SizeOfSeq];
+			static foreach (size_t I; 0 .. T.length){{
+				enum PrefixSum = ADataType.of!(T[0 .. I]).sizeOf;
+				enum Size = ADataType.of!(T[I]).sizeOf;
+				AVal encoded = encode(val[i]);
+				assert(encoded.type == type.seqT[i]);
+				data[PrefixSum .. PrefixSum + Size] = encoded.data;
+			}}
+		}
 	}
 }
 
