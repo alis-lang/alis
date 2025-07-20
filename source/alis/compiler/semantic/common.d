@@ -101,6 +101,7 @@ public:
 RExpr toRExpr()(auto ref AValCT val){
 	final switch (val.type){
 		case AValCT.Type.Literal:
+			// TODO: translate to RLiteralExpr?
 		case AValCT.Type.Symbol:
 		case AValCT.Type.Type:
 			return new RAValCTExpr(val);
