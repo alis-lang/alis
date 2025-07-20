@@ -172,3 +172,44 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 	r.pos = pos;
 	return SmErrsVal!RExpr(r);
 }
+
+@Intr(IntrN.Vt){
+	@CallabilityChecker
+	bool vtCanCall(AValCT[] params){
+		return params.length == 0;
+	}
+	@ExprTranslator
+	SmErrsVal!RExpr vtTranslate(string, Location pos, STab,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[]){
+		return SmErrsVal!RExpr([errUnsup(pos, "$vt")]);
+	}
+}
+
+@Intr(IntrN.IsType){
+	@CallabilityChecker
+	bool isTypeCanCall(AValCT[] params){
+		return params.length == 1;
+	}
+	@ExprTranslator
+	SmErrsVal!RExpr isTypeTranslate(string, Location pos, STab,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+		AValCT p = params[0];
+		RLiteralExpr r = new RLiteralExpr;
+		r.pos = pos;
+		final switch (p.type){
+		case AValCT.Type.Symbol:
+			r.val = p.symS.isDType.AVal;
+			break;
+		case AValCT.Type.Type:
+			r.val = true.AVal;
+			break;
+		case AValCT.Type.Literal:
+		case AValCT.Type.Expr:
+			r.val = false.AVal;
+			break;
+		case AValCT.Type.Seq:
+			assert (false, "AValCT.Type.Seq in $isType");
+		}
+		return SmErrsVal!RExpr(r);
+	}
+}
