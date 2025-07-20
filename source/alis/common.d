@@ -263,7 +263,7 @@ unittest{
 	assert(AVal(5).as!long.val == 5);
 	assert(true.AVal.as!bool.val == true);
 	assert(false.AVal.as!bool.val == false);
-	assert([1,2].AVal.as!(int[]).val == [1, 2]);
+	assert([1, 2].AVal.as!(int[]).val == [1, 2]);
 
 }
 
@@ -285,7 +285,21 @@ public struct AValCT{
 			case Type.Literal:
 				return true;
 			case Type.Symbol:
-				return symS.type == ASymbol.Type.EnumConst;
+				final switch (symS.type){
+					case ASymbol.Type.Struct:
+					case ASymbol.Type.Union:
+					case ASymbol.Type.Enum:
+					case ASymbol.Type.Import:
+					case ASymbol.Type.UTest:
+					case ASymbol.Type.Template:
+						return false;
+					case ASymbol.Type.Var:
+					case ASymbol.Type.EnumConst:
+					case ASymbol.Type.Fn:
+						return true;
+					case ASymbol.Type.Alias:
+						assert (false, "isVal on Alias is undecided");
+				}
 			case Type.Type:
 				return false;
 			case Type.Expr:
@@ -296,6 +310,41 @@ public struct AValCT{
 						return false;
 				}
 				return true;
+		}
+	}
+
+	/// Returns: data type of value, if `isVal`
+	OptVal!ADataType valType(){
+		import alis.compiler.semantic.typeofexpr;
+		final switch (type){
+			case Type.Literal:
+				return val.type.OptVal!ADataType;
+			case Type.Symbol:
+				final switch (symS.type){
+					case ASymbol.Type.Struct:
+					case ASymbol.Type.Union:
+					case ASymbol.Type.Enum:
+					case ASymbol.Type.Import:
+					case ASymbol.Type.UTest:
+					case ASymbol.Type.Template:
+						return OptVal!ADataType();
+					case ASymbol.Type.Var:
+						return symS.varS.type.OptVal!ADataType;
+					case ASymbol.Type.EnumConst:
+						return symS.enumCS.type.OptVal!ADataType;
+					case ASymbol.Type.Fn:
+						return ADataType.ofFn(symS.fnS.retT, symS.fnS.paramsT)
+							.OptVal!ADataType;
+					case ASymbol.Type.Alias:
+						assert (false, "valType on Alias is undecided");
+				}
+			case Type.Type:
+				return typeT.OptVal!ADataType;
+			case Type.Expr:
+				return expr.typeOf.val.OptVal!ADataType;
+			case Type.Seq:
+				return ADataType.ofSeq(seq.map!(s => s.valType.val).array)
+					.OptVal!ADataType;
 		}
 	}
 
