@@ -10,13 +10,16 @@ import alis.common,
 			 alis.compiler.semantic.error,
 			 alis.compiler.semantic.eval,
 			 alis.compiler.semantic.types,
+			 alis.compiler.semantic.typeofexpr,
 			 alis.compiler.ast,
 			 alis.compiler.ast.rst;
 
-import std.format;
+import std.format,
+			 std.algorithm;
 
-package alias CallabilityCheckers = CallabilityCheckersOf!(mixin(__MODULE__));
-package alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
+package:
+alias CallabilityCheckers = CallabilityCheckersOf!(mixin(__MODULE__));
+alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
 
 @Intr(IntrN.CTWrite){
 	@CallabilityChecker
@@ -197,19 +200,80 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = pos;
 		final switch (p.type){
-		case AValCT.Type.Symbol:
-			r.val = p.symS.isDType.AVal;
-			break;
-		case AValCT.Type.Type:
-			r.val = true.AVal;
-			break;
-		case AValCT.Type.Literal:
-		case AValCT.Type.Expr:
-			r.val = false.AVal;
-			break;
-		case AValCT.Type.Seq:
-			assert (false, "AValCT.Type.Seq in $isType");
+			case AValCT.Type.Symbol:
+				r.val = p.symS.isDType.AVal;
+				break;
+			case AValCT.Type.Type:
+				r.val = true.AVal;
+				break;
+			case AValCT.Type.Literal:
+			case AValCT.Type.Expr:
+				r.val = false.AVal;
+				break;
+			case AValCT.Type.Seq:
+				return SmErrsVal!RExpr([errUnsup(pos, "AValCT.Type.Seq in $isType")]);
 		}
+		return SmErrsVal!RExpr(r);
+	}
+}
+
+@Intr(IntrN.TypeOf){
+	@CallabilityChecker
+	bool typeOfCanCall(AValCT[] params){
+		return !(typeOfTranslate(string.init, Location.init,
+					null, null, null, null, params).isErr);
+	}
+	@ExprTranslator
+	SmErrsVal!RExpr typeOfTranslate(string, Location pos, STab,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+		if (params.length != 1)
+			return SmErrsVal!RExpr([
+					errParamCount(pos, IntrN.TypeOf.format!"$%s", 1, params.length)]);
+		ADataType type;
+		final switch (params[0].type){
+			case AValCT.Type.Symbol:
+				ASymbol* sym = params[0].symS;
+				final switch (sym.type){
+					case ASymbol.Type.Struct:
+					case ASymbol.Type.Union:
+					case ASymbol.Type.Enum:
+					case ASymbol.Type.Import:
+					case ASymbol.Type.UTest:
+					case ASymbol.Type.Template:
+						return SmErrsVal!RExpr([errCallableIncompat(pos,
+									IntrN.TypeOf.format!"$%s", params.map!(p => p.toString))]);
+					case ASymbol.Type.EnumConst:
+						type = sym.enumCS.type;
+						break;
+					case ASymbol.Type.Fn:
+						type = ADataType.ofFn(sym.fnS.retT, sym.fnS.paramsT);
+						break;
+					case ASymbol.Type.Var:
+						type = sym.varS.type;
+						break;
+					case ASymbol.Type.Alias:
+						// TODO: decide on $typeOf(alias)
+						return SmErrsVal!RExpr([errUnsup(pos, "$isType(alias)")]);
+				}
+				break;
+			case AValCT.Type.Type:
+				return SmErrsVal!RExpr([errCallableIncompat(pos,
+							IntrN.TypeOf.format!"$%s", params.map!(p => p.toString))]);
+				break;
+			case AValCT.Type.Literal:
+				type = params[0].val.type;
+				break;
+			case AValCT.Type.Expr:
+				SmErrsVal!ADataType res = typeOf(params[0].expr);
+				if (res.isErr)
+					return SmErrsVal!RExpr(res.err);
+				type = res.val;
+				break;
+			case AValCT.Type.Seq:
+				return SmErrsVal!RExpr([errUnsup(pos, "$isType(sequence)")]);
+		}
+		RAValCTExpr r = new RAValCTExpr(type.AValCT);
+		r.pos = pos;
 		return SmErrsVal!RExpr(r);
 	}
 }
