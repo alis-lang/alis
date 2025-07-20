@@ -482,3 +482,310 @@ public:
 		return ret;
 	}
 }
+
+/// array length get expressino
+public class RArrayLenExpr : RExpr{
+public:
+	RExpr arr; /// array to get length of
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["arr"] = arr.jsonOf;
+		ret["_name"] = "RArrayLenExpr";
+		return ret;
+	}
+}
+
+/// array length set expression
+public class RArrayLenSetExpr : RExpr{
+public:
+	RExpr arr; /// array to set length of. must be reference to the array
+	RExpr len; /// new length
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["arr"] = arr.jsonOf;
+		ret["len"] = len.jsonOf;
+		ret["_name"] = "RArrayLenSetExpr";
+		return ret;
+	}
+}
+
+/// array read at index expression
+public class RArrayIndexExpr : RExpr{
+public:
+	RExpr arr; /// array
+	RExpr ind; /// index
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["arr"] = arr.jsonOf;
+		ret["ind"] = ind.jsonOf;
+		ret["_name"] = "RArrayIndexExpr";
+		return ret;
+	}
+}
+
+/// union member check
+public class RUnionIsExpr : RExpr{
+public:
+	RExpr val; /// the union
+	size_t memId; /// member id
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["val"] = val.jsonOf;
+		ret["memId"] = memId;
+		ret["_name"] = "RUnionIsExpr";
+		return ret;
+	}
+}
+
+/// get stack trace
+public class RStackTraceExpr : RExpr{
+public:
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["_name"] = "RStackTraceExpr";
+		return ret;
+	}
+}
+
+/// rtWrite
+public class RTWriteExpr : RExpr{
+public:
+	RExpr val; /// value to evaluate & print
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["val"] = val.jsonOf;
+		ret["_name"] = "RTWriteExpr";
+		return ret;
+	}
+}
+
+/// multiply with -1 (FloatX or IntX or UIntX)
+public class RNegExpr : RExpr{
+public:
+	RExpr val; /// the thing to multiply with -1
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["val"] = val.jsonOf;
+		ret["_name"] = "RNegExpr";
+		return ret;
+	}
+}
+
+/// bitwise not
+public class RBitNotExpr : RExpr{
+public:
+	RExpr val;
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["val"] = val.jsonOf;
+		ret["_name"] = "RBitNotExpr";
+		return ret;
+	}
+}
+
+/// bitwise and
+public class RBitAndExpr : RExpr{
+public:
+	RExpr valA, valB;
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["valA"] = valA.jsonOf;
+		ret["valB"] = valB.jsonOf;
+		ret["_name"] = "RBitAndExpr";
+		return ret;
+	}
+}
+
+/// bitwise or
+public class RBitOrExpr : RExpr{
+public:
+	RExpr valA, valB;
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["valA"] = valA.jsonOf;
+		ret["valB"] = valB.jsonOf;
+		ret["_name"] = "RBitOrExpr";
+		return ret;
+	}
+}
+
+/// bitwise xor
+public class RBitXorExpr : RExpr{
+public:
+	RExpr valA, valB;
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["valA"] = valA.jsonOf;
+		ret["valB"] = valB.jsonOf;
+		ret["_name"] = "RBitXorExpr";
+		return ret;
+	}
+}
+
+/// addition
+public class RAddExpr : RExpr{
+public:
+	RExpr lhs, rhs;
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["lhs"] = lhs.jsonOf;
+		ret["rhs"] = rhs.jsonOf;
+		ret["_name"] = "RAddExpr";
+		return ret;
+	}
+}
+
+/// subtraction
+public class RSubExpr : RExpr{
+public:
+	RExpr lhs, rhs;
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["lhs"] = lhs.jsonOf;
+		ret["rhs"] = rhs.jsonOf;
+		ret["_name"] = "RSubExpr";
+		return ret;
+	}
+}
+
+/// multiplication
+public class RMulExpr : RExpr{
+public:
+	RExpr lhs, rhs;
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["lhs"] = lhs.jsonOf;
+		ret["rhs"] = rhs.jsonOf;
+		ret["_name"] = "RMulExpr";
+		return ret;
+	}
+}
+
+/// division
+public class RDivExpr : RExpr{
+public:
+	RExpr lhs, rhs;
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["lhs"] = lhs.jsonOf;
+		ret["rhs"] = rhs.jsonOf;
+		ret["_name"] = "RDivExpr";
+		return ret;
+	}
+}
+
+/// modulus
+public class RModExpr : RExpr{
+public:
+	RExpr lhs, rhs;
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["lhs"] = lhs.jsonOf;
+		ret["rhs"] = rhs.jsonOf;
+		ret["_name"] = "RModExpr";
+		return ret;
+	}
+}
+
+/// left shift
+public class RShiftLExpr : RExpr{
+public:
+	RExpr val;
+	RExpr by;
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["val"] = val.jsonOf;
+		ret["by"] = by.jsonOf;
+		ret["_name"] = "RShiftLExpr";
+		return ret;
+	}
+}
+
+/// left shift
+public class RShiftRExpr : RExpr{
+public:
+	RExpr val;
+	RExpr by;
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["val"] = val.jsonOf;
+		ret["by"] = by.jsonOf;
+		ret["_name"] = "RShiftRExpr";
+		return ret;
+	}
+}
+
+/// `a is b` comparison
+public class RCmpIsExpr : RExpr{
+public:
+	RExpr valA, valB;
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["valA"] = valA.jsonOf;
+		ret["valB"] = valB.jsonOf;
+		ret["_name"] = "RCmpIsExpr";
+		return ret;
+	}
+}
+
+/// `a !is b` comparison
+public class RCmpNotIsExpr : RExpr{
+public:
+	RExpr valA, valB;
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["valA"] = valA.jsonOf;
+		ret["valB"] = valB.jsonOf;
+		ret["_name"] = "RCmpNotIsExpr";
+		return ret;
+	}
+}
+
+/// `a < b` comparison
+public class RCmpLessExpr : RExpr{
+public:
+	RExpr rhs;
+	RExpr lhs;
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["rhs"] = rhs.jsonOf;
+		ret["lhs"] = lhs.jsonOf;
+		ret["_name"] = "RCmpLessExpr";
+		return ret;
+	}
+}
+
+/// cast between primitives
+public class RCastExpr : RExpr{
+public:
+	RExpr val;
+	ADataType target;
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["val"] = val.jsonOf;
+		ret["target"] = target.toString;
+		ret["_name"] = "RCastExpr";
+		return ret;
+	}
+}
