@@ -775,8 +775,21 @@ public:
 	}
 }
 
+/// boolean not
+public class RNotExpr : RExpr{
+public:
+	RExpr val;
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["val"] = val.jsonOf;
+		ret["_name"] = "RNotExpr";
+		return ret;
+	}
+}
+
 /// cast between primitives
-public class RCastExpr : RExpr{
+public class RToExpr : RExpr{
 public:
 	RExpr val;
 	ADataType target;
@@ -785,7 +798,7 @@ public:
 		JSONValue ret = super.jsonOf;
 		ret["val"] = val.jsonOf;
 		ret["target"] = target.toString;
-		ret["_name"] = "RCastExpr";
+		ret["_name"] = "RToExpr";
 		return ret;
 	}
 }

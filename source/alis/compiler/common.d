@@ -68,28 +68,27 @@ public enum IntrN : string{
 	CTWrite = "ctWrite",
 
 	// arithmetic operations
-	ArithNeg = "arithNeg",
-	ArithBinNot = "arithBinNot",
-	ArithBinOr = "arithBinOr",
-	ArithBinAnd = "arithBinAnd",
-	ArithBinXor = "arithBinXor",
-	ArithAdd = "arithAdd",
-	ArithSub = "arithSub",
-	ArithMul = "arithMul",
-	ArithDiv = "arithDiv",
-	ArithMod = "arithMod",
-	ArithLShift = "arithLShift",
-	ArithSShift = "arithSShift",
-
-	// booleans
-	BoolNot = "boolNot",
+	Negate = "negate",
+	BitNot = "bitNot",
+	BitOr = "bitOr",
+	BitAnd = "bitAnd",
+	BitXor = "bitXor",
+	Add = "add",
+	Sub = "sub",
+	Mul = "mul",
+	Div = "div",
+	Mod = "mod",
+	ShiftL = "shiftL",
+	ShiftR = "shiftR",
 
 	// comparison
 	Is = "is",
 	IsNot = "isNot",
+	IsLess = "isLess",
+	Not = "not",
 
 	// casting
-	Cast = "cast"
+	To = "to"
 }
 
 /// Returns: true if a string is a valid intrinsic name

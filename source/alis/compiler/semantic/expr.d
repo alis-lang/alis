@@ -1277,7 +1277,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 	void opNotIsPreIter(OpNotIsPre node, ref St st){
 		IntrinsicExpr itr = new IntrinsicExpr;
 		itr.pos = node.pos;
-		itr.name = IntrN.BoolNot;
+		itr.name = IntrN.Not;
 		OpCallExpr itrCall = new OpCallExpr;
 		itrCall.pos = node.pos;
 		itrCall.callee = itr;

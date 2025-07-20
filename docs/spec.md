@@ -2090,32 +2090,30 @@ These should only be used for debugging.
 
 Any intrinsic here that accepts 2 parameters, both should be of the same type.
 
-- `arithNeg(X)` - returns `X` with negated sign
-- `arithBinNot(X)` - returns bitwise not of `X`
-- `arithBinOr(X, Y)` - returns bitwise or of `X` and `Y`
-- `arithBinAnd(X, Y)` - returns bitwise and of `X` and `Y`.
-- `arithBinXor(X, Y)` - returns bitwise xor of `X` and `Y`
-- `arithAdd(X, Y)` - returns `X+Y`
-- `arithSub(X, Y)` - returns `X-Y`
-- `arithMul(X, Y)` - returns `X*Y`
-- `arithDiv(X, Y)` - returns `X/Y`
-- `arithMod(X, Y)` - returns `X%Y`. Only for integers, not floats.
+- `negate(X)` - returns `X` with negated sign
+- `bitNot(X)` - returns bitwise not of `X`
+- `bitOr(X, Y)` - returns bitwise or of `X` and `Y`
+- `bitAnd(X, Y)` - returns bitwise and of `X` and `Y`.
+- `bitXor(X, Y)` - returns bitwise xor of `X` and `Y`
+- `add(X, Y)` - returns `X+Y`
+- `sub(X, Y)` - returns `X-Y`
+- `mul(X, Y)` - returns `X*Y`
+- `div(X, Y)` - returns `X/Y`
+- `mod(X, Y)` - returns `X%Y`. Only for integers, not floats.
 
 For the left/right shift, `X` and `Y` must be integers. Same type is not
 required:
 
-- `arithLShift(X, Y)` - returns `X << Y`
-- `arithRShift(X, Y)` - returns `X >> Y`
-
-## Booleans
-
-- `boolNot(X)` - returns `false` if `X is true`, or `true` if `X is false`
+- `shiftL(X, Y)` - returns `X << Y`
+- `shiftR(X, Y)` - returns `X >> Y`
 
 ## Comparison
 
-- `is(X, Y)` - returns if `X` equals `Y`.
-- `isNot(X, Y)` - returns if `X` not equals `Y`.
+- `is(X, Y)` - `true` if `X` is `Y`.
+- `isNot(X, Y)` - `true` if `X` not equals `Y`.
+- `isLess(X, Y)` - `true` if `X` less than `Y`.
+- `not(X)` - `true` if `X` is `false`.
 
 ## Type Casting
 
-- `cast(X, T)` - casts `X` to type `T`. Works only for primitives.
+- `to(X, T)` - casts `X` to type `T`. Works only for primitives.
