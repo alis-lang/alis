@@ -277,3 +277,41 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		return SmErrsVal!RExpr(r);
 	}
 }
+
+@Intr(IntrN.ArrayLen){
+	@CallabilityChecker
+	bool arrLenCanCall(AValCT[] params){
+		if (params.length != 1 && params.length != 2)
+			return false;
+		if (!params[0].isVal)
+			return false;
+		ADataType type = params[0].valType.val;
+		if (type.type != ADataType.Type.Array &&
+				type.type != ADataType.Type.Slice)
+			return false;
+		if (params.length == 1)
+			return true;
+		if (!params[1].isVal)
+			return false;
+		type = params[1].valType.val;
+		if (!type.canCastTo(ADataType.ofUInt))
+			return false;
+		return true;
+	}
+
+	@ExprTranslator
+	SmErrsVal!RExpr arrLenTranslate(string, Location pos, STab,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+		if (params.length == 1){
+			RArrayLenExpr r = new RArrayLenExpr;
+			r.pos = pos;
+			r.arr = params[0].toRExpr;
+			return SmErrsVal!RExpr(r);
+		}
+		RArrayLenSetExpr r = new RArrayLenSetExpr;
+		r.pos = pos;
+		r.arr = params[0].toRExpr;
+		r.len = params[1].toRExpr;
+		return SmErrsVal!RExpr(r);
+	}
+}
