@@ -40,7 +40,7 @@ struct St{
 
 @ItFn @ITL(0) {
 	void literalIter(RLiteralExpr node, ref St st){
-		st.res = AVal(node.type, node.value.dup).AValCT;
+		st.res = node.val.AValCT;
 	}
 
 	/*void intrExpr(RIntrinsicExpr node, ref St st){

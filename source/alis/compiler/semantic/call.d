@@ -137,7 +137,7 @@ package SmErrsVal!RExpr fnCall(RFnExpr callee, AValCT[] params){
 		RLiteralExpr val = new RLiteralExpr;
 		val.pos = callee.pos;
 		val.type = symC.paramsT[i];
-		val.value = symC.paramsV[i];
+		val.val = AVal(symC.paramsT[i], symC.paramsV[i]);
 		casted[i] = val;
 	}
 	call.params = casted;

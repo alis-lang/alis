@@ -396,9 +396,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofBool.constOf;
+		r.val = node.val.AVal;
+		r.type = r.val.type;
 		r.hasType = true;
-		r.value = node.val.asBytes;
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
 			st.res = r.to(st.expT).val;
@@ -414,9 +414,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofInt.constOf;
+		r.val = node.val.AVal;
+		r.type = r.val.type;
 		r.hasType = true;
-		r.value = node.val.asBytes;
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
 			st.res = r.to(st.expT).val;
@@ -432,9 +432,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofFloat.constOf;
+		r.val = node.val.AVal;
+		r.type = r.val.type;
 		r.hasType = true;
-		r.value = node.val.asBytes;
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
 			st.res = r.to(st.expT).val;
@@ -450,9 +450,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofString.constOf;
+		r.val = (cast(string)node.val.dup).AVal;
+		r.type = r.val.type;
 		r.hasType = true;
-		r.value = cast(ubyte[])(node.val.dup);
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
 			st.res = r.to(st.expT).val;
@@ -468,9 +468,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofChar.constOf;
+		r.val = node.val.AVal;
+		r.type = r.val.type;
 		r.hasType = true;
-		r.value = [cast(ubyte)node.val];
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
 			st.res = r.to(st.expT).val;
@@ -760,8 +760,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 						r.pos = node.pos;
 						r.enumS = enumS;
 						r.name = rhsId.ident;
-						r.value = enumS.memVal[enumS.memId.countUntil(rhsId.ident)];
+						r.val = AVal(enumS.type,
+								enumS.memVal[enumS.memId.countUntil(rhsId.ident)]);
 						r.type = enumS.type;
+						r.hasType = true;
 						st.res = r;
 						return;
 					}

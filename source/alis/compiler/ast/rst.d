@@ -472,15 +472,12 @@ public:
 /// Resolved Literal Value Expression
 public class RLiteralExpr : RExpr{
 public:
-	/// value
-	void[] value;
-	/// type
-	ADataType type;
+	AVal val; /// the value + type
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
-		ret["value"] = cast(ubyte[])value;
-		ret["type"] = type.toString;
+		ret["data"] = cast(ubyte[])val.data;
+		ret["type"] = val.type.toString;
 		ret["_name"] = "RLiteralExpr";
 		return ret;
 	}
