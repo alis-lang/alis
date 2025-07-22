@@ -12,15 +12,6 @@ import alis.common,
 
 debug import std.stdio;
 
-/// Returns: true if type A can be implicitly casted to B, or A is B
-public bool canCastTo()(const auto ref ADataType a,
-		const auto ref ADataType b) pure {
-	if (a == b)
-		return true;
-	debug stderr.writefln!"STUB: canCastTo(%s, %s) -> false"(a, b);
-	return false;
-}
-
 /// finds a single Data Type among many, which all can cast to.
 /// Returns: found data type, or `ADataType.ofNoInit` if none
 package ADataType commonType(ADataType[] types){

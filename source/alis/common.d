@@ -33,7 +33,6 @@ public struct AVal{
 	/// decodes this data into a type `T`
 	/// Returns: Optional value of type `T`
 	public OptVal!T as(T...)() pure if (T.length && allSatisfy!(isType, T)){
-		import alis.compiler.semantic.types : canCastTo;
 		static if (T.length == 1){
 			assert (type.sizeOf == data.length);
 			static if (std.traits.isNumeric!(T[0])){
@@ -865,6 +864,72 @@ public struct ADataType{
 			default:
 				return false;
 		}
+	}
+
+	/// Returns: true if this can be implicitly casted to target
+	bool canCastTo(const ADataType target) const pure {
+		if (this == target)
+			return true;
+		if (isConst && !target.isConst)
+			return false;
+		final switch (type){
+			case Type.Seq:
+				if (seqT.length != target.seqT.length)
+					return false;
+				foreach (size_t i; 0 .. seqT.length){
+					if (!seqT[i].canCastTo(target.seqT[i]))
+						return false;
+				}
+				return true;
+			case Type.IntX:
+				return target.type == Type.IntX && x <= target.x;
+			case Type.UIntX:
+				return (target.type == Type.UIntX || target.type == Type.IntX) &&
+					x <= target.x;
+			case Type.FloatX:
+				return target.type == Type.FloatX && x <= target.x;
+			case Type.Char:
+				return target.type == Type.Char ||
+					(target.type == Type.IntX && target.x > 8) ||
+					(target.type == Type.UIntX);
+			case Type.Bool:
+				return target.type == Type.Bool ||
+					target.type == Type.IntX ||
+					target.type == Type.UIntX;
+			case Type.Slice:
+				// TODO: allow $slice(X) -> $slice(const X)
+				return target.type == Type.Slice && *refT == *target.refT;
+			case Type.Array:
+				// TODO: allow $array(X) -> $slice(const X)
+				return (target.type == Type.Array || target.type == Type.Slice) &&
+					*refT == *target.refT;
+			case Type.Fn:
+				if (target.type != Type.Fn || *retT != *target.retT ||
+						paramT.length != target.paramT.length)
+					return false;
+				foreach (size_t i; 0 .. paramT.length){
+					if (paramT[i] != target.paramT[i])
+						return false;
+				}
+				return true;
+			case Type.Ref:
+				if (target.type == Type.Ref){
+					// TODO: allow X -> const X
+					return *refT == *target.refT;
+				}
+				// TODO: allow X -> const X
+				return *refT == target;
+			case Type.NoInit:
+				return target.type == Type.NoInit;
+			case Type.Struct:
+				return false; // TODO: implement canCastTo for Struct
+			case Type.Union:
+				return false; // TODO: implement canCastTo for Union
+			case Type.Enum:
+				return false; // TODO: implement canCastTo for Enum
+		}
+		debug stderr.writefln!"STUB: canCastTo(%s, %s) -> false"(this, target);
+		return false;
 	}
 
 	/// Gets initializing bytes for this type
