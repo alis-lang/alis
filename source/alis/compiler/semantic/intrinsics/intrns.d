@@ -347,3 +347,42 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		return SmErrsVal!RExpr(r);
 	}
 }
+
+@Intr(IntrN.SeqLen){
+	@CallabilityChecker
+	bool seqLenCanCall(AValCT[]){
+		return true;
+	}
+	@ExprTranslator
+	SmErrsVal!RExpr seqLenTranslate(string, Location, STab,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+		RLiteralExpr r = new RLiteralExpr;
+		r.val = params.length.AVal;
+		r.type = r.val.type;
+		r.hasType = true;
+		return SmErrsVal!RExpr(r);
+	}
+}
+
+@Intr(IntrN.SeqInd){
+	@CallabilityChecker
+	bool seqIndCanCall(AValCT[] params){
+		return params.length >= 2 &&
+			params[$ - 1].isVal &&
+			params[$ - 1].valType.val.canCastTo(ADataType.ofUInt);
+	}
+
+	@ExprTranslator
+	SmErrsVal!RExpr seqIndTranslate(string, Location pos, STab,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+		OptVal!size_t index = params[$ - 1].val.as!size_t;
+		if (!index.isVal)
+			return SmErrsVal!RExpr([
+					errIncompatType(pos, ADataType.ofUInt.toString,
+						params[$ - 1].valType.val.toString)]);
+		if (index.val + 1 > params.length)
+			return SmErrsVal!RExpr([
+					errBounds(pos, cast(ptrdiff_t)params.length - 1, index.val)]);
+		return SmErrsVal!RExpr(params[index.val].toRExpr);
+	}
+}
