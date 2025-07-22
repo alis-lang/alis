@@ -775,6 +775,8 @@ private bool expT(Location pos, ADataType type, ref St st){
 			IdentU[] aggId;
 			switch (lhsType.type){
 				case ADataType.Type.Struct:
+					if (lhsType.structS is null)
+						break;
 					aggId = lhsType.structS.ident;
 					if (lhsType.structS.exists(rhsId.ident, st.ctx)){
 						member = rhsId.ident;

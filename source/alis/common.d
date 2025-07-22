@@ -895,15 +895,15 @@ public struct ADataType{
 				return ret ~ (*refT).toString.format!"@%s";
 			case Type.Struct:
 				if (structS is null)
-					return "struct(NULL)";
+					return "struct{}";
 				return structS.ident.format!"struct(%s)";
 			case Type.Union:
 				if (unionS is null)
-					return "union(NULL)";
+					return "union{}";
 				return unionS.ident.format!"union(%s)";
 			case Type.Enum:
 				if (enumS is null)
-					return "enum(NULL)";
+					return "enum{}";
 				return enumS.ident.format!"enum(%s)";
 			case Type.NoInit:
 				return "$noinit";
@@ -931,7 +931,8 @@ public struct ADataType{
 			case Type.Ref:
 				return null.sizeof;
 			case Type.Struct:
-				assert (structS !is null);
+				if (structS is null)
+					return 0;
 				return structS.sizeOf;
 				//assert (false, "thou shall not call ADataType.sizeOf on Struct!");
 			case Type.Union:
