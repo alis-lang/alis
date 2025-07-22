@@ -262,12 +262,11 @@ unittest{
 	assert(AVal('a').as!char.val == 'a');
 	assert(AVal(5.5).as!double.val == 5.5);
 	assert(AVal(5).as!int.val == 5);
-	assert(AVal(5).as!ulong.val == 5);
+	assert(AVal(5U).as!ulong.val == 5);
 	assert(AVal(5).as!long.val == 5);
 	assert(true.AVal.as!bool.val == true);
 	assert(false.AVal.as!bool.val == false);
 	assert([1, 2].AVal.as!(int[]).val == [1, 2]);
-
 }
 
 /// an Alis CompileTime Value
@@ -866,6 +865,41 @@ public struct ADataType{
 		}
 	}
 
+	/// Returns: ADataType that is this, but const
+	ADataType constOf() const pure {
+		ADataType ret = this.copy;
+		final switch (type){
+			case Type.Slice:
+			case Type.Array:
+				ret.refT.isConst = true;
+				ret.type = Type.Slice;
+				break;
+			case Type.Seq:
+				ret.type = Type.Seq;
+				ret.seqT = new ADataType[seqT.length];
+				foreach (size_t i, const ref ADataType t; seqT){
+					ret.seqT[i] = t.constOf;
+				}
+				break;
+			case Type.IntX:
+			case Type.UIntX:
+			case Type.FloatX:
+			case Type.Char:
+			case Type.Bool:
+			case Type.Fn:
+			case Type.Ref:
+			case Type.NoInit:
+				ret.isConst = true;
+				break;
+			case Type.Struct:
+			case Type.Union:
+			case Type.Enum:
+				debug stderr.writefln!"STUB: constOf(%s) returning as is"(type);
+				break;
+		}
+		return ret;
+	}
+
 	/// Returns: true if this can be implicitly casted to target
 	bool canCastTo(const ADataType target) const pure {
 		if (this == target)
@@ -1178,7 +1212,6 @@ public struct ADataType{
 	}
 
 	static ADataType ofString() pure {
-		import alis.compiler.semantic.types : constOf; // TODO move it here
 		ADataType str;
 		str.type = Type.Slice;
 		str.refT = [ADataType.ofChar.constOf].ptr;
