@@ -107,7 +107,7 @@ public bool isIntrN(string s) pure {
 ///
 unittest{
 	assert ("type".isIntrN);
-	assert ("cast".isIntrN);
+	assert ("to".isIntrN);
 	assert ("foo".isIntrN == false);
 	assert ("bar".isIntrN == false);
 }
