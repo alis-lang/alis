@@ -221,6 +221,7 @@ public struct AVal{
 		case ADataType.Type.NoInit:
 			break;
 		}
+		return format!"{type: %s, data: %s}"(type, cast(ubyte[])data);
 		assert (false);
 	}
 

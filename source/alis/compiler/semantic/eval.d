@@ -76,9 +76,9 @@ struct St{
 		}
 	}*/
 
-	/*void exprIter(RExpr node, ref St st){
+	void exprIter(RExpr node, ref St st){
 		st.errs ~= errUnsup(node);
-	}*/
+	}
 }
 
 /*private void intrXBitType(RIntrinsicCallExpr node, ref St st){
