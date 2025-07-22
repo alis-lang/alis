@@ -870,7 +870,7 @@ public struct ADataType{
 	/// Gets initializing bytes for this type
 	void[] initB() const pure {
 		debug stderr.writefln!"STUB: ADataType(%s).initB returning zeroes"(this);
-		return new void[sizeOf / 8]; // TODO: implement initB
+		return new void[sizeOf]; // TODO: implement initB
 	}
 
 	string toString() const pure {
