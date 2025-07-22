@@ -281,22 +281,27 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 @Intr(IntrN.ArrayLen){
 	@CallabilityChecker
 	bool arrLenCanCall(AValCT[] params){
-		if (params.length != 1 && params.length != 2)
-			return false;
-		if (!params[0].isVal)
+		if (params.length == 0 || !params[0].isVal)
 			return false;
 		ADataType type = params[0].valType.val;
-		if (type.type != ADataType.Type.Array &&
-				type.type != ADataType.Type.Slice)
-			return false;
-		if (params.length == 1)
+		if (params.length == 1){
+			if (type.type == ADataType.Type.Ref)
+				type = *type.refT;
+			if (type.type != ADataType.Type.Array &&
+					type.type != ADataType.Type.Slice)
+				return false;
 			return true;
-		if (!params[1].isVal)
-			return false;
-		type = params[1].valType.val;
-		if (!type.canCastTo(ADataType.ofUInt))
-			return false;
-		return true;
+		}
+		if (params.length == 2){
+			if (type.type != ADataType.Type.Ref)
+				return false;
+			if (type.refT.type != ADataType.Type.Array)
+				return false;
+			if (!params[1].valType.val.canCastTo(ADataType.ofUInt))
+				return false;
+			return true;
+		}
+		return false;
 	}
 
 	@ExprTranslator
