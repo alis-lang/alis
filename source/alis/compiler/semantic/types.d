@@ -13,7 +13,7 @@ import alis.common,
 debug import std.stdio;
 
 /// Returns: true if type A can be implicitly casted to B, or A is B
-package bool canCastTo()(const auto ref ADataType a,
+public bool canCastTo()(const auto ref ADataType a,
 		const auto ref ADataType b) pure {
 	if (a == b)
 		return true;
