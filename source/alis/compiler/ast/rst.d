@@ -15,6 +15,8 @@ import std.json,
 
 import std.meta;
 
+static import alis.compiler.ast.iter;
+
 public alias RSTIter(Fns...) =
 	Instantiate!(alis.compiler.ast.iter.ASTIter!RSTNodes, Fns);
 

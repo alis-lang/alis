@@ -106,7 +106,7 @@ bool bitXCanCall(AValCT[] params){
 	SmErrsVal!RExpr intTranslate(string, Location pos, STab,
 			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
 		ubyte x = size_t.sizeof * 8;
-		if (params.length == 0)
+		if (params.length != 0)
 			x = cast(ubyte)params[0].val.as!size_t.val;
 		RAValCTExpr r = new RAValCTExpr(ADataType.ofInt(x).AValCT);
 		r.pos = pos;
@@ -117,7 +117,7 @@ bool bitXCanCall(AValCT[] params){
 	SmErrsVal!RExpr uintTranslate(string, Location pos, STab,
 			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
 		ubyte x = size_t.sizeof * 8;
-		if (params.length == 0)
+		if (params.length != 0)
 			x = cast(ubyte)params[0].val.as!size_t.val;
 		RAValCTExpr r = new RAValCTExpr(ADataType.ofUInt(x).AValCT);
 		r.pos = pos;
@@ -128,7 +128,7 @@ bool bitXCanCall(AValCT[] params){
 	SmErrsVal!RExpr floatTranslate(string, Location pos, STab,
 			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
 		ubyte x = size_t.sizeof * 8;
-		if (params.length == 0)
+		if (params.length != 0)
 			x = cast(ubyte)params[0].val.as!size_t.val;
 		RAValCTExpr r = new RAValCTExpr(ADataType.ofFloat(x).AValCT);
 		r.pos = pos;

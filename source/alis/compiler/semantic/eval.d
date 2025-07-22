@@ -43,6 +43,10 @@ struct St{
 		st.res = node.val.AValCT;
 	}
 
+	void avalCtIter(RAValCTExpr node, ref St st){
+		st.res = node.res;
+	}
+
 	/*void intrExpr(RIntrinsicExpr node, ref St st){
 		switch (node.name){
 			case IntrN.NoInit:
@@ -72,9 +76,9 @@ struct St{
 		}
 	}*/
 
-	void exprIter(RExpr node, ref St st){
+	/*void exprIter(RExpr node, ref St st){
 		st.errs ~= errUnsup(node);
-	}
+	}*/
 }
 
 /*private void intrXBitType(RIntrinsicCallExpr node, ref St st){

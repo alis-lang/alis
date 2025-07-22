@@ -142,7 +142,10 @@ package template RtL(alias M, size_t L){
 			Fns = AliasSeq!(Fns, F);
 		}
 	}
-	alias RtL = RSTIter!(Filter!(HasAnyUDA!(ITL(L)), ItFnsOf!M));
+	static import alis.compiler.ast.iter;
+	alias Iter(Fns...) =
+		Instantiate!(alis.compiler.ast.iter.ASTIter!(RSTNodes, RAValCTExpr), Fns);
+	alias RtL = Iter!(Filter!(HasAnyUDA!(ITL(L)), ItFnsOf!M));
 }
 
 /// Semantic Analysis Context

@@ -91,7 +91,7 @@ private template FieldTypesRel(N) if (is (N : ASTNode)){
 /// Template Params:
 /// `N...` - AST Node Types
 /// `F...` - Iterator Functions
-package template ASTIter(N...) if (allSatisfy!(IsASTNode, N)){
+public template ASTIter(N...) if (allSatisfy!(IsASTNode, N)){
 	struct ASTIter(Fns...) if (allSatisfy!(IsItFn, Fns)){
 		/// types being handled
 		private alias RelT = NoDuplicates!(FirstParamsOf!Fns);
