@@ -320,3 +320,30 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		return SmErrsVal!RExpr(r);
 	}
 }
+
+@Intr(IntrN.ArrayInd){
+	@CallabilityChecker
+	bool arrIndCanCall(AValCT[] params){
+		if (params.length != 2)
+			return false;
+		if (!params[0].isVal || !params[1].isVal)
+			return false;
+		ADataType type = params[0].valType.val;
+		if (type.type != ADataType.Type.Array &&
+				type.type != ADataType.Type.Slice)
+			return false;
+		if (!params[1].valType.val.canCastTo(ADataType.ofUInt))
+			return false;
+		return true;
+	}
+
+	@ExprTranslator
+	SmErrsVal!RExpr arrIndTranslate(string, Location pos, STab,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+		RArrayIndexExpr r = new RArrayIndexExpr;
+		r.pos = pos;
+		r.arr = params[0].toRExpr;
+		r.ind = params[1].toRExpr;
+		return SmErrsVal!RExpr(r);
+	}
+}
