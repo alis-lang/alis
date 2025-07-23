@@ -36,9 +36,9 @@ public struct AVal{
 		static if (T.length == 1){
 			assert (type.sizeOf == data.length);
 			static if (std.traits.isNumeric!(T[0])){
-				if (!type.canCastTo(ADataType.of!T))
-					return OptVal!T();
 				static if (isFloatingPoint!(T[0])){
+					if (!type.canCastTo(ADataType.of!T))
+						return OptVal!T();
 					if (type.type != ADataType.Type.FloatX ||
 							type.x > T[0].sizeof * 8)
 						return OptVal!(T[0])();

@@ -414,8 +414,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
-		r.val = AVal(ADataType.ofInt(int.sizeof * 8),
-				(cast(int)node.val).asBytes); // HACK: handle this properly!
+		r.val = node.val.AVal;
 		r.type = r.val.type;
 		r.hasType = true;
 		if (!expT(node.pos, r, st)) return;
@@ -433,8 +432,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
-		r.val = AVal(ADataType.ofFloat(float.sizeof * 8),
-				(cast(float)node.val).asBytes); // HACK: handle this properly!
+		r.val = node.val.AVal;
 		r.type = r.val.type;
 		r.hasType = true;
 		if (!expT(node.pos, r, st)) return;
