@@ -53,36 +53,42 @@ public struct AVal{
 						debug stderr.writefln!"invalid data found in AVal.as";
 						return OptVal!(T[0])();
 					}
-				} else
-				static if (isIntegral!(T[0])){
-					if (type.type == ADataType.Type.IntX){
-						if (T[0].sizeof * 8 < type.x)
-							return OptVal!(T[0])();
-						switch (data.length){
-							static foreach (Type; SignedInts){
-								static if (T[0].sizeof >= Type.sizeof){
-									case Type.sizeof:
-										return OptVal!(T[0])(cast(T[0])data.as!Type);
-								}
-							}
+				}
+				if (type.type == ADataType.Type.IntX){
+					ptrdiff_t num;
+					if (T[0].sizeof * 8 < type.x)
+						return OptVal!(T[0])();
+signedSwitch:
+					switch (data.length){
+						static foreach (Type; SignedInts){
+							case Type.sizeof:
+								num = data.as!Type;
+								break signedSwitch;
+						}
 						default:
 							debug stderr.writefln!"invalid data found in AVal.as";
 							return OptVal!(T[0])();
-						}
-					} else
-					if (type.type == ADataType.Type.UIntX){
-						switch (data.length){
-							static foreach (Type; UnsignedInts){
-								static if (T[0].sizeof >= Type.sizeof){
-									case Type.sizeof:
-										return OptVal!(T[0])(cast(T[0])data.as!Type);
-								}
-							}
-						default:
-							debug stderr.writefln!"invalid data found in AVal.as";
-							return OptVal!(T[0])();
-						}
 					}
+					if (num < (T[0]).min || num > (T[0]).max)
+						return OptVal!(T[0])();
+					return OptVal!(T[0])(cast(T[0])num);
+				} else
+				if (type.type == ADataType.Type.UIntX){
+					size_t num;
+unsignedSwitch:
+					switch (data.length){
+						static foreach (Type; UnsignedInts){
+							case Type.sizeof:
+								num = data.as!Type;
+								break unsignedSwitch;
+						}
+						default:
+							debug stderr.writefln!"invalid data found in AVal.as";
+							return OptVal!(T[0])();
+					}
+					if (num < (T[0]).min || num > (T[0]).max)
+						return OptVal!(T[0])();
+					return OptVal!(T[0])(cast(T[0])num);
 				}
 
 			} else
