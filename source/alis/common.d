@@ -30,6 +30,34 @@ public struct AVal{
 	void[] data; /// the data
 	ADataType type = ADataType.ofNoInit; /// data type
 
+	/// Returns: true if this can be implicitly casted to target type
+	public bool canCastTo(const ADataType target) pure {
+		if (type.type == ADataType.Type.IntX ||
+				type.type == ADataType.Type.UIntX){
+			if (target.type == ADataType.Type.IntX){
+				switch (target.x){
+					static foreach (T; SignedInts){
+						case T.sizeof * 8:
+							return as!T.isVal;
+					}
+					default:
+						return false;
+				}
+			} else
+			if (target.type == ADataType.Type.UIntX){
+				switch (target.x){
+					static foreach (T; UnsignedInts){
+						case T.sizeof * 8:
+							return as!T.isVal;
+					}
+					default:
+						return false;
+				}
+			}
+		}
+		return type.canCastTo(target);
+	}
+
 	/// decodes this data into a type `T`
 	/// Returns: Optional value of type `T`
 	public OptVal!T as(T...)() pure if (T.length && allSatisfy!(isType, T)){
