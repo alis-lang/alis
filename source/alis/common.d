@@ -314,6 +314,29 @@ public struct AValCT{
 		Seq, /// alias (sequence)
 	}
 
+	/// Returns: true if this can be implicitly casted to target
+	bool canCastTo(const ADataType target){
+		import alis.compiler.semantic.typeofexpr : typeOf;
+		import alis.compiler.semantic.error : SmErrsVal;
+		final switch (type){
+			case Type.Literal:
+				return val.canCastTo(target);
+			case Type.Symbol:
+				OptVal!ADataType t = symS.valType;
+				return t.isVal && t.val.canCastTo(target);
+			case Type.Type:
+				return typeT.canCastTo(target);
+			case Type.Expr:
+				SmErrsVal!ADataType t = typeOf(expr);
+				if (t.isErr)
+					return false;
+				return t.val.canCastTo(target);
+			case Type.Seq:
+				debug stderr.writefln!"STUB: Seq.canCastTo -> false";
+				return false;
+		}
+	}
+
 	/// whether this is a value
 	@property bool isVal(){
 		import alis.compiler.semantic.typeofexpr;
@@ -321,21 +344,7 @@ public struct AValCT{
 			case Type.Literal:
 				return true;
 			case Type.Symbol:
-				final switch (symS.type){
-					case ASymbol.Type.Struct:
-					case ASymbol.Type.Union:
-					case ASymbol.Type.Enum:
-					case ASymbol.Type.Import:
-					case ASymbol.Type.UTest:
-					case ASymbol.Type.Template:
-						return false;
-					case ASymbol.Type.Var:
-					case ASymbol.Type.EnumConst:
-					case ASymbol.Type.Fn:
-						return true;
-					case ASymbol.Type.Alias:
-						assert (false, "isVal on Alias is undecided");
-				}
+				return symS.isVal;
 			case Type.Type:
 				return false;
 			case Type.Expr:
@@ -356,24 +365,7 @@ public struct AValCT{
 			case Type.Literal:
 				return val.type.OptVal!ADataType;
 			case Type.Symbol:
-				final switch (symS.type){
-					case ASymbol.Type.Struct:
-					case ASymbol.Type.Union:
-					case ASymbol.Type.Enum:
-					case ASymbol.Type.Import:
-					case ASymbol.Type.UTest:
-					case ASymbol.Type.Template:
-						return OptVal!ADataType();
-					case ASymbol.Type.Var:
-						return symS.varS.type.OptVal!ADataType;
-					case ASymbol.Type.EnumConst:
-						return symS.enumCS.type.OptVal!ADataType;
-					case ASymbol.Type.Fn:
-						return ADataType.ofFn(symS.fnS.retT, symS.fnS.paramsT)
-							.OptVal!ADataType;
-					case ASymbol.Type.Alias:
-						assert (false, "valType on Alias is undecided");
-				}
+				return symS.valType;
 			case Type.Type:
 				return typeT.OptVal!ADataType;
 			case Type.Expr:
@@ -416,14 +408,14 @@ public struct AValCT{
 		this.val = val;
 	}
 	/// ditto
-	this (ASymbol* sym){
+	this (ASymbol* symS){
 		this.type = Type.Symbol;
-		this.symS = sym;
+		this.symS = symS;
 	}
 	/// ditto
-	this (ADataType type){
+	this (ADataType typeT){
 		this.type = Type.Type;
-		this.typeT = type;
+		this.typeT = typeT;
 	}
 	/// ditto
 	this (RExpr expr){
@@ -563,6 +555,47 @@ public struct ASymbol{
 			case Type.Fn:
 			case Type.Template:
 				return true;
+		}
+	}
+
+	///Returns: true if this is a value
+	bool isVal() const pure {
+		final switch (type){
+			case ASymbol.Type.Struct:
+			case ASymbol.Type.Union:
+			case ASymbol.Type.Enum:
+			case ASymbol.Type.Import:
+			case ASymbol.Type.UTest:
+			case ASymbol.Type.Template:
+				return false;
+			case ASymbol.Type.Var:
+			case ASymbol.Type.EnumConst:
+			case ASymbol.Type.Fn:
+				return true;
+			case ASymbol.Type.Alias:
+				assert (false, "isVal on Alias is undecided");
+		}
+	}
+
+	/// Returns: data type of value, if `isVal`
+	OptVal!ADataType valType() pure {
+		final switch (type){
+			case ASymbol.Type.Struct:
+			case ASymbol.Type.Union:
+			case ASymbol.Type.Enum:
+			case ASymbol.Type.Import:
+			case ASymbol.Type.UTest:
+			case ASymbol.Type.Template:
+				return OptVal!ADataType();
+			case ASymbol.Type.Var:
+				return varS.type.OptVal!ADataType;
+			case ASymbol.Type.EnumConst:
+				return enumCS.type.OptVal!ADataType;
+			case ASymbol.Type.Fn:
+				return ADataType.ofFn(fnS.retT, fnS.paramsT)
+					.OptVal!ADataType;
+			case ASymbol.Type.Alias:
+				assert (false, "valType on Alias is undecided");
 		}
 	}
 
