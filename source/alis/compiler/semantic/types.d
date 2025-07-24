@@ -12,15 +12,6 @@ import alis.common,
 
 debug import std.stdio;
 
-/// Returns: true if type A can be implicitly casted to B, or A is B
-package bool canCastTo()(const auto ref ADataType a,
-		const auto ref ADataType b) pure {
-	if (a == b)
-		return true;
-	debug stderr.writefln!"STUB: canCastTo(%s, %s) -> false"(a, b);
-	return false;
-}
-
 /// finds a single Data Type among many, which all can cast to.
 /// Returns: found data type, or `ADataType.ofNoInit` if none
 package ADataType commonType(ADataType[] types){
@@ -57,21 +48,6 @@ package SmErrsVal!RExpr to(RExpr expr, ADataType type){
 	return SmErrsVal!RExpr(expr);
 }
 
-/// converts a type to const
-/// Returns: cont type
-package ADataType constOf()(const auto ref ADataType type) pure {
-	ADataType ret = type.copy;
-	if (ret.type == ADataType.Type.Slice || ret.type == ADataType.Type.Array){
-		ret.refT.isConst = true;
-		// array become slice
-		ret.type = ADataType.Type.Slice;
-		return ret;
-	}
-	ret.isConst = true;
-	return ret;
-}
-
-///
 unittest{
 	ADataType constInt = ADataType.ofInt;
 	constInt.isConst = true;

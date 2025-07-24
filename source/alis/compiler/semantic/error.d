@@ -52,6 +52,7 @@ public struct SmErr{
 		AssignRefNotRef, /// `@=` used with non-ref LHS
 		DerefNoRef, /// trying to deref something that is not a ref
 		ConstConst, /// trying to const a const
+		IntrUnk, /// unknown intrinsic
 	}
 
 	/// where error happen
@@ -119,7 +120,14 @@ package SmErr errParamCount(ASTNode node, string name, size_t expected,
 				name, expected, got),
 			SmErr.Type.ParamCountMis);
 }
-
+/// ditto
+package SmErr errParamCount(Location pos, string name, size_t expected,
+		size_t got){
+	return SmErr(pos,
+			format!"Mismatched parameter count for `%s`: expected %d, received %d"(
+				name, expected, got),
+			SmErr.Type.ParamCountMis);
+}
 /// Recursive Dependency
 package SmErr errRecDep(Location pos, string name){
 	return SmErr(pos,
@@ -239,8 +247,16 @@ package SmErr errNotCallable(Location pos, string symN){
 package SmErr errCallableConflict(R)(Location pos, string symN, R range) if (
 		isInputRange!(R, string)){
 	return SmErr(pos,
-			format!"multiple matches: for callable `%s` with parameters %(%r%)"(
+			format!"ambiguous call: for callable `%s` with parameters %(%r%)"(
 				symN, range), SmErr.Type.CallableConflict);
+}
+/// ditto
+package SmErr errCallableConflict(R0, R1)(Location pos,
+		R0 paramsA, R1 paramsB) if (
+		isInputRange!(R0, string) && isInputRange!(R1, string)){
+	return SmErr(pos,
+			format!"ambiguous call: matches with both: (%(%r%)) and (%(%r%))"(
+				paramsA, paramsB), SmErr.Type.CallableConflict);
 }
 
 /// use of undefined identifier
@@ -284,4 +300,9 @@ package SmErr errDerefNoRef(Location pos, string type){
 package SmErr errConstConst(Location pos, string type){
 	return SmErr(pos, type.format!"constOf const: cannot const `%s`",
 			SmErr.Type.ConstConst);
+}
+
+/// unknown intrinsic
+package SmErr errIntrUnk(Location pos, string intrN){
+	return SmErr(pos, intrN.format!"unknown intrinsic: `%s`", SmErr.Type.IntrUnk);
 }

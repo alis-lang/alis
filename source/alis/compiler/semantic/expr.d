@@ -14,6 +14,7 @@ import alis.common,
 			 alis.compiler.semantic.types,
 			 alis.compiler.semantic.call,
 			 alis.compiler.semantic.canref,
+			 alis.compiler.semantic.intrinsics,
 			 alis.compiler.ast,
 			 alis.compiler.ast.iter,
 			 alis.compiler.ast.rst;
@@ -60,7 +61,7 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 /// Returns: true if error-free, false if error added
 private bool expT(Location pos, RExpr expr, ref St st){
 	if (!st.isExpT) return true;
-	SmErrsVal!ADataType typeRes = typeOf(expr, st.stabR, st.ctx);
+	SmErrsVal!ADataType typeRes = typeOf(expr);
 	if (typeRes.isErr){
 		st.errs ~= typeRes.err;
 		return false;
@@ -130,23 +131,19 @@ private bool expT(Location pos, ADataType type, ref St st){
 		RExpr r;
 		switch (res.type){
 			case ASymbol.Type.Struct:
-				r = new RAValCTExpr(ADataType.of(&res.structS).AValCT);
-				break;
 			case ASymbol.Type.Union:
-				r = new RAValCTExpr(ADataType.of(&res.unionS).AValCT);
-				break;
 			case ASymbol.Type.Enum:
-				r = new RAValCTExpr(ADataType.of(&res.enumS).AValCT);
+				r = new RAValCTExpr(res.AValCT);
 				break;
 			case ASymbol.Type.EnumConst:
-				r = new RAValCTExpr(AValCT(res.enumCS.type, res.enumCS.data));
+				r = new RAValCTExpr(AVal(res.enumCS.type, res.enumCS.data).AValCT);
 				break;
 			case ASymbol.Type.Fn:
-				r = new RFnExpr(res.fnS);
+				r = new RFnExpr(&res.fnS);
 				break;
 			case ASymbol.Type.Var:
 				r = new RVarExpr(res.varS);
-				SmErrsVal!ADataType typeRes = typeOf(r, st.stabR, st.ctx);
+				SmErrsVal!ADataType typeRes = typeOf(r);
 				if (typeRes.isErr){
 					st.errs ~= typeRes.err;
 					return;
@@ -189,7 +186,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			}
 			r.block.statements ~= stmntRes.val;
 		}
-		SmErrsVal!ADataType typeRes = typeOf(r, st.stabR, st.ctx);
+		SmErrsVal!ADataType typeRes = typeOf(r);
 		if (typeRes.isErr){
 			st.errs ~= typeRes.err;
 			return;
@@ -355,7 +352,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 					st.params.map!(p => p.toString));
 			return;
 		}
-		RExpr res = new RFnExpr(*symC);
+		RExpr res = new RFnExpr(symC);
 		if (!expT(node.pos, res, st)) return;
 		st.res = res;
 	}
@@ -399,9 +396,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofBool.constOf;
+		r.val = node.val.AVal;
+		r.type = r.val.type;
 		r.hasType = true;
-		r.value = node.val.asBytes;
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
 			st.res = r.to(st.expT).val;
@@ -417,9 +414,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofInt.constOf;
+		r.val = node.val.AVal;
+		r.type = r.val.type;
 		r.hasType = true;
-		r.value = node.val.asBytes;
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
 			st.res = r.to(st.expT).val;
@@ -435,9 +432,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofFloat.constOf;
+		r.val = node.val.AVal;
+		r.type = r.val.type;
 		r.hasType = true;
-		r.value = node.val.asBytes;
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
 			st.res = r.to(st.expT).val;
@@ -453,9 +450,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofString.constOf;
+		r.val = (cast(string)node.val.dup).AVal;
+		r.type = r.val.type;
 		r.hasType = true;
-		r.value = cast(ubyte[])(node.val.dup);
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
 			st.res = r.to(st.expT).val;
@@ -471,9 +468,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RLiteralExpr r = new RLiteralExpr;
 		r.pos = node.pos;
-		r.type = ADataType.ofChar(8).constOf;
+		r.val = node.val.AVal;
+		r.type = r.val.type;
 		r.hasType = true;
-		r.value = [cast(ubyte)node.val];
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
 			st.res = r.to(st.expT).val;
@@ -560,7 +557,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
-		r.res = ADataType.ofChar(8).AValCT;
+		r.res = ADataType.ofChar.AValCT;
 		if (!expT(node.pos, r, st)) return;
 		st.res = r;
 	}
@@ -624,7 +621,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		call.pos = node.pos;
 		IdentExpr callee = new IdentExpr;
 		callee.pos = node.pos;
-		callee.ident = "opPre";
+		callee.ident = "opBin";
 		call.callee = callee;
 		LiteralStringExpr op = new LiteralStringExpr;
 		op.pos = node.pos;
@@ -635,6 +632,11 @@ private bool expT(Location pos, ADataType type, ref St st){
 
 	void intrinsicExprIter(IntrinsicExpr node, ref St st){
 		assert (node.name.isIntrN);
+		if (callabilityOf(node.name, st.params) == size_t.max){
+			st.errs ~= errCallableIncompat(node.pos, node.name.format!"$%s",
+					st.params.map!(p => p.toString));
+			return;
+		}
 		if (st.params.length){
 			RIntrinsicPartCallExpr r = new RIntrinsicPartCallExpr;
 			r.pos = node.pos;
@@ -642,14 +644,13 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.res = r;
 			return;
 		}
-		RIntrinsicExpr r = new RIntrinsicExpr;
-		r.pos = node.pos;
-		r.name = node.name;
-		if (st.isExpT)
-			st.res = r.to(st.expT).val;
-		else
-			st.res = r;
-		// TODO: implement intrinsics!!
+		SmErrsVal!RExpr res = resolveIntrN(node.name, node.pos, st.params,
+				st.stabR, st.ctx, st.dep, st.fns);
+		if (res.isErr){
+			st.errs ~= res.err;
+			return;
+		}
+		st.res = res.val;
 	}
 
 	void opCallExprIter(OpCallExpr node, ref St st){
@@ -682,29 +683,13 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 
 		RExpr r;
-		if (RFnPartCallExpr pFnCall = cast(RFnPartCallExpr)callee){
-			ADataType fnType; {
-				SmErrsVal!ADataType res = typeOf(pFnCall.callee, st.stabR, st.ctx);
-				if (res.isErr){
-					st.errs ~= res.err;
-					return;
-				}
-				fnType = res.val;
+		if (RPartCallExpr pFnCall = cast(RPartCallExpr)callee){
+			SmErrsVal!RExpr res = pFnCall.callee.call(pFnCall.params ~ params);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
 			}
-			assert (fnType.type == ADataType.Type.Fn);
-			assert (fnType.paramT.length == paramsExpr.length + pFnCall.params.length,
-					"WOT!?");
-			immutable size_t offset = pFnCall.params.length;
-			foreach (size_t i, RExpr param; paramsExpr){
-				SmErrsVal!RExpr castRes = param.to(fnType.paramT[offset + i]);
-				if (castRes.isErr){
-					st.errs ~= castRes.err;
-					continue;
-				}
-				pFnCall.params ~= castRes.val;
-			}
-			if (pFnCall.params.length != fnType.paramT.length) return;
-			r = pFnCall;
+			r = res.val;
 		} else
 		if (RTmPartInitExpr pTmCall = cast(RTmPartInitExpr)callee){
 			st.errs ~= errUnsup(node.pos, "Template instantiation");
@@ -714,47 +699,25 @@ private bool expT(Location pos, ADataType type, ref St st){
 			r = pTmCall;
 		} else
 		if (RIntrinsicPartCallExpr iCall = cast(RIntrinsicPartCallExpr)callee){
-			assert (iCall.params.length + paramsExpr.length == iCall.paramT.length,
-					"WOT!?");
-			immutable size_t offset = iCall.params.length;
-			foreach (size_t i, RExpr param; paramsExpr){
-				SmErrsVal!RExpr castRes = param.to(iCall.paramT[offset + i]);
-				if (castRes.isErr){
-					st.errs ~= castRes.err;
-					continue;
-				}
-				iCall.params ~= castRes.val;
+			iCall.params ~= params;
+			SmErrsVal!RExpr res = resolveIntrN(iCall.name, iCall.pos, iCall.params,
+					st.stabR, st.ctx, st.dep, st.fns);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
 			}
-			if (iCall.params.length != iCall.paramT.length) return;
-			iCall.params ~= paramsExpr;
-			r = iCall;
+			st.res = res.val;
+			return;
 		} else {
-			RFnCallExpr call = new RFnCallExpr;
-			call.pos = node.pos;
-			call.callee = callee;
-			ADataType fnType; {
-				SmErrsVal!ADataType res = typeOf(callee, st.stabR, st.ctx);
-				if (res.isErr){
-					st.errs ~= res.err;
-					return;
-				}
-				fnType = res.val;
+			SmErrsVal!RExpr res = callee.call(params);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
 			}
-			assert (fnType.type == ADataType.Type.Fn);
-			assert (fnType.paramT.length == paramsExpr.length, "WOT!?");
-			foreach (size_t i, RExpr param; paramsExpr){
-				SmErrsVal!RExpr castRes = param.to(fnType.paramT[i]);
-				if (castRes.isErr){
-					st.errs ~= castRes.err;
-					continue;
-				}
-				call.params ~= castRes.val;
-			}
-			if (call.params.length != fnType.paramT.length) return;
-			r = call;
+			r = res.val;
 		}
 		if (!expT(node.pos, r, st)) return;
-		SmErrsVal!ADataType typeRes = typeOf(r, st.stabR, st.ctx);
+		SmErrsVal!ADataType typeRes = typeOf(r);
 		if (typeRes.isErr){
 			st.errs ~= typeRes.err;
 			return;
@@ -779,7 +742,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			lhsExpr = res.val;
 		}
 		ADataType lhsType; {
-			SmErrsVal!ADataType res = typeOf(lhsExpr, st.stabR, st.ctx);
+			SmErrsVal!ADataType res = typeOf(lhsExpr);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
@@ -788,12 +751,32 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 
 		if (IdentExpr rhsId = cast(IdentExpr)node.rhs){
+			if (RAValCTExpr val = cast(RAValCTExpr)lhsExpr){
+				if (val.res.type == AValCT.Type.Symbol &&
+						val.res.symS.type == ASymbol.Type.Enum){
+					AEnum* enumS = &val.res.symS.enumS;
+					if (enumS.memId.canFind(rhsId.ident)){
+						REnumMemberGetExpr r = new REnumMemberGetExpr;
+						r.pos = node.pos;
+						r.enumS = enumS;
+						r.name = rhsId.ident;
+						r.val = AVal(enumS.type,
+								enumS.memVal[enumS.memId.countUntil(rhsId.ident)]);
+						r.type = enumS.type;
+						r.hasType = true;
+						st.res = r;
+						return;
+					}
+				}
+			}
 			string member = null;
 			ADataType memberType;
 			Visibility memberVis;
 			IdentU[] aggId;
 			switch (lhsType.type){
 				case ADataType.Type.Struct:
+					if (lhsType.structS is null)
+						break;
 					aggId = lhsType.structS.ident;
 					if (lhsType.structS.exists(rhsId.ident, st.ctx)){
 						member = rhsId.ident;
@@ -808,10 +791,6 @@ private bool expT(Location pos, ADataType type, ref St st){
 						memberType = lhsType.unionS.types[lhsType.unionS.names[member]];
 						memberVis = lhsType.unionS.nameVis[member];
 					}
-					break;
-				case ADataType.Type.Enum:
-					if (lhsType.enumS.memId.canFind(rhsId.ident))
-						member = rhsId.ident;
 					break;
 				default:
 					break;
@@ -853,53 +832,97 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		AValCT[] pTypes = lhsVal ~ st.params;
 
-		// L.R(params) -> R(L, params)
-		RExpr r; {
-			SmErrsVal!RExpr resA = resolve(node.rhs, st.stabR, st.ctx, st.dep,
-					st.fns, pTypes);
-			if (resA.isErr){
-				st.errs ~= resA.err;
+		// rhs is intrinsic
+		if (IntrinsicExpr intr = cast(IntrinsicExpr)node.rhs){
+			if (st.params && intr.name.callabilityOf(pTypes) != size_t.max){
+				RIntrinsicPartCallExpr r = new RIntrinsicPartCallExpr;
+				r.pos = intr.pos;
+				r.name = intr.name;
+				r.params = lhsVal;
+				if (st.isExpT){
+					debug stderr.writeln("st.isExpT in partial intrinsic call!");
+					/*assert (false,
+							"cannot expect data type from partial intrinsic call");*/
+				}
+				st.res = r;
+				return;
+			} else
+			if (intr.name.callabilityOf(lhsVal) != size_t.max){
+				RExpr r; {
+					SmErrsVal!RExpr res = resolveIntrN(intr.name, intr.pos, lhsVal,
+							st.stabR, st.ctx, st.dep, st.fns);
+					if (res.isErr){
+						st.errs ~= res.err;
+						return;
+					}
+					r = res.val;
+				}
+				ADataType rType; {
+					SmErrsVal!ADataType res = typeOf(r);
+					if (res.isErr){
+						st.errs ~= res.err;
+						return;
+					}
+					rType = res.val;
+				}
+				if (st.params.length && rType.callabilityOf(st.params) == size_t.max){
+					st.errs ~= errCallableIncompat(node.pos, rType.toString,
+							st.params.map!(p => p.toString));
+					return;
+				}
+				if (!expT(node.pos, rType, st)) return;
+				st.res = r;
 				return;
 			}
-			r = resA.val;
-		}
-		ADataType rType; {
-			SmErrsVal!ADataType typeRes = typeOf(r, st.stabR, st.ctx);
-			if (typeRes.isErr){
-				st.errs ~= typeRes.err;
-				return;
-			}
-			rType = typeRes.val;
-		}
-		if (!expT(node.pos, r, st)) return;
-		if (st.params.length && rType.callabilityOf(pTypes) == size_t.max){
-			st.errs ~= errCallableIncompat(node.pos, rType.toString,
+			st.errs ~= errCallableIncompat(intr.pos, intr.name.format!"$%s",
 					pTypes.map!(p => p.toString));
+			st.errs ~= errCallableIncompat(intr.pos, intr.name.format!"$%s",
+					lhsVal.map!(p => p.toString));
 			return;
 		}
-		RFnPartCallExpr pFCall = new RFnPartCallExpr;
-		pFCall.pos = node.pos;
-		pFCall.callee = r;
-		pFCall.params = lhsVal.map!(
-				function (AValCT val){
-					final switch (val.type){
-						case AValCT.Type.Literal:
-						case AValCT.Type.Symbol:
-						case AValCT.Type.Type:
-							return new RAValCTExpr(val);
-						case AValCT.Type.Expr:
-							return val.expr;
-						case AValCT.Type.Seq:
-							assert (false, "noooo");
-					}
-				}).array;
-		if (st.isExpT)
-			st.res = pFCall.to(st.expT).val;
-		else
-			st.res = pFCall;
-		// A.B(params) -> B(A)(params) ?
-		//SmErrsVal!RExpr resB = resolve(node.rhs, )
-		// TODO: implement UFCS on templates
+
+		bool isPartial;
+		RExpr r; {
+			SmErr[] errs;
+			SmErrsVal!RExpr res = resolve(node.rhs, st.stabR, st.ctx, st.dep,
+					st.fns, pTypes);
+			if (res.isErr){
+				errs = res.err;
+				res = resolve(node.rhs, st.stabR, st.ctx, st.dep, st.fns, lhsVal);
+				if (res.isErr){
+					st.errs ~= errs;
+					st.errs ~= res.err;
+					return;
+				}
+				res = call(res.val, lhsVal);
+				if (res.isErr){
+					st.errs ~= res.err;
+					return;
+				}
+				r = res.val;
+				isPartial = false;
+			} else {
+				isPartial = true;
+				r = res.val;
+			}
+		}
+
+		immutable size_t callability = r.callabilityOf(isPartial ? pTypes : lhsVal);
+		if (!expT(node.pos, r, st)) return;
+		if (callability == size_t.max){
+			st.errs ~= errCallableIncompat(node.pos, r.toString,
+					(isPartial ? pTypes : lhsVal).map!(p => p.toString));
+			return;
+		}
+		if (!isPartial){
+			st.res = r;
+			return;
+		}
+		RPartCallExpr pCall = new RPartCallExpr;
+		pCall.pos = node.pos;
+		pCall.callee = r;
+		pCall.params = lhsVal;
+		st.res = pCall;
 	}
 
 	void opIndexExprIter(OpIndexExpr node, ref St st){
@@ -913,12 +936,20 @@ private bool expT(Location pos, ADataType type, ref St st){
 			sub = subRes.val;
 		}
 		ADataType subType; {
-			SmErrsVal!ADataType subTypeRes = typeOf(sub, st.stabR, st.ctx);
+			SmErrsVal!ADataType subTypeRes = typeOf(sub);
 			if (subTypeRes.isErr){
 				st.errs ~= subTypeRes.err;
 				return;
 			}
 			subType = subTypeRes.val;
+		}
+		AValCT subVal; {
+			SmErrsVal!AValCT subValRes = eval(sub, st.stabR, st.ctx);
+			if (subValRes.isErr){
+				st.errs ~= subValRes.err;
+				return;
+			}
+			subVal = subValRes.val;
 		}
 
 		if (subType.type == ADataType.Type.Seq){
@@ -945,20 +976,12 @@ private bool expT(Location pos, ADataType type, ref St st){
 						ind.typeT.toString);
 				return;
 			}
-			AValCT subVal; {
-				SmErrsVal!AValCT subValRes = eval(sub, st.stabR, st.ctx);
-				if (subValRes.isErr){
-					st.errs ~= subValRes.err;
-					return;
-				}
-				subVal = subValRes.val;
-			}
 			if (subVal.type != AValCT.Type.Seq){
 				st.errs ~= errIncompatType(node.lhs.pos, "sequence", sub.toString);
 				return;
 			}
 			ind = ind.to(ADataType.ofUInt).val;
-			size_t indI = ind.dataL.as!size_t;
+			size_t indI = ind.val.data.as!size_t;
 			if (indI >= subVal.seq.length){
 				st.errs ~= errBounds(node.indexes[0].pos, subVal.seq.length, indI);
 				return;
@@ -989,7 +1012,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 				continue;
 			}
 			params ~= exprRes.val;
-			SmErrsVal!ADataType typeRes = typeOf(params[$ - 1], st.stabR, st.ctx);
+			SmErrsVal!ADataType typeRes = typeOf(params[$ - 1]);
 			if (typeRes.isErr){
 				st.errs ~= typeRes.err;
 				continue;
@@ -1010,15 +1033,24 @@ private bool expT(Location pos, ADataType type, ref St st){
 						st.params.map!(p => p.toString));
 				return;
 			}
-			RIntrinsicCallExpr r = new RIntrinsicCallExpr;
-			r.pos = node.pos;
-			r.name = IntrN.ArrayInd;
-			r.params = [sub, params[0]];
-			if (!expT(node.pos, r, st)) return;
-			if (st.isExpT)
-				st.res = r.to(st.expT).val;
-			else
-				st.res = r;
+			SmErrsVal!AValCT paramVal = eval(params[0], st.stabR, st.ctx);
+			if (paramVal.isErr){
+				st.errs ~= paramVal.err;
+				return;
+			}
+			if (callabilityOf(IntrN.ArrayInd, [subVal, paramVal.val]) == size_t.max){
+				st.errs ~= errCallableIncompat(node.pos, IntrN.ArrayInd.format!"$%s",
+						[subVal, paramVal.val].map!(p => p.toString));
+				return;
+			}
+			SmErrsVal!RExpr res = resolveIntrN(IntrN.ArrayInd, node.pos,
+					[subVal, paramVal.val],
+					st.stabR, st.ctx, st.dep, st.fns);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			st.res = res.val;
 			return;
 		}
 
@@ -1050,7 +1082,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			lhsExpr = res.val;
 		}
 		ADataType lhsType; {
-			SmErrsVal!ADataType res = typeOf(lhsExpr, st.stabR, st.ctx);
+			SmErrsVal!ADataType res = typeOf(lhsExpr);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
@@ -1079,7 +1111,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			rhsExpr = res.val;
 		}
 		ADataType rhsType; {
-			SmErrsVal!ADataType res = typeOf(rhsExpr, st.stabR, st.ctx);
+			SmErrsVal!ADataType res = typeOf(rhsExpr);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
@@ -1116,7 +1148,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 				return;
 			}
 			lhsExpr = lhsRes.val;
-			SmErrsVal!ADataType typeRes = typeOf(lhsExpr, st.stabR, st.ctx);
+			SmErrsVal!ADataType typeRes = typeOf(lhsExpr);
 			if (typeRes.isErr){
 				st.errs ~= typeRes.err;
 				return;
@@ -1152,7 +1184,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			lhsExpr = res.val;
 		}
 		ADataType lhsType; {
-			SmErrsVal!ADataType res = typeOf(lhsExpr, st.stabR, st.ctx);
+			SmErrsVal!ADataType res = typeOf(lhsExpr);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
@@ -1178,7 +1210,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			rhsExpr = res.val;
 		}
 		ADataType rhsType; {
-			SmErrsVal!ADataType res = typeOf(rhsExpr, st.stabR, st.ctx);
+			SmErrsVal!ADataType res = typeOf(rhsExpr);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
@@ -1210,7 +1242,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			sub = res.val;
 		}
 		ADataType subType; {
-			SmErrsVal!ADataType res = typeOf(sub, st.stabR, st.ctx);
+			SmErrsVal!ADataType res = typeOf(sub);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
@@ -1247,7 +1279,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 	void opNotIsPreIter(OpNotIsPre node, ref St st){
 		IntrinsicExpr itr = new IntrinsicExpr;
 		itr.pos = node.pos;
-		itr.name = IntrN.BoolNot;
+		itr.name = IntrN.Not;
 		OpCallExpr itrCall = new OpCallExpr;
 		itrCall.pos = node.pos;
 		itrCall.callee = itr;
@@ -1296,7 +1328,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			expr = res.val;
 		}
 		ADataType type; {
-			SmErrsVal!ADataType res = typeOf(expr, st.stabR, st.ctx);
+			SmErrsVal!ADataType res = typeOf(expr);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
@@ -1360,9 +1392,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		AValCT val;
 		if (lhs.canCastTo(rhs)){
-			val = AValCT(ADataType.ofBool, true.asBytes);
+			val = true.AVal.AValCT;
 		} else {
-			val = AValCT(ADataType.ofBool, false.asBytes);
+			val = false.AVal.AValCT;
 		}
 		RAValCTExpr r = new RAValCTExpr(val);
 		r.pos = node.pos;
