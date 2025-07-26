@@ -1118,13 +1118,6 @@ public struct ADataType{
 		}
 	}
 
-	/// Decodes a byte array as per this data type into string representation
-	/// Returns: string representation
-	string decodeStr(const void[] data) const pure {
-		// TODO: implement ADataType.decodeStr
-		return format!"{type: %s, data: %s}"(this.toString, cast(ubyte[])data);
-	}
-
 	ADataType copy() const pure {
 		ADataType ret;
 		ret.type = type;
