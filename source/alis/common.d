@@ -58,6 +58,68 @@ public struct AVal{
 		return type.canCastTo(target);
 	}
 
+	/// converts this value into `target` type
+	/// Returns: converted value, or nothing if cannot be done
+	public OptVal!AVal to(ADataType target) pure {
+		assert (this.canCastTo(target));
+		AVal ret;
+		switch (type.type){
+			case ADataType.Type.IntX:
+			case ADataType.Type.UIntX:
+			case ADataType.Type.Char:
+				switch (target.type){
+					case ADataType.Type.IntX:
+						switch (target.x){
+							static foreach (Type; SignedInts){
+								case Type.sizeof * 8:
+									OptVal!Type r = this.as!Type;
+									if (r.isVal)
+										return OptVal!AVal(r.val.AVal);
+									return OptVal!AVal();
+							}
+							default:
+								return OptVal!AVal();
+						}
+					case ADataType.Type.UIntX:
+						switch (target.x){
+							static foreach (Type; UnsignedInts){
+								case Type.sizeof * 8:
+									OptVal!Type r = this.as!Type;
+									if (r.isVal)
+										return OptVal!AVal(r.val.AVal);
+									return OptVal!AVal();
+							}
+							default:
+								return OptVal!AVal();
+						}
+					case ADataType.Type.FloatX:
+						switch (target.x){
+							static foreach (Type; Floats){
+								case Type.sizeof * 8:
+									OptVal!Type r = this.as!Type;
+									if (r.isVal)
+										return OptVal!AVal(r.val.AVal);
+									return OptVal!AVal();
+							}
+							default:
+								return OptVal!AVal();
+						}
+					case ADataType.Type.Char:
+						OptVal!ubyte r = this.as!ubyte;
+						if (r.isVal)
+							return OptVal!AVal(r.val.AVal);
+						return OptVal!AVal();
+					default:
+						return OptVal!AVal();
+				}
+			default:
+				debug stderr.writefln!
+					"STUB: AVal.to(ADataType) not implemented for %s->%s"(this, target);
+				return OptVal!AVal();
+		}
+		return ret.OptVal!AVal;
+	}
+
 	/// decodes this data into a type `T`
 	/// Returns: Optional value of type `T`
 	public OptVal!T as(T...)() pure if (T.length && allSatisfy!(isType, T)){
@@ -81,42 +143,43 @@ public struct AVal{
 						debug stderr.writefln!"invalid data found in AVal.as";
 						return OptVal!(T[0])();
 					}
-				}
-				if (type.type == ADataType.Type.IntX){
-					ptrdiff_t num;
-					if (T[0].sizeof * 8 < type.x)
-						return OptVal!(T[0])();
+				} else {
+					if (type.type == ADataType.Type.IntX){
+						ptrdiff_t num;
+						if (T[0].sizeof * 8 < type.x)
+							return OptVal!(T[0])();
 signedSwitch:
-					switch (data.length){
-						static foreach (Type; SignedInts){
-							case Type.sizeof:
-								num = data.as!Type;
-								break signedSwitch;
-						}
-						default:
+						switch (data.length){
+							static foreach (Type; SignedInts){
+								case Type.sizeof:
+									num = data.as!Type;
+									break signedSwitch;
+							}
+							default:
 							debug stderr.writefln!"invalid data found in AVal.as";
 							return OptVal!(T[0])();
-					}
-					if (num < (T[0]).min || num > (T[0]).max)
-						return OptVal!(T[0])();
-					return OptVal!(T[0])(cast(T[0])num);
-				} else
-				if (type.type == ADataType.Type.UIntX){
-					size_t num;
+						}
+						if (num < (T[0]).min || num > (T[0]).max)
+							return OptVal!(T[0])();
+						return OptVal!(T[0])(cast(T[0])num);
+					} else
+						if (type.type == ADataType.Type.UIntX){
+							size_t num;
 unsignedSwitch:
-					switch (data.length){
-						static foreach (Type; UnsignedInts){
-							case Type.sizeof:
-								num = data.as!Type;
-								break unsignedSwitch;
+							switch (data.length){
+								static foreach (Type; UnsignedInts){
+									case Type.sizeof:
+										num = data.as!Type;
+										break unsignedSwitch;
+								}
+								default:
+								debug stderr.writefln!"invalid data found in AVal.as";
+								return OptVal!(T[0])();
+							}
+							if (num < (T[0]).min || num > (T[0]).max)
+								return OptVal!(T[0])();
+							return OptVal!(T[0])(cast(T[0])num);
 						}
-						default:
-							debug stderr.writefln!"invalid data found in AVal.as";
-							return OptVal!(T[0])();
-					}
-					if (num < (T[0]).min || num > (T[0]).max)
-						return OptVal!(T[0])();
-					return OptVal!(T[0])(cast(T[0])num);
 				}
 
 			} else
