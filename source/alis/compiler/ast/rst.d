@@ -238,6 +238,23 @@ public:
 	override string toString() const pure {
 		return "TODO"; // TODO: implement RExpr.toString
 	}
+
+	/// Returns: new RST which converts this RST into `target` type, or nothing
+	/// if cannot be done
+	OptVal!RExpr to(const ADataType target){
+		import alis.compiler.semantic.typeofexpr : typeOf;
+		auto typeRes = typeOf(this);
+		if (typeRes.isErr)
+			return OptVal!RExpr();
+		ADataType from = typeRes.val;
+		if (!from.canCastTo(target))
+			return OptVal!RExpr();
+		RToExpr r = new RToExpr;
+		r.pos = this.pos;
+		r.target = target.copy;
+		r.val = this;
+		return r.OptVal!RExpr;
+	}
 }
 
 /// No-op

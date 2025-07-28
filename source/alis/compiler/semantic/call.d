@@ -78,7 +78,11 @@ package SmErrsVal!RExpr call(RExpr callee, AValCT[] params){
 					if (params.length != 1)
 						return SmErrsVal!RExpr([errParamCount(callee.pos,
 									val.res.typeT.toString, 1, params.length)]);
-					return params[0].toRExpr.to(type);
+					OptVal!RExpr res = params[0].toRExpr.to(type);
+					if (res.isVal)
+						return SmErrsVal!RExpr(res.val);
+					return SmErrsVal!RExpr([
+							errIncompatType(callee.pos, type.toString, params[0].toString)]);
 					break;
 
 				case AValCT.Type.Literal:
@@ -88,7 +92,12 @@ package SmErrsVal!RExpr call(RExpr callee, AValCT[] params){
 					if (params.length != 1)
 						return SmErrsVal!RExpr([errParamCount(callee.pos,
 									val.res.typeT.toString, 1, params.length)]);
-					return params[0].toRExpr.to(val.res.typeT);
+					OptVal!RExpr res = params[0].toRExpr.to(val.res.typeT);
+					if (res.isVal)
+						return SmErrsVal!RExpr(res.val);
+					return SmErrsVal!RExpr([
+							errIncompatType(callee.pos, val.res.typeT.toString,
+								params[0].toString)]);
 				case AValCT.Type.Expr:
 					return SmErrsVal!RExpr([errUnsup(callee.pos,
 								"AValCT.Type.Expr as callee")]);
@@ -124,9 +133,10 @@ package SmErrsVal!RExpr fnCall(RFnExpr callee, AValCT[] params){
 	RExpr[] casted = new RExpr[symC.paramsT.length];
 	assert (params.length <= symC.paramsT.length);
 	foreach (size_t i, AValCT paramVal; params){
-		SmErrsVal!RExpr res = paramVal.toRExpr.to(symC.paramsT[i]);
-		if (res.isErr){
-			errs ~= res.err;
+		OptVal!RExpr res = paramVal.toRExpr.to(symC.paramsT[i]);
+		if (!res.isVal){
+			errs ~= errIncompatType(callee.pos, symC.paramsT[i].toString,
+					params[i].toString);
 			continue;
 		}
 		casted[i] = res.val;
@@ -161,9 +171,10 @@ package SmErrsVal!RExpr fnCall(RExpr expr, AValCT[] params){
 	RExpr[] casted = new RExpr[type.paramT.length];
 	assert (params.length == type.paramT.length);
 	foreach (size_t i, AValCT paramVal; params){
-		SmErrsVal!RExpr res = paramVal.toRExpr.to(type.paramT[i]);
-		if (res.isErr){
-			errs ~= res.err;
+		OptVal!RExpr res = paramVal.toRExpr.to(type.paramT[i]);
+		if (!res.isVal){
+			errs ~= errIncompatType(expr.pos, type.paramT[i].toString,
+					params[i].toString);
 			continue;
 		}
 		casted[i] = res.val;

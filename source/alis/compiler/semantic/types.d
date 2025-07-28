@@ -31,12 +31,3 @@ package ADataType commonType(ADataType[] types){
 	}
 	return ADataType.ofNoInit;
 }
-
-/// casts RExpr to `target` ADataType, creating a new RExpr around it, which
-/// does the casting
-package SmErrsVal!RExpr to(RExpr expr, ADataType type){
-	debug stderr.writefln!"STUB: to(ADataType: %s) returning as-is `%s`"(
-			type, expr);
-	// TODO: use AValCT.Type.Expr's code here
-	return SmErrsVal!RExpr(expr);
-}
