@@ -32,29 +32,11 @@ package ADataType commonType(ADataType[] types){
 	return ADataType.ofNoInit;
 }
 
-/// casts AValCT (must be of AValCT.Type.Literal) to `target` ADataType
-/// Returns: AValCT containing casted value, or SmErr[]
-package SmErrsVal!AValCT to(AValCT val, ADataType type){
-	debug stderr.writefln!"STUB: to(ADataType: %s) returning as-is `%s`"(
-			type, val);
-	return SmErrsVal!AValCT(val);
-}
-
 /// casts RExpr to `target` ADataType, creating a new RExpr around it, which
 /// does the casting
 package SmErrsVal!RExpr to(RExpr expr, ADataType type){
 	debug stderr.writefln!"STUB: to(ADataType: %s) returning as-is `%s`"(
 			type, expr);
+	// TODO: use AValCT.Type.Expr's code here
 	return SmErrsVal!RExpr(expr);
-}
-
-unittest{
-	ADataType constInt = ADataType.ofInt;
-	constInt.isConst = true;
-	ADataType intSlice = ADataType.ofSlice(ADataType.ofInt);
-	ADataType constIntSlice = ADataType.ofSlice(constInt);
-	ADataType intArray = ADataType.ofArray(ADataType.ofInt);
-	assert(ADataType.ofInt.constOf == constInt);
-	assert(intSlice.constOf == constIntSlice);
-	assert(intArray.constOf == constIntSlice);
 }

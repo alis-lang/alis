@@ -114,7 +114,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 				if (isAuto)
 					type = valRes.val.val.type;
 				else
-				if (!valRes.val.val.type.canCastTo(type))
+				if (!valRes.val.canCastTo(type))
 					st.errs ~= errIncompatType(param.val.pos, type.toString,
 							valRes.val.val.type.toString);
 				type = valRes.val.val.type;
@@ -255,10 +255,11 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		}
 
 		foreach (size_t i; 0 .. symC.memVal.length){
-			SmErrsVal!AValCT valRes = AVal(types[i], symC.memVal[i]).AValCT
+			OptVal!AValCT valRes = AVal(types[i], symC.memVal[i]).AValCT
 				.to(symC.type);
-			if (valRes.isErr){
-				st.errs ~= valRes.err;
+			if (!valRes.isVal){
+				st.errs ~= errIncompatType(node.members[i].pos,
+						symC.type.toString, types[i].toString);
 				continue;
 			}
 			symC.memVal[i] = valRes.val.val.data;

@@ -59,6 +59,7 @@ public struct AVal{
 	}
 
 	/// converts this value into `target` type
+	/// only call this if `this.canCastTo(target)`
 	/// Returns: converted value, or nothing if cannot be done
 	public OptVal!AVal to(ADataType target) pure {
 		assert (this.canCastTo(target));
@@ -399,6 +400,47 @@ public struct AValCT{
 			case Type.Seq:
 				debug stderr.writefln!"STUB: Seq.canCastTo -> false";
 				return false;
+		}
+	}
+
+	/// converts this AValCT to a `target` type
+	/// only call this if `this.canCastTo(target)` and `this.isVal`
+	/// Returns: converted AValCT, or nothing in case it cannot be done
+	OptVal!AValCT to(ADataType target) {
+		assert (canCastTo(target));
+		assert (isVal);
+		final switch (type){
+			case Type.Literal:
+				OptVal!AVal v = val.to(target);
+				if (v.isVal)
+					return v.val.AValCT.OptVal!AValCT;
+				goto case;
+			case Type.Symbol:
+			case Type.Type:
+				return OptVal!AValCT();
+			case Type.Expr:
+				import alis.compiler.ast.rst : RToExpr;
+				import alis.compiler.semantic.typeofexpr : typeOf;
+				auto typeRes = typeOf(expr);
+				if (typeRes.isErr)
+					return OptVal!AValCT();
+				ADataType from = typeRes.val;
+				if (!from.canCastTo(target))
+					return OptVal!AValCT();
+				RToExpr r = new RToExpr;
+				r.pos = expr.pos;
+				r.target = target;
+				r.val = expr;
+				return r.AValCT.OptVal!AValCT;
+			case Type.Seq:
+				AValCT[] s = new AValCT[seq.length];
+				foreach (size_t i, AValCT val; seq){
+					OptVal!AValCT convd = val.to(target);
+					if (!convd.isVal)
+						return OptVal!AValCT();
+					s[i] = convd.val;
+				}
+				return s.AValCT.OptVal!AValCT;
 		}
 	}
 
