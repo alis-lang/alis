@@ -148,8 +148,6 @@ public struct AVal{
 				} else {
 					if (type.type == ADataType.Type.IntX){
 						ptrdiff_t num;
-						if (T[0].sizeof * 8 < type.x)
-							return OptVal!(T[0])();
 signedSwitch:
 						switch (data.length){
 							static foreach (Type; SignedInts){
