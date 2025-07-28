@@ -113,6 +113,7 @@ public struct AVal{
 						return OptVal!AVal();
 				}
 			default:
+				// TODO: implement AVal.to fully
 				debug stderr.writefln!
 					"STUB: AVal.to(ADataType) not implemented for %s->%s"(this, target);
 				return OptVal!AVal();
@@ -290,6 +291,7 @@ unsignedSwitch:
 	}
 
 	public string toString() const pure {
+		// TODO: implement AVal.toString
 		final switch (type.type){
 		case ADataType.Type.Seq:
 			break;
