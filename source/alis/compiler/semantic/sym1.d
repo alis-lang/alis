@@ -111,14 +111,15 @@ private bool isRecDep(ASTNode node, ref St1 st){
 					st.errs ~= valRes.err;
 					continue;
 				}
-				if (isAuto)
+				if (isAuto){
 					type = valRes.val.val.type;
-				else
-				if (!valRes.val.canCastTo(type))
+				} else
+				if (valRes.val.canCastTo(type)){
+					symC.paramsV ~= valRes.val.to(type).val.val.data;
+				} else {
 					st.errs ~= errIncompatType(param.val.pos, type.toString,
 							valRes.val.val.type.toString);
-				type = valRes.val.val.type;
-				symC.paramsV ~= valRes.val.val.data;
+				}
 			} else {
 				symC.paramsV ~= type.initB;
 			}
@@ -187,9 +188,12 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			return;
 		}
 		symC.data = valRes.val.val.data;
-		if (isAuto)
+		if (isAuto){
 			symC.type = valRes.val.val.type;
-		if (!valRes.val.val.type.canCastTo(symC.type)){
+		} else
+		if (valRes.val.canCastTo(symC.type)){
+			symC.data = valRes.val.to(symC.type).val.val.data;
+		} else {
 			st.errs ~= errIncompatType(node.pos, symC.type.toString,
 					valRes.val.val.type.toString);
 			return;
@@ -262,9 +266,8 @@ private bool isRecDep(ASTNode node, ref St1 st){
 						symC.type.toString, types[i].toString);
 				continue;
 			}
-			symC.memVal[i] = valRes.val.val.data;
+			symC.memVal[i] = valRes.val.to(symC.type).val.val.data;
 		}
-		// TODO: cast all symC.memVal[i] from types[i] to symC.type
 	}
 
 	void structIter(StructDef node, ref St1 st){
@@ -371,11 +374,13 @@ private bool isRecDep(ASTNode node, ref St1 st){
 				if (isAuto){
 					type = val.val.type;
 				} else
-				if (!val.val.type.canCastTo(type)){
-					st.errs ~= errIncompatType(field.pos, type.toString, val.val.type.toString);
+				if (val.canCastTo(type)){
+					symC.initD ~= val.to(type).val.val.data;
+				} else {
+					st.errs ~= errIncompatType(field.pos, type.toString,
+							val.val.type.toString);
 					continue;
 				}
-				symC.initD ~= val.val.data;
 			} else {
 				// TODO: ask ADataType for initD
 				symC.initD ~= [];
@@ -425,7 +430,10 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			}
 			if (isAuto){
 				symC.type = valVal.val.val.type;
-			} else if (!valVal.val.val.type.canCastTo(symC.type)){
+			} else
+			if (valVal.val.canCastTo(symC.type)){
+
+			} else {
 				st.errs ~= errIncompatType(node.value.pos, symC.type.toString,
 						valVal.val.val.type.toString);
 				return;
@@ -434,6 +442,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			st.errs ~= errAutoNoVal(node.pos);
 			return;
 		}
+		// TODO: who gonna implement VarDef????
 	}
 
 	void aliasIter(AliasDef node, ref St1 st){
@@ -578,12 +587,13 @@ private void structDo(Struct s, AStruct* symC, ref St1 st){
 			if (isAuto){
 				type = val.val.type;
 			} else
-				if (!val.val.type.canCastTo(type)){
-					st.errs ~= errIncompatType(field.pos, type.toString,
-							val.val.type.toString);
-					continue;
-				}
-			symC.initD ~= val.val.data;
+			if (val.canCastTo(type)){
+				symC.initD ~= val.to(type).val.val.data;
+			} else {
+				st.errs ~= errIncompatType(field.pos, type.toString,
+						val.val.type.toString);
+				continue;
+			}
 		} else {
 			symC.initD ~= type.initB;
 		}
@@ -699,12 +709,13 @@ package void unionNamedDo(NamedUnion node, ASymbol* sym, ref St1 st){
 			if (isAuto){
 				type = val.val.type;
 			}	else
-			if (!val.val.type.canCastTo(type)){
+			if (val.canCastTo(type)){
+				symC.initD = val.to(type).val.val.data;
+			} else {
 				st.errs ~= errIncompatType(field.pos, type.toString,
 						val.val.type.toString);
 				continue;
 			}
-			symC.initD = val.val.data;
 		}
 		foreach (string name; aliasMap.byKey
 				.filter!(n => aliasMap[n] == field.name)){
@@ -752,8 +763,13 @@ package void unionUnnamedDo(UnnamedUnion node, ASymbol* sym, ref St1 st){
 			st.errs ~= valRes.err;
 			continue;
 		}
-		symC.initI = cast(ptrdiff_t)symC.types.length - 1;
-		symC.initD = valRes.val.val.data;
+		if (valRes.val.canCastTo(typeRes.val)){
+			symC.initD = valRes.val.to(typeRes.val).val.val.data;
+			symC.initI = cast(ptrdiff_t)symC.types.length - 1;
+		} else {
+			st.errs ~= errIncompatType(member.pos, typeRes.val.toString,
+					valRes.val.val.type.toString);
+		}
 	}
 	if (symC.initI == size_t.max)
 		st.errs ~= errUnionNoDef(node.pos);
