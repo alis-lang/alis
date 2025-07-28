@@ -124,3 +124,6 @@ private template UnsignedInts_Impl(){
 	static if (size_t.sizeof > uint.sizeof)
 		UnsignedInts_Impl = AliasSeq!(UnsignedInts_Impl, size_t);
 }
+
+/// Floats, ordered from lowest to highest size
+alias Floats = AliasSeq!(float, double);
