@@ -377,3 +377,24 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		return SmErrsVal!RExpr(params[index.val].toRExpr);
 	}
 }
+
+@Intr(IntrN.UnionIs){
+	@CallabilityChecker
+	bool unionIsCanCall(AValCT[] params){
+		if (params.length != 1)
+			return false;
+		RUnionMemberGetExpr p = cast(RUnionMemberGetExpr)(params[0].toRExpr);
+		if (p is null)
+			return false;
+		return true;
+	}
+	@ExprTranslator
+	SmErrsVal!RExpr unionIsTranslate(string, Location pos, STab,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+		RUnionMemberGetExpr p = cast(RUnionMemberGetExpr)(params[0].toRExpr);
+		assert (p !is null);
+		RUnionIsExpr r = new RUnionIsExpr(p.val, p.memId);
+		r.pos = p.pos;
+		return SmErrsVal!RExpr(p);
+	}
+}
