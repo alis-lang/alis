@@ -23,7 +23,7 @@ alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
 @Intr(IntrN.CTWrite){
 	@CallabilityChecker
 	bool ctWriteCanCall(AValCT[] params) pure {
-		return params.length == 0;
+		return params.length != 0;
 	}
 	@ExprTranslator
 	SmErrsVal!RExpr ctWriteTranslate(string, Location, STab,
