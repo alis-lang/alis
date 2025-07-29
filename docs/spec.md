@@ -2054,7 +2054,6 @@ directly dependent on the underlying data structures in the compiler/runtime.
 
 ## Unions & Aggregates
 
-- `unionIs(T)` - whether a union's tag indicates `this` member being stored
 - `unionIs(T.M)` - whether a union's tag indicates `M` member being stored, or
 	member of type `M`.
 - `members(T)` - gets member names as string sequence for a union/struct type
