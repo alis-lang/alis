@@ -380,7 +380,6 @@ public struct AValCT{
 
 	/// Returns: true if this can be implicitly casted to target
 	bool canCastTo(const ADataType target){
-		import alis.compiler.semantic.typeofexpr : typeOf;
 		import alis.compiler.semantic.error : SmErrsVal;
 		final switch (type){
 			case Type.Literal:
@@ -391,10 +390,7 @@ public struct AValCT{
 			case Type.Type:
 				return typeT.canCastTo(target);
 			case Type.Expr:
-				SmErrsVal!ADataType t = typeOf(expr);
-				if (t.isErr)
-					return false;
-				return t.val.canCastTo(target);
+				return expr.type.canCastTo(target);
 			case Type.Seq:
 				debug stderr.writefln!"STUB: Seq.canCastTo -> false";
 				return false;
@@ -418,17 +414,10 @@ public struct AValCT{
 				return OptVal!AValCT();
 			case Type.Expr:
 				import alis.compiler.ast.rst : RToExpr;
-				import alis.compiler.semantic.typeofexpr : typeOf;
-				auto typeRes = typeOf(expr);
-				if (typeRes.isErr)
+				if (!expr.type.canCastTo(target))
 					return OptVal!AValCT();
-				ADataType from = typeRes.val;
-				if (!from.canCastTo(target))
-					return OptVal!AValCT();
-				RToExpr r = new RToExpr;
+				RToExpr r = new RToExpr(expr, target);
 				r.pos = expr.pos;
-				r.target = target;
-				r.val = expr;
 				return r.AValCT.OptVal!AValCT;
 			case Type.Seq:
 				AValCT[] s = new AValCT[seq.length];
@@ -444,7 +433,6 @@ public struct AValCT{
 
 	/// whether this is a value
 	@property bool isVal(){
-		import alis.compiler.semantic.typeofexpr;
 		final switch (type){
 			case Type.Literal:
 				return true;
@@ -453,7 +441,8 @@ public struct AValCT{
 			case Type.Type:
 				return false;
 			case Type.Expr:
-				return !expr.typeOf.isErr;
+				return true; // TODO: really?
+				//return !expr.type.isErr;
 			case Type.Seq:
 				foreach (AValCT val; seq){
 					if (!val.isVal)
@@ -465,7 +454,6 @@ public struct AValCT{
 
 	/// Returns: data type of value, if `isVal`
 	OptVal!ADataType valType(){
-		import alis.compiler.semantic.typeofexpr;
 		final switch (type){
 			case Type.Literal:
 				return val.type.OptVal!ADataType;
@@ -474,7 +462,7 @@ public struct AValCT{
 			case Type.Type:
 				return typeT.OptVal!ADataType;
 			case Type.Expr:
-				return expr.typeOf.val.OptVal!ADataType;
+				return expr.type.OptVal!ADataType;
 			case Type.Seq:
 				return ADataType.ofSeq(seq.map!(s => s.valType.val).array)
 					.OptVal!ADataType;
@@ -540,7 +528,6 @@ public struct AValCT{
 	/// In case of Expr, typeOf(Expr). if typeOf errors, no value
 	/// Returns: Optional ADataType
 	OptVal!ADataType asType(){
-		import alis.compiler.semantic.typeofexpr;
 		final switch (type){
 			case Type.Symbol:
 				return symS.asType;
@@ -549,10 +536,7 @@ public struct AValCT{
 			case Type.Type:
 				return typeT.OptVal!ADataType;
 			case Type.Expr:
-				auto res = expr.typeOf;
-				if (res.isErr)
-					return OptVal!ADataType();
-				return res.val.OptVal!ADataType;
+				return expr.type.OptVal!ADataType;
 			case Type.Seq:
 				assert (false, "AValCT.Type.Seq in AValCT.asType");
 		}

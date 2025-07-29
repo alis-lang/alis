@@ -10,7 +10,6 @@ import alis.common,
 			 alis.compiler.semantic.error,
 			 alis.compiler.semantic.eval,
 			 alis.compiler.semantic.types,
-			 alis.compiler.semantic.typeofexpr,
 			 alis.compiler.ast,
 			 alis.compiler.ast.rst;
 
@@ -197,22 +196,22 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 	SmErrsVal!RExpr isTypeTranslate(string, Location pos, STab,
 			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
 		AValCT p = params[0];
-		RLiteralExpr r = new RLiteralExpr;
-		r.pos = pos;
+		RLiteralExpr r;
 		final switch (p.type){
 			case AValCT.Type.Symbol:
-				r.val = p.symS.isDType.AVal;
+				r = new RLiteralExpr(p.symS.isDType.AVal);
 				break;
 			case AValCT.Type.Type:
-				r.val = true.AVal;
+				r = new RLiteralExpr(true.AVal);
 				break;
 			case AValCT.Type.Literal:
 			case AValCT.Type.Expr:
-				r.val = false.AVal;
+				r = new RLiteralExpr(false.AVal);
 				break;
 			case AValCT.Type.Seq:
 				return SmErrsVal!RExpr([errUnsup(pos, "AValCT.Type.Seq in $isType")]);
 		}
+		r.pos = pos;
 		return SmErrsVal!RExpr(r);
 	}
 }
@@ -264,10 +263,7 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 				type = params[0].val.type;
 				break;
 			case AValCT.Type.Expr:
-				SmErrsVal!ADataType res = typeOf(params[0].expr);
-				if (res.isErr)
-					return SmErrsVal!RExpr(res.err);
-				type = res.val;
+				type = params[0].expr.type;
 				break;
 			case AValCT.Type.Seq:
 				return SmErrsVal!RExpr([errUnsup(pos, "$isType(sequence)")]);
@@ -297,7 +293,7 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 				return false;
 			if (type.refT.type != ADataType.Type.Array)
 				return false;
-			if (!params[1].valType.val.canCastTo(ADataType.ofUInt))
+			if (!params[1].canCastTo(ADataType.ofUInt))
 				return false;
 			return true;
 		}
@@ -308,15 +304,14 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 	SmErrsVal!RExpr arrLenTranslate(string, Location pos, STab,
 			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
 		if (params.length == 1){
-			RArrayLenExpr r = new RArrayLenExpr;
+			RArrayLenExpr r = new RArrayLenExpr(params[0].toRExpr);
 			r.pos = pos;
-			r.arr = params[0].toRExpr;
 			return SmErrsVal!RExpr(r);
 		}
-		RArrayLenSetExpr r = new RArrayLenSetExpr;
+		RArrayLenSetExpr r = new RArrayLenSetExpr(
+				params[0].toRExpr,
+				params[1].toRExpr);
 		r.pos = pos;
-		r.arr = params[0].toRExpr;
-		r.len = params[1].toRExpr;
 		return SmErrsVal!RExpr(r);
 	}
 }
@@ -332,7 +327,7 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		if (type.type != ADataType.Type.Array &&
 				type.type != ADataType.Type.Slice)
 			return false;
-		if (!params[1].valType.val.canCastTo(ADataType.ofUInt))
+		if (!params[1].canCastTo(ADataType.ofUInt))
 			return false;
 		return true;
 	}
@@ -340,10 +335,10 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 	@ExprTranslator
 	SmErrsVal!RExpr arrIndTranslate(string, Location pos, STab,
 			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
-		RArrayIndexExpr r = new RArrayIndexExpr;
+		RArrayIndexExpr r = new RArrayIndexExpr(
+				params[0].toRExpr,
+				params[1].toRExpr);
 		r.pos = pos;
-		r.arr = params[0].toRExpr;
-		r.ind = params[1].toRExpr;
 		return SmErrsVal!RExpr(r);
 	}
 }
@@ -356,11 +351,7 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 	@ExprTranslator
 	SmErrsVal!RExpr seqLenTranslate(string, Location, STab,
 			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
-		RLiteralExpr r = new RLiteralExpr;
-		r.val = params.length.AVal;
-		r.type = r.val.type;
-		r.hasType = true;
-		return SmErrsVal!RExpr(r);
+		return SmErrsVal!RExpr(new RLiteralExpr(params.length.AVal));
 	}
 }
 
@@ -369,7 +360,7 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 	bool seqIndCanCall(AValCT[] params){
 		return params.length >= 2 &&
 			params[$ - 1].isVal &&
-			params[$ - 1].valType.val.canCastTo(ADataType.ofUInt);
+			params[$ - 1].canCastTo(ADataType.ofUInt);
 	}
 
 	@ExprTranslator

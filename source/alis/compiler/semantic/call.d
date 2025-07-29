@@ -8,7 +8,6 @@ import alis.common,
 			 alis.compiler.semantic.common,
 			 alis.compiler.semantic.error,
 			 alis.compiler.semantic.types,
-			 alis.compiler.semantic.typeofexpr,
 			 alis.compiler.ast,
 			 alis.compiler.ast.rst;
 
@@ -44,12 +43,6 @@ package size_t callabilityOf(RExpr callee, AValCT[] params){
 /// Returns: SmErr[] or RExpr
 package SmErrsVal!RExpr call(RExpr callee, AValCT[] params){
 	RFnExpr fn = cast(RFnExpr)callee;
-	ADataType calleeType; {
-		SmErrsVal!ADataType typeRes = typeOf(callee);
-		if (typeRes.isErr)
-			return SmErrsVal!RExpr(typeRes.err);
-		calleeType = typeRes.val;
-	}
 	if (fn is null){
 		if (RAValCTExpr val = cast(RAValCTExpr)callee){
 			final switch (val.res.type){
@@ -125,9 +118,6 @@ package SmErrsVal!RExpr fnCall(AFn* fnSym, AValCT[] params){
 
 /// ditto
 package SmErrsVal!RExpr fnCall(RFnExpr callee, AValCT[] params){
-	RFnCallExpr call = new RFnCallExpr;
-	call.pos = callee.pos;
-	call.callee = callee;
 	AFn* symC = callee.fn;
 	SmErr[] errs;
 	RExpr[] casted = new RExpr[symC.paramsT.length];
@@ -144,36 +134,28 @@ package SmErrsVal!RExpr fnCall(RFnExpr callee, AValCT[] params){
 	if (errs.length)
 		return SmErrsVal!RExpr(errs);
 	foreach (size_t i; params.length .. symC.paramsT.length){
-		RLiteralExpr val = new RLiteralExpr;
+		RLiteralExpr val =
+			new RLiteralExpr(AVal(symC.paramsT[i], symC.paramsV[i]));
 		val.pos = callee.pos;
-		val.type = symC.paramsT[i];
-		val.val = AVal(symC.paramsT[i], symC.paramsV[i]);
 		casted[i] = val;
 	}
-	call.params = casted;
-	return SmErrsVal!RExpr(callee);
+	RFnCallExpr call = new RFnCallExpr(callee, casted);
+	call.pos = callee.pos;
+	return SmErrsVal!RExpr(call);
 }
 
 /// ditto
 package SmErrsVal!RExpr fnCall(RExpr expr, AValCT[] params){
-	ADataType type; {
-		SmErrsVal!ADataType typeRes = expr.typeOf;
-		if (typeRes.isErr)
-			return SmErrsVal!RExpr(typeRes.err);
-		type = typeRes.val;
-	}
-	if (type.type != ADataType.Type.Fn)
-		return SmErrsVal!RExpr([errNotCallable(expr.pos, type.toString)]);
-	RFnCallExpr call = new RFnCallExpr;
-	call.pos = expr.pos;
-	call.callee = expr;
+	assert (cast(RFnExpr)expr is null);
+	if (expr.type.type != ADataType.Type.Fn)
+		return SmErrsVal!RExpr([errNotCallable(expr.pos, expr.type.toString)]);
 	SmErr[] errs;
-	RExpr[] casted = new RExpr[type.paramT.length];
-	assert (params.length == type.paramT.length);
+	RExpr[] casted = new RExpr[expr.type.paramT.length];
+	assert (params.length == expr.type.paramT.length);
 	foreach (size_t i, AValCT paramVal; params){
-		OptVal!RExpr res = paramVal.toRExpr.to(type.paramT[i]);
+		OptVal!RExpr res = paramVal.toRExpr.to(expr.type.paramT[i]);
 		if (!res.isVal){
-			errs ~= errIncompatType(expr.pos, type.paramT[i].toString,
+			errs ~= errIncompatType(expr.pos, expr.type.paramT[i].toString,
 					params[i].toString);
 			continue;
 		}
@@ -181,6 +163,7 @@ package SmErrsVal!RExpr fnCall(RExpr expr, AValCT[] params){
 	}
 	if (errs.length)
 		return SmErrsVal!RExpr(errs);
-	call.params = casted;
+	RFnCallExpr call = new RFnCallExpr(expr, casted);
+	call.pos = expr.pos;
 	return SmErrsVal!RExpr(call);
 }

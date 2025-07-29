@@ -53,6 +53,12 @@ package:
 	AEnum* enumS;
 	/// member name
 	string name;
+
+	this (AVal val, AEnum* enumS, string name){
+		super(val);
+		this.enumS = enumS;
+		this.name = name;
+	}
 }
 
 /// Wrapper for AValCT
@@ -82,10 +88,8 @@ public:
 	final RExpr toRExpr(){
 		final switch (res.type){
 			case AValCT.Type.Literal:
-				RLiteralExpr r = new RLiteralExpr;
+				RLiteralExpr r = new RLiteralExpr(AVal(res.val.type, res.val.data));
 				r.pos = pos;
-				r.val = AVal(res.val.type, res.val.data);
-				r.type = res.val.type;
 				return r;
 			case AValCT.Type.Symbol:
 			case AValCT.Type.Type:

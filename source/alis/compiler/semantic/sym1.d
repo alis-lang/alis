@@ -21,7 +21,6 @@ import alis.common,
 			 alis.compiler.semantic.expr,
 			 alis.compiler.semantic.eval,
 			 alis.compiler.semantic.types,
-			 alis.compiler.semantic.typeofexpr,
 			 alis.compiler.ast,
 			 alis.compiler.ast.iter,
 			 alis.compiler.ast.rst;
@@ -150,12 +149,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			return;
 		}
 		r.body = exprRes.val;
-		SmErrsVal!ADataType retRes = r.body.typeOf;
-		if (retRes.isErr){
-			st.errs ~= exprRes.err;
-			return;
-		}
-		symC.retT = retRes.val;
+		symC.retT = r.body.type;
 	}
 
 	void enumConstIter(EnumConstDef node, ref St1 st){

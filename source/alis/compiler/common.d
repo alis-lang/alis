@@ -182,6 +182,11 @@ public struct OptVal(T){
 		assert (_isVal);
 		return _val;
 	}
+	/// ditto
+	public @property const(T) val() const pure {
+		assert(_isVal);
+		return _val;
+	}
 
 	/// constructor
 	this(T val) pure {
