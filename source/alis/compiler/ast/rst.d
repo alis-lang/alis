@@ -233,7 +233,6 @@ public:
 	}
 
 	/// Returns: type for this expression. Only use if `this.hasType == true`
-	/// `typeOf` for this expression. Only valid if `this.hasType`
 	@property ADataType type() pure {
 		return _type.val;
 	}

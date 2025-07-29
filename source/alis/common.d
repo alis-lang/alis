@@ -525,7 +525,7 @@ public struct AValCT{
 	/// In case of symbol, Struct/Union/Enum becomes the type, otherwise none
 	/// In case of Literal, the data's type becomes the type
 	/// In case of Type, returned as-is
-	/// In case of Expr, typeOf(Expr). if typeOf errors, no value
+	/// In case of Expr, returns return type
 	/// Returns: Optional ADataType
 	OptVal!ADataType asType(){
 		final switch (type){
