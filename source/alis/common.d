@@ -290,6 +290,9 @@ unsignedSwitch:
 	}
 
 	public string toString() const pure {
+		if (this.type == ADataType.ofString){
+			return (cast(AVal)this).as!string.val;
+		}
 		// TODO: implement AVal.toString
 		final switch (type.type){
 		case ADataType.Type.Seq:
