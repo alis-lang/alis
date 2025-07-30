@@ -53,6 +53,9 @@ public enum IntrN : string{
 
 	// unions & aggregates
 	UnionIs = "unionIs",
+	Members = "members",
+	MemberField = "memberField",
+	Member = "member",
 
 	// attributes
 	AttrsOf = "attrsOf",
