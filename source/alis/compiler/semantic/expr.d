@@ -708,7 +708,6 @@ private bool expT(Location pos, ADataType type, ref St st){
 			}
 			lhsExpr = res.val;
 		}
-		ADataType lhsType = lhsExpr.type;
 
 		if (IdentExpr rhsId = cast(IdentExpr)node.rhs){
 			if (RAValCTExpr val = cast(RAValCTExpr)lhsExpr){
@@ -727,33 +726,37 @@ private bool expT(Location pos, ADataType type, ref St st){
 				}
 			}
 			RExpr r;
-			switch (lhsType.type){
-				case ADataType.Type.Struct:
-					if (lhsType.structS is null)
+			if (lhsExpr.hasType){
+				switch (lhsExpr.type.type){
+					case ADataType.Type.Struct:
+						if (lhsExpr.type.structS is null)
+							break;
+						if (lhsExpr.type.structS.exists(rhsId.ident, st.ctx)){
+							r = new RStructMemberGetExpr(lhsExpr,
+									lhsExpr.type.structS.names[rhsId.ident],
+									lhsExpr.type.isConst || (
+										lhsExpr.type.structS.ident.length && st.ctx.length &&
+										st.ctx[0] != lhsExpr.type.structS.ident[0] &&
+										lhsExpr.type.structS.nameVis[rhsId.ident] == Visibility.IPub
+										));
+							r.pos = node.pos;
+						}
 						break;
-					if (lhsType.structS.exists(rhsId.ident, st.ctx)){
-						r = new RStructMemberGetExpr(lhsExpr,
-								lhsType.structS.names[rhsId.ident],
-								lhsType.isConst || (
-									lhsType.structS.ident.length && st.ctx.length &&
-									st.ctx[0] != lhsType.structS.ident[0] &&
-									lhsType.structS.nameVis[rhsId.ident] == Visibility.IPub));
-						r.pos = node.pos;
-					}
-					break;
-				case ADataType.Type.Union:
-					if (lhsType.unionS.exists(rhsId.ident, st.ctx)){
-						r = new RUnionMemberGetExpr(lhsExpr,
-								lhsType.unionS.names[rhsId.ident],
-								lhsType.isConst || (
-									lhsType.unionS.ident.length && st.ctx.length &&
-									st.ctx[0] != lhsType.unionS.ident[0] &&
-									lhsType.unionS.nameVis[rhsId.ident] == Visibility.IPub));
-						r.pos = node.pos;
-					}
-					break;
-				default:
-					break;
+					case ADataType.Type.Union:
+						if (lhsExpr.type.unionS.exists(rhsId.ident, st.ctx)){
+							r = new RUnionMemberGetExpr(lhsExpr,
+									lhsExpr.type.unionS.names[rhsId.ident],
+									lhsExpr.type.isConst || (
+										lhsExpr.type.unionS.ident.length && st.ctx.length &&
+										st.ctx[0] != lhsExpr.type.unionS.ident[0] &&
+										lhsExpr.type.unionS.nameVis[rhsId.ident] == Visibility.IPub
+										));
+							r.pos = node.pos;
+						}
+						break;
+					default:
+						break;
+				}
 			}
 			if (r !is null){
 				if (!expT(node.pos, r, st)) return;
