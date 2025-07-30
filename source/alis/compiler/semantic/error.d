@@ -53,6 +53,7 @@ public struct SmErr{
 		DerefNoRef, /// trying to deref something that is not a ref
 		ConstConst, /// trying to const a const
 		IntrUnk, /// unknown intrinsic
+		MemberNoExist, /// Member not existing
 	}
 
 	/// where error happen
@@ -318,4 +319,11 @@ package SmErr errConstConst(Location pos, string type){
 /// unknown intrinsic
 package SmErr errIntrUnk(Location pos, string intrN){
 	return SmErr(pos, intrN.format!"unknown intrinsic: `%s`", SmErr.Type.IntrUnk);
+}
+
+/// Member not existing
+package SmErr errMemberNoExist(Location pos, string sym, string mem){
+	return SmErr(pos,
+			format!"inaccessible member: member `%s` for `%s` cannot be accessed"(
+				sym, mem), SmErr.Type.MemberNoExist);
 }
