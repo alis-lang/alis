@@ -239,7 +239,8 @@ private bool expT(Location pos, ADataType type, ref St st){
 		ASymbol *sym = new ASymbol(AStruct(st.ctx ~ name.IdentU));
 		st.stab.add(name.IdentU, sym, st.ctx);
 		sym.structS.vis = Visibility.Default;
-		SmErr[] errs = structDo(node.val, &sym.structS, st.stabR, st.ctx, st.dep);
+		SmErr[] errs = structDo(node.val, &sym.structS, st.stabR, st.ctx,
+				st.dep, st.fns);
 		if (errs.length){
 			st.errs ~= errs;
 			return;
@@ -265,10 +266,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 		sym.structS.vis = Visibility.Default;
 		SmErr[] errs;
 		if (NamedUnion sub = cast(NamedUnion)node.val){
-			errs = unionNamedDo(sub, sym, st.stabR, st.ctx, st.dep);
+			errs = unionNamedDo(sub, sym, st.stabR, st.ctx, st.dep, st.fns);
 		} else
 		if (UnnamedUnion sub = cast(UnnamedUnion)node.val){
-			errs = unionUnnamedDo(sub, sym, st.stabR, st.ctx, st.dep);
+			errs = unionUnnamedDo(sub, sym, st.stabR, st.ctx, st.dep, st.fns);
 		}
 		if (errs.length){
 			st.errs ~= errs;

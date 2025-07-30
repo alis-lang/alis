@@ -604,11 +604,12 @@ private void structDo(Struct s, AStruct* symC, ref St1 st){
 
 /// ditto
 package SmErr[] structDo(Struct s, AStruct* sym, STab stabR, IdentU[] ctx,
-		void[0][ASymbol*] dep){
+		void[0][ASymbol*] dep, RFn[string] fns){
 	St1 st;
 	st.stabR = stabR;
 	st.stab = stabR.findSt(ctx, ctx);
 	st.dep = dep;
+	st.fns = fns;
 	structDo(s, sym, st);
 	return st.errs;
 }
@@ -727,11 +728,12 @@ package void unionNamedDo(NamedUnion node, ASymbol* sym, ref St1 st){
 
 /// ditto
 package SmErr[] unionNamedDo(NamedUnion u, ASymbol* sym, STab stabR,
-		IdentU[] ctx, void[0][ASymbol*] dep){
+		IdentU[] ctx, void[0][ASymbol*] dep, RFn[string] fns){
 	St1 st;
 	st.stabR = stabR;
 	st.stab = stabR.findSt(ctx, ctx);
 	st.dep = dep;
+	st.fns = fns;
 	unionNamedDo(u, sym, st);
 	return st.errs;
 }
@@ -777,11 +779,12 @@ package void unionUnnamedDo(UnnamedUnion node, ASymbol* sym, ref St1 st){
 
 /// ditto
 package SmErr[] unionUnnamedDo(UnnamedUnion u, ASymbol* sym, STab stabR,
-		IdentU[] ctx, void[0][ASymbol*] dep){
+		IdentU[] ctx, void[0][ASymbol*] dep, RFn[string] fns){
 	St1 st;
 	st.stabR = stabR;
 	st.stab = stabR.findSt(ctx, ctx);
 	st.dep = dep;
+	st.fns = fns;
 	unionUnnamedDo(u, sym, st);
 	return st.errs;
 }
@@ -817,7 +820,7 @@ package SmErrsVal!S1R stab1Of(ASTNode node, STab stabR, ASymbol*[ASTNode] sMap,
 /// Fully converts an ASTNode into a ASymbol
 /// Returns: Level 1 Symbol Table, or SmErr[]
 package SmErrsVal!S1R symDo(ASymbol* sym, STab stabR,
-		void[0][ASymbol*] dep){
+		void[0][ASymbol*] dep, RFn[string] fns){
 	assert (sym);
 	assert (sym.ast);
 	St1 st;
@@ -826,6 +829,7 @@ package SmErrsVal!S1R symDo(ASymbol* sym, STab stabR,
 	st.stab = stabR.findSt(st.ctx, st.ctx);
 	st.sMap = typeof(st.sMap).init; // TODO: is sMap needed in this case?
 	st.dep = dep;
+	st.fns = fns;
 	It.exec(sym.ast, st);
 	if (st.errs)
 		return SmErrsVal!S1R(st.errs);
