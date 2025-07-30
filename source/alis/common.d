@@ -64,6 +64,8 @@ public struct AVal{
 	public OptVal!AVal to(ADataType target) pure {
 		assert (this.canCastTo(target));
 		AVal ret;
+		if (type == target)
+			return this.OptVal!AVal;
 		switch (type.type){
 			case ADataType.Type.IntX:
 			case ADataType.Type.UIntX:
