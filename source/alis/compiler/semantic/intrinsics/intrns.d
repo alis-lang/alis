@@ -14,6 +14,7 @@ import alis.common,
 			 alis.compiler.ast.rst;
 
 import std.format,
+			 std.array,
 			 std.algorithm;
 
 package:
@@ -396,5 +397,141 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		RUnionIsExpr r = new RUnionIsExpr(p.val, p.memId);
 		r.pos = p.pos;
 		return SmErrsVal!RExpr(p);
+	}
+}
+
+@Intr(IntrN.Members){
+	@CallabilityChecker
+	bool membersCanCall(AValCT[] params){
+		if (params.length != 1)
+			return false;
+		AValCT p = params[0];
+		final switch (p.type){
+			case AValCT.Type.Type:
+				final switch (p.typeT.type){
+					case ADataType.Type.Seq:
+					case ADataType.Type.IntX:
+					case ADataType.Type.UIntX:
+					case ADataType.Type.FloatX:
+					case ADataType.Type.Char:
+					case ADataType.Type.Bool:
+					case ADataType.Type.Slice:
+					case ADataType.Type.Array:
+					case ADataType.Type.Ref:
+					case ADataType.Type.NoInit:
+					case ADataType.Type.Fn:
+						return false;
+					case ADataType.Type.Struct:
+					case ADataType.Type.Union:
+					case ADataType.Type.Enum:
+						return true;
+				}
+			case AValCT.Type.Expr:
+			case AValCT.Type.Seq:
+				return false;
+			case AValCT.Type.Symbol:
+				final switch (p.symS.type){
+					case ASymbol.Type.Struct:
+					case ASymbol.Type.Union:
+					case ASymbol.Type.Enum:
+					case ASymbol.Type.Import:
+						return true;
+					case ASymbol.Type.Fn:
+					case ASymbol.Type.Var:
+					case ASymbol.Type.EnumConst:
+					case ASymbol.Type.UTest:
+					case ASymbol.Type.Alias:
+					case ASymbol.Type.Template:
+						return false;
+				}
+			case AValCT.Type.Literal:
+				return false;
+		}
+	}
+
+	@ExprTranslator
+	SmErrsVal!RExpr membersTranslate(string, Location pos, STab,
+			IdentU[] ctx, void[0][ASymbol*], RFn[string], AValCT[] params){
+		AValCT p = params[0];
+		AValCT[] names;
+		final switch (p.type){
+			case AValCT.Type.Type:
+				final switch (p.typeT.type){
+					case ADataType.Type.Seq:
+					case ADataType.Type.IntX:
+					case ADataType.Type.UIntX:
+					case ADataType.Type.FloatX:
+					case ADataType.Type.Char:
+					case ADataType.Type.Bool:
+					case ADataType.Type.Slice:
+					case ADataType.Type.Array:
+					case ADataType.Type.Ref:
+					case ADataType.Type.NoInit:
+					case ADataType.Type.Fn:
+						assert (false);
+					case ADataType.Type.Struct:
+						AStruct* symC = p.typeT.structS;
+						names = symC.names.byKey
+							.filter!(s => symC.exists(s, ctx))
+							.map!(s => s.AVal.AValCT)
+							.array;
+						break;
+					case ADataType.Type.Union:
+						AUnion* symC = p.typeT.unionS;
+						names = symC.names.byKey
+							.filter!(s => symC.exists(s, ctx))
+							.map!(s => s.AVal.AValCT)
+							.array;
+						break;
+					case ADataType.Type.Enum:
+						AEnum* symC = p.typeT.enumS;
+						names = symC.memId
+							.map!(s => s.AVal.AValCT)
+							.array;
+						break;
+				}
+				break;
+			case AValCT.Type.Expr:
+			case AValCT.Type.Seq:
+				assert (false); // CallabilityChecker should've stopped this
+			case AValCT.Type.Symbol:
+				final switch (p.symS.type){
+					case ASymbol.Type.Struct:
+						AStruct* symC = &p.symS.structS;
+						names = symC.names.byKey
+							.filter!(s => symC.exists(s, ctx))
+							.map!(s => s.AVal.AValCT)
+							.array;
+						break;
+					case ASymbol.Type.Union:
+						AUnion* symC = &p.symS.unionS;
+						names = symC.names.byKey
+							.filter!(s => symC.exists(s, ctx))
+							.map!(s => s.AVal.AValCT)
+							.array;
+						break;
+					case ASymbol.Type.Enum:
+						AEnum* symC = &p.symS.enumS;
+						names = symC.memId
+							.map!(s => s.AVal.AValCT)
+							.array;
+						break;
+					case ASymbol.Type.Import:
+						return SmErrsVal!RExpr([errUnsup(pos, "$members(import)")]);
+					case ASymbol.Type.Fn:
+					case ASymbol.Type.Var:
+					case ASymbol.Type.EnumConst:
+					case ASymbol.Type.UTest:
+					case ASymbol.Type.Alias:
+					case ASymbol.Type.Template:
+						assert (false); // CallabilityChecker should've stopped this
+				}
+				break;
+			case AValCT.Type.Literal:
+				assert (false); // CallabilityChecker should've stopped this
+		}
+		RAValCTExpr r = new RAValCTExpr(names.AValCT);
+		r.pos = pos;
+		return SmErrsVal!RExpr(r);
 	}
 }
