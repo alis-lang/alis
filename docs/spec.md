@@ -2056,9 +2056,12 @@ directly dependent on the underlying data structures in the compiler/runtime.
 
 - `unionIs(T.M)` - whether a union's tag indicates `M` member being stored, or
 	member of type `M`.
-- `members(T)` - gets member names as string sequence for a union/struct type
-	`T`.
-- `member(alias V, string N)` - gets member with name `"N"` for value `V`.
+- `members(T)` - gets accessible member names as string sequence for a
+	union/struct/enum type `T`. This will include aliases as well. 
+- `memberField(T, N)` - gets actual field name for a member `N` on union/struct
+	type `T`. Use to "de-alias" members to actual underlying member.
+- `member(T, N)` - get member with name `N`, on enum type `T`, or
+	union/struct/enum type `T`.
 
 ## Attributes
 
