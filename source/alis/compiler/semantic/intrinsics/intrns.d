@@ -535,3 +535,120 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		return SmErrsVal!RExpr(r);
 	}
 }
+
+@Intr(IntrN.MemberField){
+	@CallabilityChecker
+	bool memberFieldCanCall(AValCT[] params){
+		if (params.length != 2)
+			return false;
+		if (!params[0 .. 1].membersCanCall)
+			return false;
+		if (params[1].type != AValCT.Type.Literal ||
+				params[1].val.type != ADataType.ofString)
+			return false;
+		return true;
+	}
+
+	@ExprTranslator
+	SmErrsVal!RExpr memberFieldTranslate(string, Location pos, STab,
+			IdentU[] ctx, void[0][ASymbol*], RFn[string], AValCT[] params){
+		AValCT p = params[0];
+		assert (params[1].type == AValCT.Type.Literal);
+		assert (params[1].val.type == ADataType.ofString);
+		string name = params[1].val.as!string.val;
+		string res;
+		final switch (p.type){
+			case AValCT.Type.Type:
+				final switch (p.typeT.type){
+					case ADataType.Type.Seq:
+					case ADataType.Type.IntX:
+					case ADataType.Type.UIntX:
+					case ADataType.Type.FloatX:
+					case ADataType.Type.Char:
+					case ADataType.Type.Bool:
+					case ADataType.Type.Slice:
+					case ADataType.Type.Array:
+					case ADataType.Type.Ref:
+					case ADataType.Type.NoInit:
+					case ADataType.Type.Fn:
+						assert (false);
+					case ADataType.Type.Struct:
+						AStruct* symC = p.typeT.structS;
+						if (!symC.exists(name, ctx))
+							return SmErrsVal!RExpr([errMemberNoExist(pos, p.toString, name)]);
+						immutable size_t target = symC.names[name];
+						foreach (string n, size_t id; symC.names){
+							if (id == target){
+								res = n;
+								break;
+							}
+						}
+						break;
+					case ADataType.Type.Union:
+						AUnion* symC = p.typeT.unionS;
+						if (!symC.exists(name, ctx))
+							return SmErrsVal!RExpr([errMemberNoExist(pos, p.toString, name)]);
+						immutable size_t target = symC.names[name];
+						foreach (string n, size_t id; symC.names){
+							if (id == target){
+								res = n;
+								break;
+							}
+						}
+						break;
+					case ADataType.Type.Enum:
+						res = name;
+						break;
+				}
+				break;
+			case AValCT.Type.Expr:
+			case AValCT.Type.Seq:
+				assert (false); // CallabilityChecker should've stopped this
+			case AValCT.Type.Symbol:
+				final switch (p.symS.type){
+					case ASymbol.Type.Struct:
+						AStruct* symC = &p.symS.structS;
+						if (!symC.exists(name, ctx))
+							return SmErrsVal!RExpr([errMemberNoExist(pos, p.toString, name)]);
+						immutable size_t target = symC.names[name];
+						foreach (string n, size_t id; symC.names){
+							if (id == target){
+								res = n;
+								break;
+							}
+						}
+						break;
+					case ASymbol.Type.Union:
+						AUnion* symC = &p.symS.unionS;
+						if (!symC.exists(name, ctx))
+							return SmErrsVal!RExpr([errMemberNoExist(pos, p.toString, name)]);
+						immutable size_t target = symC.names[name];
+						foreach (string n, size_t id; symC.names){
+							if (id == target){
+								res = n;
+								break;
+							}
+						}
+						break;
+					case ASymbol.Type.Enum:
+						res = name;
+						break;
+					case ASymbol.Type.Import:
+						return SmErrsVal!RExpr([errUnsup(pos, "$members(import)")]);
+					case ASymbol.Type.Fn:
+					case ASymbol.Type.Var:
+					case ASymbol.Type.EnumConst:
+					case ASymbol.Type.UTest:
+					case ASymbol.Type.Alias:
+					case ASymbol.Type.Template:
+						assert (false); // CallabilityChecker should've stopped this
+				}
+				break;
+			case AValCT.Type.Literal:
+				assert (false); // CallabilityChecker should've stopped this
+		}
+		RAValCTExpr r = new RAValCTExpr(res.AVal.AValCT);
+		r.pos = pos;
+		return SmErrsVal!RExpr(r);
+	}
+}
