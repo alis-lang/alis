@@ -93,21 +93,34 @@ package SmErr errUnsup(Location pos, string feat){
 }
 
 /// Expression should have resolved to Value
-package SmErr errExprValExpected(ASTNode expr){
-	return SmErr(expr.pos,
+package deprecated SmErr errExprValExpected(ASTNode expr){
+	return errExprValExpected(expr.pos);
+}
+/// ditto
+package SmErr errExprValExpected(Location pos){
+	return SmErr(pos,
 			format!"Expression does not evaluate to value",
 			SmErr.Type.ValExprExpected);
 }
 
 /// Expression should have resolved to type
-package SmErr errExprTypeExpected(ASTNode expr){
-	return SmErr(expr.pos,
+package deprecated SmErr errExprTypeExpected(ASTNode expr){
+	return errExprTypeExpected(expr.pos);
+}
+/// ditto
+package SmErr errExprTypeExpected(Location pos){
+	return SmErr(pos,
 			format!"Expression does not evaluate to type",
 			SmErr.Type.TypeExprExpected);
 }
-/// Expression should have resolved to Value
-package SmErr errExprSymExpected(ASTNode expr){
-	return SmErr(expr.pos,
+
+/// Expression should have resolved to Symbol
+package deprecated SmErr errExprSymExpected(ASTNode expr){
+	return errExprSymExpected(expr.pos);
+}
+/// ditto
+package SmErr errExprSymExpected(Location pos){
+	return SmErr(pos,
 			format!"Expression does not evaluate to symbol",
 			SmErr.Type.SymExprExpected);
 }
