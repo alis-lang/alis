@@ -179,9 +179,11 @@ package SmErrsVal!AValCT eval(Expression expr, STab stab, IdentU[] ctx,
 	return eval(resolved.val, stab, ctx);
 }
 
+
 /// Evaluates an RExpr expecting a value. See `eval`
 /// Returns: AValCT with Type.Literal, or SmErr[]
 package SmErrsVal!AValCT eval4Val(RExpr expr, STab stab, IdentU[] ctx){
+	// TODO: make this function return AVal, not AValCT
 	SmErrsVal!AValCT ret = eval(expr, stab, ctx);
 	if (ret.isErr){
 		debug{
@@ -191,14 +193,16 @@ package SmErrsVal!AValCT eval4Val(RExpr expr, STab stab, IdentU[] ctx){
 		}
 		return ret;
 	}
-	if (ret.val.type != AValCT.Type.Literal)
+	AValCT[] r = ret.val.flatten;
+	if (r.length != 1 || r[0].type != AValCT.Type.Literal)
 		return SmErrsVal!AValCT([errExprValExpected(expr)]);
-	return ret;
+	return r[0].SmErrsVal!AValCT;
 }
 
 /// ditto
 package SmErrsVal!AValCT eval4Val(Expression expr, STab stab, IdentU[] ctx,
 		void[0][ASymbol*] dep, RFn[string] fns, AValCT[] params = null){
+	// TODO: make this function return AVal, not AValCT
 	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, dep, fns, params);
 	if (resolved.isErr){
 		debug{
@@ -224,9 +228,12 @@ package SmErrsVal!ADataType eval4Type(RExpr expr, STab stab, IdentU[] ctx){
 		}
 		return SmErrsVal!ADataType(ret.err);
 	}
-	if (ret.val.type != AValCT.Type.Type)
+	AValCT[] r = ret.val.flatten;
+	if (r.length != 1 ||
+			(r[0].type != AValCT.Type.Type && r[0].type != AValCT.Type.Symbol) ||
+			!r[0].asType.isVal)
 		return SmErrsVal!ADataType([errExprTypeExpected(expr)]);
-	return SmErrsVal!ADataType(ret.val.typeT);
+	return SmErrsVal!ADataType(r[0].asType.val);
 }
 
 /// ditto
@@ -251,7 +258,8 @@ package SmErrsVal!(ASymbol*) eval4Sym(RExpr expr, STab stab, IdentU[] ctx){
 	SmErrsVal!AValCT ret = eval(expr, stab, ctx);
 	if (ret.isErr)
 		return SmErrsVal!(ASymbol*)(ret.err);
-	if (ret.val.type != AValCT.Type.Symbol)
+	AValCT[] r = ret.val.flatten;
+	if (r.length != 1 || r[0].type != AValCT.Type.Symbol)
 		return SmErrsVal!(ASymbol*)([errExprSymExpected(expr)]);
 	return SmErrsVal!(ASymbol*)(ret.val.symS);
 }
