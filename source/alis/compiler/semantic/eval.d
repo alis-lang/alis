@@ -193,10 +193,9 @@ package SmErrsVal!AValCT eval4Val(RExpr expr, STab stab, IdentU[] ctx){
 		}
 		return ret;
 	}
-	AValCT[] r = ret.val.flatten;
-	if (r.length != 1 || r[0].type != AValCT.Type.Literal)
+	if (ret.val.type != AValCT.Type.Literal)
 		return SmErrsVal!AValCT([errExprValExpected(expr)]);
-	return r[0].SmErrsVal!AValCT;
+	return ret.val.SmErrsVal!AValCT;
 }
 
 /// ditto
@@ -228,12 +227,11 @@ package SmErrsVal!ADataType eval4Type(RExpr expr, STab stab, IdentU[] ctx){
 		}
 		return SmErrsVal!ADataType(ret.err);
 	}
-	AValCT[] r = ret.val.flatten;
-	if (r.length != 1 ||
-			(r[0].type != AValCT.Type.Type && r[0].type != AValCT.Type.Symbol) ||
-			!r[0].asType.isVal)
+	if (!ret.val.asType.isVal ||
+			(ret.val.type != AValCT.Type.Type &&
+			 ret.val.type != AValCT.Type.Symbol))
 		return SmErrsVal!ADataType([errExprTypeExpected(expr)]);
-	return SmErrsVal!ADataType(r[0].asType.val);
+	return SmErrsVal!ADataType(ret.val.asType.val);
 }
 
 /// ditto
@@ -258,8 +256,7 @@ package SmErrsVal!(ASymbol*) eval4Sym(RExpr expr, STab stab, IdentU[] ctx){
 	SmErrsVal!AValCT ret = eval(expr, stab, ctx);
 	if (ret.isErr)
 		return SmErrsVal!(ASymbol*)(ret.err);
-	AValCT[] r = ret.val.flatten;
-	if (r.length != 1 || r[0].type != AValCT.Type.Symbol)
+	if (ret.val.type != AValCT.Type.Symbol)
 		return SmErrsVal!(ASymbol*)([errExprSymExpected(expr)]);
 	return SmErrsVal!(ASymbol*)(ret.val.symS);
 }
