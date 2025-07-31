@@ -891,7 +891,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 
 		if (sub.type.type == ADataType.Type.Seq){
 			if (node.indexes.length != 0){
-				st.errs ~= errParamCount(node, "index", 1, node.indexes.length);
+				st.errs ~= errParamCount(node.pos, "index", 1, node.indexes.length);
 				return;
 			}
 			AValCT ind; {

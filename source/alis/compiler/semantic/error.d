@@ -94,10 +94,6 @@ package SmErr errUnsup(Location pos, string feat){
 }
 
 /// Expression should have resolved to Value
-package deprecated SmErr errExprValExpected(ASTNode expr){
-	return errExprValExpected(expr.pos);
-}
-/// ditto
 package SmErr errExprValExpected(Location pos){
 	return SmErr(pos,
 			format!"Expression does not evaluate to value",
@@ -105,10 +101,6 @@ package SmErr errExprValExpected(Location pos){
 }
 
 /// Expression should have resolved to type
-package deprecated SmErr errExprTypeExpected(ASTNode expr){
-	return errExprTypeExpected(expr.pos);
-}
-/// ditto
 package SmErr errExprTypeExpected(Location pos){
 	return SmErr(pos,
 			format!"Expression does not evaluate to type",
@@ -116,10 +108,6 @@ package SmErr errExprTypeExpected(Location pos){
 }
 
 /// Expression should have resolved to Symbol
-package deprecated SmErr errExprSymExpected(ASTNode expr){
-	return errExprSymExpected(expr.pos);
-}
-/// ditto
 package SmErr errExprSymExpected(Location pos){
 	return SmErr(pos,
 			format!"Expression does not evaluate to symbol",
@@ -127,14 +115,6 @@ package SmErr errExprSymExpected(Location pos){
 }
 
 /// Parameter count mismatch
-package SmErr errParamCount(ASTNode node, string name, size_t expected,
-		size_t got){
-	return SmErr(node.pos,
-			format!"Mismatched parameter count for `%s`: expected %d, received %d"(
-				name, expected, got),
-			SmErr.Type.ParamCountMis);
-}
-/// ditto
 package SmErr errParamCount(Location pos, string name, size_t expected,
 		size_t got){
 	return SmErr(pos,
