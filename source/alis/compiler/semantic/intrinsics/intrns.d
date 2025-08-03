@@ -835,6 +835,25 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 	}
 }
 
+@Intr(IntrN.BitNot){
+	@CallabilityChecker
+	bool bitNotCanCall(AValCT[] params){
+		if (params.length != 1 || !params[0].isVal)
+			return false;
+		ADataType type = params[0].valType.val;
+		return type.type == ADataType.Type.FloatX ||
+			type.type == ADataType.Type.IntX ||
+			type.type == ADataType.Type.UIntX;
+	}
+	@ExprTranslator
+	SmErrsVal!RExpr bitNotTranslate(string, Location pos, STab,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+		RNegExpr r = new RBitNotExpr(params[0].toRExpr);
+		r.pos = pos;
+		return SmErrsVal!RExpr(r);
+	}
+}
+
 @CallabilityChecker
 @Intr(IntrN.BitAnd)
 @Intr(IntrN.BitOr)
