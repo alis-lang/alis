@@ -772,3 +772,32 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		return SmErrsVal!RExpr(r);
 	}
 }
+
+@Intr(IntrN.StackTrace){
+	@CallabilityChecker
+	bool stackTraceCanCall(AValCT[] params){
+		return params.length == 0;
+	}
+	@ExprTranslator
+	SmErrsVal!RExpr stackTraceTranslate(string, Location pos, STab,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[]){
+		RStackTraceExpr r = new RStackTraceExpr();
+		r.pos = pos;
+		return SmErrsVal!RExpr(r);
+	}
+}
+
+@Intr(IntrN.Err){
+	@CallabilityChecker
+	bool errCanCall(AValCT[] params){
+		return params.length == 1 &&
+			params[0].type == AValCT.Type.Literal &&
+			params[0].val.type == ADataType.ofString;
+	}
+	@ExprTranslator
+	SmErrsVal!RExpr errTranslate(string, Location pos, STab,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+		return SmErrsVal!RExpr([
+				errErr(pos, params[0].val.as!string.val)]);
+	}
+}
