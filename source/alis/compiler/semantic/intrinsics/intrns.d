@@ -848,7 +848,7 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 	@ExprTranslator
 	SmErrsVal!RExpr bitNotTranslate(string, Location pos, STab,
 			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
-		RNegExpr r = new RBitNotExpr(params[0].toRExpr);
+		RBitNotExpr r = new RBitNotExpr(params[0].toRExpr);
 		r.pos = pos;
 		return SmErrsVal!RExpr(r);
 	}
