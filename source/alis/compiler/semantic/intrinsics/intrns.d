@@ -723,3 +723,37 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		return SmErrsVal!RExpr(r);
 	}
 }
+
+@Intr(IntrN.AttrsOf){
+	@CallabilityChecker
+	bool attrsOfCanCall(AValCT[] params){
+		if (params.length != 1)
+			return false;
+		if (params[0].type != AValCT.Type.Symbol)
+			return false;
+		return true;
+	}
+	@ExprTranslator
+	SmErrsVal!RExpr attrsOfTranslate(string, Location pos, STab,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+		return SmErrsVal!RExpr([
+				errUnsup(pos, "$attrsOf")]);
+	}
+}
+
+@Intr(IntrN.ByAttrs){
+	@CallabilityChecker byAttrsCanCall(AValCT[] params){
+		if (params.length != 2)
+			return false;
+		if (params[0].type != AValCT.Type.Symbol)
+			return false;
+		// TODO: test params[1]
+		return true;
+	}
+	@ExprTranslator
+	SmErrsVal!RExpr byAttrsTranslate(string, Location pos, STab,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+		return SmErrsVal!RExpr([
+				errUnsup(pos, "$byAttrs")]);
+	}
+}
