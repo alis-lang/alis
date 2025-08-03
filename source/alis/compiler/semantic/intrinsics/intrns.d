@@ -757,3 +757,18 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 				errUnsup(pos, "$byAttrs")]);
 	}
 }
+
+@Intr(IntrN.Debug){
+	@CallabilityChecker
+	bool debugCanCall(AValCT[] params){
+		return params.length == 0;
+	}
+	@ExprTranslator
+	SmErrsVal!RExpr debugTranslate(string, Location pos, STab stabR,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[]){
+		RLiteralExpr r = new RLiteralExpr(
+				stabR.canFind("$debug".IdentU, [IdentU.init]).AVal);
+		r.pos = pos;
+		return SmErrsVal!RExpr(r);
+	}
+}
