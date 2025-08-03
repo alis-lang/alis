@@ -701,89 +701,44 @@ private bool expT(Location pos, ADataType type, ref St st){
 	}
 
 	void opDotBinIter(OpDotBin node, ref St st){
-		RExpr lhsExpr; {
-			SmErrsVal!RExpr res = resolve(node.lhs, st.stabR, st.ctx, st.dep, st.fns);
-			if (res.isErr){
-				st.errs ~= res.err;
-				return;
-			}
-			lhsExpr = res.val;
-		}
-
-		if (IdentExpr rhsId = cast(IdentExpr)node.rhs){
-			if (RAValCTExpr val = cast(RAValCTExpr)lhsExpr){
-				if (val.res.type == AValCT.Type.Symbol &&
-						val.res.symS.type == ASymbol.Type.Enum){
-					AEnum* enumS = &val.res.symS.enumS;
-					if (enumS.memId.canFind(rhsId.ident)){
-						REnumMemberGetExpr r = new REnumMemberGetExpr(
-								AVal(enumS.type,
-									enumS.memVal[enumS.memId.countUntil(rhsId.ident)]),
-								enumS, rhsId.ident);
-						r.pos = node.pos;
-						st.res = r;
-						return;
-					}
-				}
-			}
-			RExpr r;
-			if (lhsExpr.hasType){
-				switch (lhsExpr.type.type){
-					case ADataType.Type.Struct:
-						if (lhsExpr.type.structS is null)
-							break;
-						if (lhsExpr.type.structS.exists(rhsId.ident, st.ctx)){
-							r = new RStructMemberGetExpr(lhsExpr,
-									lhsExpr.type.structS.names[rhsId.ident],
-									lhsExpr.type.isConst || (
-										lhsExpr.type.structS.ident.length && st.ctx.length &&
-										st.ctx[0] != lhsExpr.type.structS.ident[0] &&
-										lhsExpr.type.structS.nameVis[rhsId.ident] == Visibility.IPub
-										));
-							r.pos = node.pos;
-						}
-						break;
-					case ADataType.Type.Union:
-						if (lhsExpr.type.unionS.exists(rhsId.ident, st.ctx)){
-							r = new RUnionMemberGetExpr(lhsExpr,
-									lhsExpr.type.unionS.names[rhsId.ident],
-									lhsExpr.type.isConst || (
-										lhsExpr.type.unionS.ident.length && st.ctx.length &&
-										st.ctx[0] != lhsExpr.type.unionS.ident[0] &&
-										lhsExpr.type.unionS.nameVis[rhsId.ident] == Visibility.IPub
-										));
-							r.pos = node.pos;
-						}
-						break;
-					default:
-						break;
-				}
-			}
-			if (r !is null){
-				if (!expT(node.pos, r, st)) return;
-				if (st.params.length &&
-						r.callabilityOf(st.params) == size_t.max){
-					st.errs ~= errCallableIncompat(node.pos, r.toString,
-							st.params.map!(p => p.toString));
-					return;
-				}
-				if (st.isExpT)
-					st.res = r.to(st.expT).val;
-				else
-					st.res = r;
-				return;
-			}
-		}
-
-		AValCT[] lhsVal; {
-			SmErrsVal!AValCT lhsRes = eval(lhsExpr, st.stabR, st.ctx);
+		bool lhsIsSeq = false;
+		AValCT[] lhs; {
+			SmErrsVal!AValCT lhsRes = eval(node.lhs, st.stabR, st.ctx,
+					st.dep, st.fns);
 			if (lhsRes.isErr){
 				st.errs ~= lhsRes.err;
 				return;
 			}
-			lhsVal = lhsRes.val.flatten;
+			lhsIsSeq = lhsRes.val.type == AValCT.Type.Seq;
+			lhs = lhsRes.val.flatten;
 		}
-		AValCT[] pTypes = lhsVal ~ st.params;
+		SmErr[] errs;
+		if (!lhsIsSeq){
+			if (IdentExpr rhsId = cast(IdentExpr)node.rhs){
+				AValCT[] params = [lhs[0], rhsId.ident.AVal.AValCT];
+				if (IntrN.Member.callabilityOf(params) != size_t.max){
+					SmErrsVal!RExpr res = IntrN.Member.resolveIntrN(node.pos, params,
+							st.stabR, st.ctx, st.dep, st.fns);
+					if (res.isErr){
+						errs = res.err;
+					} else {
+						if (st.isExpT)
+							st.res = res.val.to(st.expT).val;
+						else
+							st.res = res.val;
+						if (st.params.length &&
+								st.res.callabilityOf(st.params) == size_t.max){
+							st.errs ~= errCallableIncompat(node.pos, st.res.toString,
+									st.params.map!(p => p.toString));
+							return;
+						}
+						return;
+					}
+				}
+			}
+		}
+
+		AValCT[] pTypes = lhs ~ st.params;
 
 		// rhs is intrinsic
 		if (IntrinsicExpr intr = cast(IntrinsicExpr)node.rhs){
@@ -791,18 +746,23 @@ private bool expT(Location pos, ADataType type, ref St st){
 				RIntrinsicPartCallExpr r = new RIntrinsicPartCallExpr;
 				r.pos = intr.pos;
 				r.name = intr.name;
-				r.params = lhsVal;
+				r.params = lhs;
 				if (st.isExpT){
 					debug stderr.writeln("st.isExpT in partial intrinsic call!");
-					/*assert (false,
-							"cannot expect data type from partial intrinsic call");*/
+					assert (false,
+							"cannot expect data type from partial intrinsic call");
+				}
+				if (st.params.length){
+					debug stderr.writeln("st.params in partial intrinsic call!");
+					assert (false,
+							"cannot expect callability from partial intrinsic call");
 				}
 				st.res = r;
 				return;
 			} else
-			if (intr.name.callabilityOf(lhsVal) != size_t.max){
+			if (intr.name.callabilityOf(lhs) != size_t.max){
 				RExpr r; {
-					SmErrsVal!RExpr res = resolveIntrN(intr.name, intr.pos, lhsVal,
+					SmErrsVal!RExpr res = resolveIntrN(intr.name, intr.pos, lhs,
 							st.stabR, st.ctx, st.dep, st.fns);
 					if (res.isErr){
 						st.errs ~= res.err;
@@ -822,52 +782,59 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.errs ~= errCallableIncompat(intr.pos, intr.name.format!"$%s",
 					pTypes.map!(p => p.toString));
 			st.errs ~= errCallableIncompat(intr.pos, intr.name.format!"$%s",
-					lhsVal.map!(p => p.toString));
+					lhs.map!(p => p.toString));
 			return;
 		}
 
-		bool isPartial;
 		RExpr r; {
-			SmErr[] errs;
 			SmErrsVal!RExpr res = resolve(node.rhs, st.stabR, st.ctx, st.dep,
 					st.fns, pTypes);
 			if (res.isErr){
 				errs = res.err;
-				res = resolve(node.rhs, st.stabR, st.ctx, st.dep, st.fns, lhsVal);
+				res = resolve(node.rhs, st.stabR, st.ctx, st.dep, st.fns, lhs);
 				if (res.isErr){
 					st.errs ~= errs;
 					st.errs ~= res.err;
 					return;
 				}
-				res = call(res.val, lhsVal);
+				res = call(res.val, lhs);
 				if (res.isErr){
 					st.errs ~= res.err;
 					return;
 				}
 				r = res.val;
-				isPartial = false;
-			} else {
-				isPartial = true;
-				r = res.val;
+				if (!expT(node.pos, r, st)) return;
+				if (st.isExpT)
+					r = r.to(st.expT).val;
+				else
+					st.res = res.val;
+				if (st.params.length &&
+						st.res.callabilityOf(st.params) == size_t.max){
+					st.errs ~= errCallableIncompat(node.pos, st.res.toString,
+							st.params.map!(p => p.toString));
+					return;
+				}
+				return;
 			}
+			// partial
+			r = res.val;
 		}
 
-		immutable size_t callability = r.callabilityOf(isPartial ? pTypes : lhsVal);
-		if (!expT(node.pos, r, st)) return;
-		if (callability == size_t.max){
-			st.errs ~= errCallableIncompat(node.pos, r.toString,
-					(isPartial ? pTypes : lhsVal).map!(p => p.toString));
-			return;
-		}
-		if (!isPartial){
-			st.res = r;
-			return;
-		}
 		RPartCallExpr pCall = new RPartCallExpr;
 		pCall.pos = node.pos;
 		pCall.callee = r;
-		pCall.params = lhsVal;
+		pCall.params = lhs;
 		st.res = pCall;
+		if (st.isExpT){
+			debug stderr.writeln("st.isExpT in partial call!");
+			assert (false,
+					"cannot expect data type from partial call");
+		}
+		if (st.params.length){
+			debug stderr.writeln("st.params in partial call!");
+			assert (false,
+					"cannot expect callability from partial call");
+		}
 	}
 
 	void opIndexExprIter(OpIndexExpr node, ref St st){
