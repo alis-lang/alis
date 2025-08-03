@@ -54,6 +54,7 @@ public struct SmErr{
 		ConstConst, /// trying to const a const
 		IntrUnk, /// unknown intrinsic
 		MemberNoExist, /// Member not existing
+		Err, /// error through the $err intrinsic
 	}
 
 	/// where error happen
@@ -306,4 +307,9 @@ package SmErr errMemberNoExist(Location pos, string sym, string mem){
 	return SmErr(pos,
 			format!"inaccessible member: member `%s` for `%s` cannot be accessed"(
 				sym, mem), SmErr.Type.MemberNoExist);
+}
+
+/// $err intrinsic error
+package SmErr errErr(Location pos, string err){
+	return SmErr(pos, err.format!"$err: %s", SmErr.Type.Err);
 }
