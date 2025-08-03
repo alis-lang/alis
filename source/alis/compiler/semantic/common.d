@@ -17,10 +17,12 @@ import std.algorithm,
 
 debug import std.stdio;
 
-/// Resolved Partial Function Call Expression
+/// Partial call to a resolved expr
 /// **should never occur in a finalized RST**
-package class RFnPartCallExpr : RFnCallExpr{
+package class RPartCallExpr : RExpr{
 package:
+	RExpr callee;
+	AValCT[] params;
 	this(){}
 }
 
@@ -35,11 +37,28 @@ package:
 
 /// Resolved Partial Intrinsic Call Expression
 /// **should never occur in a finalized RST**
-package class RIntrinsicPartCallExpr : RIntrinsicCallExpr{
+package class RIntrinsicPartCallExpr : RExpr{
 package:
-	/// expected param types
-	ADataType[] paramT;
+	/// intrinsic name
+	string name;
+	/// parameters
+	AValCT[] params;
 	this(){}
+}
+
+/// Enum Member Get Expression
+package class REnumMemberGetExpr : RLiteralExpr{
+package:
+	/// enum
+	AEnum* enumS;
+	/// member name
+	string name;
+
+	this (AVal val, AEnum* enumS, string name){
+		super(val);
+		this.enumS = enumS;
+		this.name = name;
+	}
 }
 
 /// Wrapper for AValCT
@@ -49,7 +68,7 @@ public:
 	/// evaluation result
 	AValCT res;
 	/// the expression itself. can be null
-	RExpr expr;
+	RExpr expr; // TODO: is it used?
 
 	this (){}
 	this(AValCT res){
@@ -63,6 +82,37 @@ public:
 		if (expr)
 			ret["expr"] = expr.jsonOf;
 		return ret;
+	}
+
+	/// convert to an actual RExpr
+	final RExpr toRExpr(){
+		final switch (res.type){
+			case AValCT.Type.Literal:
+				RLiteralExpr r = new RLiteralExpr(AVal(res.val.type, res.val.data));
+				r.pos = pos;
+				return r;
+			case AValCT.Type.Symbol:
+			case AValCT.Type.Type:
+			case AValCT.Type.Seq:
+				assert (false, "unsupported AValCT.Type in RAValCTExpr.toRExpr");
+			case AValCT.Type.Expr:
+				return res.expr;
+		}
+	}
+}
+
+/// converts/wraps an AValCT into RExpr
+RExpr toRExpr()(auto ref AValCT val){
+	final switch (val.type){
+		case AValCT.Type.Literal:
+			// TODO: translate to RLiteralExpr?
+		case AValCT.Type.Symbol:
+		case AValCT.Type.Type:
+			return new RAValCTExpr(val);
+		case AValCT.Type.Expr:
+			return val.expr;
+		case AValCT.Type.Seq:
+			assert (false, "RExpr.of(AValCT) received AValCT.Type.Seq");
 	}
 }
 
@@ -96,7 +146,10 @@ package template RtL(alias M, size_t L){
 			Fns = AliasSeq!(Fns, F);
 		}
 	}
-	alias RtL = RSTIter!(Filter!(HasAnyUDA!(ITL(L)), ItFnsOf!M));
+	static import alis.compiler.ast.iter;
+	alias Iter(Fns...) =
+		Instantiate!(alis.compiler.ast.iter.ASTIter!(RSTNodes, RAValCTExpr), Fns);
+	alias RtL = Iter!(Filter!(HasAnyUDA!(ITL(L)), ItFnsOf!M));
 }
 
 /// Semantic Analysis Context

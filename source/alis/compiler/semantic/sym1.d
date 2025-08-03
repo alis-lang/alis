@@ -21,7 +21,6 @@ import alis.common,
 			 alis.compiler.semantic.expr,
 			 alis.compiler.semantic.eval,
 			 alis.compiler.semantic.types,
-			 alis.compiler.semantic.typeofexpr,
 			 alis.compiler.ast,
 			 alis.compiler.ast.iter,
 			 alis.compiler.ast.rst;
@@ -93,8 +92,10 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			if (!isAuto){
 				SmErrsVal!ADataType typeRes = eval4Type(param.type, st.stabR, st.ctx,
 						st.dep, st.fns);
-				if (typeRes.isErr)
+				if (typeRes.isErr){
 					st.errs ~= typeRes.err;
+					return;
+				}
 				type = typeRes.val;
 			}
 			if (prevHadDef && param.val is null)
@@ -109,14 +110,15 @@ private bool isRecDep(ASTNode node, ref St1 st){
 					st.errs ~= valRes.err;
 					continue;
 				}
-				if (isAuto)
-					type = valRes.val.typeL;
-				else
-				if (!valRes.val.typeL.canCastTo(type))
+				if (isAuto){
+					type = valRes.val.val.type;
+				} else
+				if (valRes.val.canCastTo(type)){
+					symC.paramsV ~= valRes.val.to(type).val.val.data;
+				} else {
 					st.errs ~= errIncompatType(param.val.pos, type.toString,
-							valRes.val.typeL.toString);
-				type = valRes.val.typeL;
-				symC.paramsV ~= valRes.val.dataL;
+							valRes.val.val.type.toString);
+				}
 			} else {
 				symC.paramsV ~= type.initB;
 			}
@@ -147,12 +149,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			return;
 		}
 		r.body = exprRes.val;
-		SmErrsVal!ADataType retRes = r.body.typeOf(st.stabR, st.ctx);
-		if (retRes.isErr){
-			st.errs ~= exprRes.err;
-			return;
-		}
-		symC.retT = retRes.val;
+		symC.retT = r.body.type;
 	}
 
 	void enumConstIter(EnumConstDef node, ref St1 st){
@@ -184,12 +181,15 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			st.errs ~= valRes.err;
 			return;
 		}
-		symC.data = valRes.val.dataL;
-		if (isAuto)
-			symC.type = valRes.val.typeL;
-		if (!valRes.val.typeL.canCastTo(symC.type)){
+		symC.data = valRes.val.val.data;
+		if (isAuto){
+			symC.type = valRes.val.val.type;
+		} else
+		if (valRes.val.canCastTo(symC.type)){
+			symC.data = valRes.val.to(symC.type).val.val.data;
+		} else {
 			st.errs ~= errIncompatType(node.pos, symC.type.toString,
-					valRes.val.typeL.toString);
+					valRes.val.val.type.toString);
 			return;
 		}
 	}
@@ -233,9 +233,9 @@ private bool isRecDep(ASTNode node, ref St1 st){
 				st.errs ~= valRes.err;
 				return;
 			}
-			types ~= valRes.val.typeL;
+			types ~= valRes.val.val.type;
 			symC.memId ~= member.name;
-			symC.memVal ~= valRes.val.dataL;
+			symC.memVal ~= valRes.val.val.data;
 		}
 
 		if (isAuto){
@@ -253,14 +253,15 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		}
 
 		foreach (size_t i; 0 .. symC.memVal.length){
-			SmErrsVal!AValCT valRes = AValCT(types[i], symC.memVal[i]).to(symC.type);
-			if (valRes.isErr){
-				st.errs ~= valRes.err;
+			OptVal!AValCT valRes = AVal(types[i], symC.memVal[i]).AValCT
+				.to(symC.type);
+			if (!valRes.isVal){
+				st.errs ~= errIncompatType(node.members[i].pos,
+						symC.type.toString, types[i].toString);
 				continue;
 			}
-			symC.memVal[i] = valRes.val.dataL;
+			symC.memVal[i] = valRes.val.to(symC.type).val.val.data;
 		}
-		// TODO: cast all symC.memVal[i] from types[i] to symC.type
 	}
 
 	void structIter(StructDef node, ref St1 st){
@@ -365,13 +366,15 @@ private bool isRecDep(ASTNode node, ref St1 st){
 				}
 				val = valRes.val;
 				if (isAuto){
-					type = val.typeL;
+					type = val.val.type;
 				} else
-				if (!val.typeL.canCastTo(type)){
-					st.errs ~= errIncompatType(field.pos, type.toString, val.typeL.toString);
+				if (val.canCastTo(type)){
+					symC.initD ~= val.to(type).val.val.data;
+				} else {
+					st.errs ~= errIncompatType(field.pos, type.toString,
+							val.val.type.toString);
 					continue;
 				}
-				symC.initD ~= val.dataL;
 			} else {
 				// TODO: ask ADataType for initD
 				symC.initD ~= [];
@@ -420,16 +423,20 @@ private bool isRecDep(ASTNode node, ref St1 st){
 				return;
 			}
 			if (isAuto){
-				symC.type = valVal.val.typeL;
-			} else if (!valVal.val.typeL.canCastTo(symC.type)){
+				symC.type = valVal.val.val.type;
+			} else
+			if (valVal.val.canCastTo(symC.type)){
+
+			} else {
 				st.errs ~= errIncompatType(node.value.pos, symC.type.toString,
-						valVal.val.typeL.toString);
+						valVal.val.val.type.toString);
 				return;
 			}
 		} else if (isAuto){
 			st.errs ~= errAutoNoVal(node.pos);
 			return;
 		}
+		// TODO: who gonna implement VarDef????
 	}
 
 	void aliasIter(AliasDef node, ref St1 st){
@@ -572,14 +579,15 @@ private void structDo(Struct s, AStruct* symC, ref St1 st){
 			}
 			val = valRes.val;
 			if (isAuto){
-				type = val.typeL;
+				type = val.val.type;
 			} else
-				if (!val.typeL.canCastTo(type)){
-					st.errs ~= errIncompatType(field.pos, type.toString,
-							val.typeL.toString);
-					continue;
-				}
-			symC.initD ~= val.dataL;
+			if (val.canCastTo(type)){
+				symC.initD ~= val.to(type).val.val.data;
+			} else {
+				st.errs ~= errIncompatType(field.pos, type.toString,
+						val.val.type.toString);
+				continue;
+			}
 		} else {
 			symC.initD ~= type.initB;
 		}
@@ -596,11 +604,12 @@ private void structDo(Struct s, AStruct* symC, ref St1 st){
 
 /// ditto
 package SmErr[] structDo(Struct s, AStruct* sym, STab stabR, IdentU[] ctx,
-		void[0][ASymbol*] dep){
+		void[0][ASymbol*] dep, RFn[string] fns){
 	St1 st;
 	st.stabR = stabR;
 	st.stab = stabR.findSt(ctx, ctx);
 	st.dep = dep;
+	st.fns = fns;
 	structDo(s, sym, st);
 	return st.errs;
 }
@@ -693,14 +702,15 @@ package void unionNamedDo(NamedUnion node, ASymbol* sym, ref St1 st){
 			}
 			val = valRes.val;
 			if (isAuto){
-				type = val.typeL;
+				type = val.val.type;
 			}	else
-			if (!val.typeL.canCastTo(type)){
+			if (val.canCastTo(type)){
+				symC.initD = val.to(type).val.val.data;
+			} else {
 				st.errs ~= errIncompatType(field.pos, type.toString,
-						val.typeL.toString);
+						val.val.type.toString);
 				continue;
 			}
-			symC.initD = val.dataL;
 		}
 		foreach (string name; aliasMap.byKey
 				.filter!(n => aliasMap[n] == field.name)){
@@ -718,11 +728,12 @@ package void unionNamedDo(NamedUnion node, ASymbol* sym, ref St1 st){
 
 /// ditto
 package SmErr[] unionNamedDo(NamedUnion u, ASymbol* sym, STab stabR,
-		IdentU[] ctx, void[0][ASymbol*] dep){
+		IdentU[] ctx, void[0][ASymbol*] dep, RFn[string] fns){
 	St1 st;
 	st.stabR = stabR;
 	st.stab = stabR.findSt(ctx, ctx);
 	st.dep = dep;
+	st.fns = fns;
 	unionNamedDo(u, sym, st);
 	return st.errs;
 }
@@ -748,8 +759,13 @@ package void unionUnnamedDo(UnnamedUnion node, ASymbol* sym, ref St1 st){
 			st.errs ~= valRes.err;
 			continue;
 		}
-		symC.initI = cast(ptrdiff_t)symC.types.length - 1;
-		symC.initD = valRes.val.dataL;
+		if (valRes.val.canCastTo(typeRes.val)){
+			symC.initD = valRes.val.to(typeRes.val).val.val.data;
+			symC.initI = cast(ptrdiff_t)symC.types.length - 1;
+		} else {
+			st.errs ~= errIncompatType(member.pos, typeRes.val.toString,
+					valRes.val.val.type.toString);
+		}
 	}
 	if (symC.initI == size_t.max)
 		st.errs ~= errUnionNoDef(node.pos);
@@ -763,11 +779,12 @@ package void unionUnnamedDo(UnnamedUnion node, ASymbol* sym, ref St1 st){
 
 /// ditto
 package SmErr[] unionUnnamedDo(UnnamedUnion u, ASymbol* sym, STab stabR,
-		IdentU[] ctx, void[0][ASymbol*] dep){
+		IdentU[] ctx, void[0][ASymbol*] dep, RFn[string] fns){
 	St1 st;
 	st.stabR = stabR;
 	st.stab = stabR.findSt(ctx, ctx);
 	st.dep = dep;
+	st.fns = fns;
 	unionUnnamedDo(u, sym, st);
 	return st.errs;
 }
@@ -803,7 +820,7 @@ package SmErrsVal!S1R stab1Of(ASTNode node, STab stabR, ASymbol*[ASTNode] sMap,
 /// Fully converts an ASTNode into a ASymbol
 /// Returns: Level 1 Symbol Table, or SmErr[]
 package SmErrsVal!S1R symDo(ASymbol* sym, STab stabR,
-		void[0][ASymbol*] dep){
+		void[0][ASymbol*] dep, RFn[string] fns){
 	assert (sym);
 	assert (sym.ast);
 	St1 st;
@@ -812,6 +829,7 @@ package SmErrsVal!S1R symDo(ASymbol* sym, STab stabR,
 	st.stab = stabR.findSt(st.ctx, st.ctx);
 	st.sMap = typeof(st.sMap).init; // TODO: is sMap needed in this case?
 	st.dep = dep;
+	st.fns = fns;
 	It.exec(sym.ast, st);
 	if (st.errs)
 		return SmErrsVal!S1R(st.errs);

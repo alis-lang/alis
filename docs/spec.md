@@ -283,7 +283,7 @@ Floats:
 Characters:
 
 - `char` - an 8 bit character
-- `$char(X)` - an X bits character
+- `$char` - an 8 bit character // TODO
 
 Others:
 
@@ -1642,7 +1642,7 @@ Implicit casting is provided by default for:
 - `$float(A)` to `$float(B)` where `A < B`
 - `$int(A)` to `$float(B)` where `A <= B`
 - `$uint(A)` to `$float(B)` where `A < B`
-- `$uint(A)` to `$char(B)` where `A <= B`
+- `$uint(A)` to `$char` where `A == 8`
 - `$int(X)` to `bool` for any `X`
 - `$uint(X)` to `bool` for any `X`
 - `T` to `const T` for any type `T`
@@ -1842,18 +1842,27 @@ template sum $($type T) {
 }
 ```
 
-Calling a function template can be done as:
+A Function Template **cannot** receive template parameters, it can only
+receive function call parameters, as such, all template parameters must be
+related to function parameters:
 
 ```
-var int c = sum(int)(5, 10);
-// or
-var int c = sum(5, 10); // T is inferred
-// or
-var int c = 5.sum(10);
+fn identity $($type T) (T val) -> val;
+
+5 == 5.identity;
+5 == identity(5);
 ```
 
-The compiler is able to determine what value to use for `T`, only if the
-`fn $(..)` declaration is used.
+To receive additional template parameters, which are not used in parameters:
+
+```
+template foo $(alias... S){
+	fn this $($type T) (T val) -> val;
+}
+
+// Seq passed for `S`. Cannot pass T directly, inferred from 5
+foo(Seq) (5); 
+```
 
 ## Enums
 
@@ -1991,46 +2000,21 @@ This also means that Sequences cannot be multi-dimensional.
 
 # Calling Through Dot Operator
 
-You can write `a.b` instead of `b(a)`. For example, if you have a function
-`foo`:
+The dot operator can be used to pass parameters to callables, i.e: functions &
+templates.
+
+When resolving `a.b`, first it tries if `"b"` is a member of `a`'s type. If so,
+it resolves to `$member(a, "b")`.
+
+If `"b"` is not a member of `a`, then `a.b` translates to `b(a)`. This applies
+to both cases: where `b` is a function, and where `b` is a template. This
+applies to where `a` is a sequence as well:
 
 ```
 (a, b).foo(c);
 // is equivalent to:
 foo(a, b, c);
 ```
-
-Similarly, if `foo` is a template, not declared as `fn foo $(...)`, the above
-is applicable. The only special case is when `foo` is declared as
-`fn foo $(...)`:
-
-```
-fn foo $(alias... T) (T val) -> ...{...}
-```
-
-In this case, `a.foo(b)` will pass `a` as function parameter, and `b` as a
-template parameter, and the compiler will attempt to infer any template
-parameters.
-
-An example of this is the `to` template:
-
-```
-fn to $($type To : int, $type From) (From val) -> int{...}
-// can be used as:
-"15".to(int)
-// "15" is function parameter, int is template paramter
-```
-
-However, if a function template is declared through `template`, this does not
-apply:
-
-```
-template foo $(alias... T){
-	fn this(T val) -> ...{...}
-}
-```
-
-In the above case, `a.foo(b)` will pass `a, b` as template parameters.
 
 ---
 
@@ -2053,7 +2037,7 @@ directly dependent on the underlying data structures in the compiler/runtime.
 - `int(X)` - data type, signed integer of X bits
 - `uint(X)` - data type, unsigned integer of X bits
 - `float(X)` - data type, floating point number of X bits
-- `char(X)` - data type,  an X bits character
+- `char` - data type, an 8 bit character
 - `slice(X)` - data type, fixed size contiguous block, elements of type `X`
 - `array(X)` - data type, contiguous block, elements of type `X`
 - `vt` - an intrinsic data type for Virtual Table.
@@ -2070,9 +2054,14 @@ directly dependent on the underlying data structures in the compiler/runtime.
 
 ## Unions & Aggregates
 
-- `unionIs(T)` - whether a union's tag indicates `this` member being stored
 - `unionIs(T.M)` - whether a union's tag indicates `M` member being stored, or
 	member of type `M`.
+- `members(T)` - gets accessible member names as string sequence for a
+	union/struct/enum type `T`. This will include aliases as well. 
+- `memberField(T, N)` - gets actual field name for a member `N` on union/struct
+	type `T`. Use to "de-alias" members to actual underlying member.
+- `member(T, N)` - get member with name `N`, on enum type `T`, or
+	union/struct/enum type `T`.
 
 ## Attributes
 
@@ -2095,40 +2084,36 @@ These should only be used for debugging.
 
 - `rtWrite(T...)` - prints parameters, at runtime. **Only for debugging Alis
 	itself. May not be available in final version**
-- `rtWriteln(T...)` - prints parameters, at runtime. **Only for debugging Alis
-	itself. May not be available in final version**
-- `ctWriteln(T...)` - prints parameters, at compile time.
+- `ctWrite(T...)` - prints parameters, at compile time.
 
 ## Arithmetic Operations
 
 Any intrinsic here that accepts 2 parameters, both should be of the same type.
 
-- `arithNeg(X)` - returns `X` with negated sign
-- `arithBinNot(X)` - returns bitwise not of `X`
-- `arithBinOr(X, Y)` - returns bitwise or of `X` and `Y`
-- `arithBinAnd(X, Y)` - returns bitwise and of `X` and `Y`.
-- `arithBinXor(X, Y)` - returns bitwise xor of `X` and `Y`
-- `arithAdd(X, Y)` - returns `X+Y`
-- `arithSub(X, Y)` - returns `X-Y`
-- `arithMul(X, Y)` - returns `X*Y`
-- `arithDiv(X, Y)` - returns `X/Y`
-- `arithMod(X, Y)` - returns `X%Y`. Only for integers, not floats.
+- `negate(X)` - returns `X` with negated sign
+- `bitNot(X)` - returns bitwise not of `X`
+- `bitOr(X, Y)` - returns bitwise or of `X` and `Y`
+- `bitAnd(X, Y)` - returns bitwise and of `X` and `Y`.
+- `bitXor(X, Y)` - returns bitwise xor of `X` and `Y`
+- `add(X, Y)` - returns `X+Y`
+- `sub(X, Y)` - returns `X-Y`
+- `mul(X, Y)` - returns `X*Y`
+- `div(X, Y)` - returns `X/Y`
+- `mod(X, Y)` - returns `X%Y`. Only for integers, not floats.
 
 For the left/right shift, `X` and `Y` must be integers. Same type is not
 required:
 
-- `arithLShift(X, Y)` - returns `X << Y`
-- `arithRShift(X, Y)` - returns `X >> Y`
-
-## Booleans
-
-- `boolNot(X)` - returns `false` if `X is true`, or `true` if `X is false`
+- `shiftL(X, Y)` - returns `X << Y`
+- `shiftR(X, Y)` - returns `X >> Y`
 
 ## Comparison
 
-- `is(X, Y)` - returns if `X` equals `Y`.
-- `isNot(X, Y)` - returns if `X` not equals `Y`.
+- `is(X, Y)` - `true` if `X` is `Y`.
+- `isNot(X, Y)` - `true` if `X` not equals `Y`.
+- `isLess(X, Y)` - `true` if `X` less than `Y`.
+- `not(X)` - `true` if `X` is `false`.
 
 ## Type Casting
 
-- `cast(X, T)` - casts `X` to type `T`. Works only for primitives.
+- `to(X, T)` - casts `X` to type `T`. Works only for primitives.

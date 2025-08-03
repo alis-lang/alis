@@ -1,13 +1,13 @@
 module alis.utils;
 
-/// Union with array of ubytes
+/// Union with array of bytes
 public union ByteUnion(T, ubyte N = T.sizeof){
 	T data;
-	ubyte[N] bytes;
-	this(ubyte[N] bytes){
+	void[N] bytes;
+	this(void[N] bytes){
 		this.bytes = bytes;
 	}
-	this(ubyte[] bytes){
+	this(void[] bytes){
 		assert(bytes.length >= N);
 		this.bytes = bytes[0 .. N];
 	}
@@ -16,18 +16,18 @@ public union ByteUnion(T, ubyte N = T.sizeof){
 	}
 }
 
-/// Reads a ubyte[] as a type
+/// Reads a void[] as a type
 /// Returns: value in type T
-pragma(inline, true) public T as(T)(ubyte[] data) pure {
+pragma(inline, true) public T as(T)(void[] data) pure {
 	assert(data.length >= T.sizeof);
 	return *(cast(T*)data.ptr);
 }
 
-/// Returns: ubyte[] against a value of type T
-pragma(inline, true) public ubyte[] asBytes(T)(T val) pure {
-	ubyte[] ret;
+/// Returns: void[] against a value of type T
+pragma(inline, true) public void[] asBytes(T)(T val) pure {
+	void[] ret;
 	ret.length = T.sizeof;
-	return ret[] = (cast(ubyte*)&val)[0 .. T.sizeof];
+	return ret[] = (cast(void*)&val)[0 .. T.sizeof];
 }
 
 ///

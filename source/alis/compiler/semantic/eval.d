@@ -40,10 +40,14 @@ struct St{
 
 @ItFn @ITL(0) {
 	void literalIter(RLiteralExpr node, ref St st){
-		st.res = AValCT(node.type, node.value.dup);
+		st.res = node.val.AValCT;
 	}
 
-	void intrExpr(RIntrinsicExpr node, ref St st){
+	void avalCtIter(RAValCTExpr node, ref St st){
+		st.res = node.res;
+	}
+
+	/*void intrExpr(RIntrinsicExpr node, ref St st){
 		switch (node.name){
 			case IntrN.NoInit:
 				st.res = AValCT(ADataType.ofNoInit); return;
@@ -70,14 +74,14 @@ struct St{
 			default:
 				st.errs ~= errUnsup(node.pos, node.name.format!"intrinsic call $%s");
 		}
-	}
+	}*/
 
 	void exprIter(RExpr node, ref St st){
 		st.errs ~= errUnsup(node);
 	}
 }
 
-private void intrXBitType(RIntrinsicCallExpr node, ref St st){
+/*private void intrXBitType(RIntrinsicCallExpr node, ref St st){
 	AValCT[] params;
 	params = node.params
 		.map!(p => eval(p, st.stabR, st.ctx))
@@ -132,7 +136,7 @@ private void intrCTWrite(RIntrinsicCallExpr node, ref St st){
 		writefln!"CTWRITE: %s"(s);
 	}
 	st.res = ADataType.ofNoInit.AValCT;
-}
+}*/
 
 /// Evaluates an `expr`. Resulting AVAlCT can be any of 3 `AValCT.Type`,
 /// in case something is suitable as `Type.Symbol` and something else,
@@ -152,7 +156,7 @@ package SmErrsVal!AValCT eval(RExpr expr, STab stabR, IdentU[] ctx){
 		debug{
 			import std.stdio;
 			stderr.writefln!"STUB: eval(RExpr) errored %s, returning 5.int"(st.errs);
-			return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 5.asBytes));
+			return SmErrsVal!AValCT(5.AVal.AValCT);
 		}
 		return SmErrsVal!AValCT(st.errs);
 	}
@@ -168,40 +172,43 @@ package SmErrsVal!AValCT eval(Expression expr, STab stab, IdentU[] ctx,
 			import std.stdio;
 			stderr.writefln!"STUB: eval(Expression) errored %s, returning 5.int"(
 					resolved.err);
-			return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 5.asBytes));
+			return SmErrsVal!AValCT(5.AVal.AValCT);
 		}
 		return SmErrsVal!AValCT(resolved.err);
 	}
 	return eval(resolved.val, stab, ctx);
 }
 
+
 /// Evaluates an RExpr expecting a value. See `eval`
 /// Returns: AValCT with Type.Literal, or SmErr[]
 package SmErrsVal!AValCT eval4Val(RExpr expr, STab stab, IdentU[] ctx){
+	// TODO: make this function return AVal, not AValCT
 	SmErrsVal!AValCT ret = eval(expr, stab, ctx);
 	if (ret.isErr){
 		debug{
 			import std.stdio;
 			stderr.writefln!"STUB: eval4Val errored %s, returning 5.int"(ret.err);
-			return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 5.asBytes));
+			return SmErrsVal!AValCT(5.AVal.AValCT);
 		}
 		return ret;
 	}
 	if (ret.val.type != AValCT.Type.Literal)
-		return SmErrsVal!AValCT([errExprValExpected(expr)]);
-	return ret;
+		return SmErrsVal!AValCT([errExprValExpected(expr.pos)]);
+	return ret.val.SmErrsVal!AValCT;
 }
 
 /// ditto
 package SmErrsVal!AValCT eval4Val(Expression expr, STab stab, IdentU[] ctx,
 		void[0][ASymbol*] dep, RFn[string] fns, AValCT[] params = null){
+	// TODO: make this function return AVal, not AValCT
 	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, dep, fns, params);
 	if (resolved.isErr){
 		debug{
 			import std.stdio;
 			stderr.writefln!"STUB: eval4Val errored %s, returning 5.int"(
 					resolved.err);
-			return SmErrsVal!AValCT(AValCT(ADataType.ofInt, 5.asBytes));
+			return SmErrsVal!AValCT(5.AVal.AValCT);
 		}
 		return SmErrsVal!AValCT(resolved.err);
 	}
@@ -220,9 +227,11 @@ package SmErrsVal!ADataType eval4Type(RExpr expr, STab stab, IdentU[] ctx){
 		}
 		return SmErrsVal!ADataType(ret.err);
 	}
-	if (ret.val.type != AValCT.Type.Type)
-		return SmErrsVal!ADataType([errExprTypeExpected(expr)]);
-	return SmErrsVal!ADataType(ret.val.typeT);
+	if (!ret.val.asType.isVal ||
+			(ret.val.type != AValCT.Type.Type &&
+			 ret.val.type != AValCT.Type.Symbol))
+		return SmErrsVal!ADataType([errExprTypeExpected(expr.pos)]);
+	return SmErrsVal!ADataType(ret.val.asType.val);
 }
 
 /// ditto
@@ -248,7 +257,7 @@ package SmErrsVal!(ASymbol*) eval4Sym(RExpr expr, STab stab, IdentU[] ctx){
 	if (ret.isErr)
 		return SmErrsVal!(ASymbol*)(ret.err);
 	if (ret.val.type != AValCT.Type.Symbol)
-		return SmErrsVal!(ASymbol*)([errExprSymExpected(expr)]);
+		return SmErrsVal!(ASymbol*)([errExprSymExpected(expr.pos)]);
 	return SmErrsVal!(ASymbol*)(ret.val.symS);
 }
 

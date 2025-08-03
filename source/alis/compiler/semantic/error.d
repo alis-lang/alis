@@ -52,6 +52,9 @@ public struct SmErr{
 		AssignRefNotRef, /// `@=` used with non-ref LHS
 		DerefNoRef, /// trying to deref something that is not a ref
 		ConstConst, /// trying to const a const
+		IntrUnk, /// unknown intrinsic
+		MemberNoExist, /// Member not existing
+		Err, /// error through the $err intrinsic
 	}
 
 	/// where error happen
@@ -92,34 +95,34 @@ package SmErr errUnsup(Location pos, string feat){
 }
 
 /// Expression should have resolved to Value
-package SmErr errExprValExpected(ASTNode expr){
-	return SmErr(expr.pos,
+package SmErr errExprValExpected(Location pos){
+	return SmErr(pos,
 			format!"Expression does not evaluate to value",
 			SmErr.Type.ValExprExpected);
 }
 
 /// Expression should have resolved to type
-package SmErr errExprTypeExpected(ASTNode expr){
-	return SmErr(expr.pos,
+package SmErr errExprTypeExpected(Location pos){
+	return SmErr(pos,
 			format!"Expression does not evaluate to type",
 			SmErr.Type.TypeExprExpected);
 }
-/// Expression should have resolved to Value
-package SmErr errExprSymExpected(ASTNode expr){
-	return SmErr(expr.pos,
+
+/// Expression should have resolved to Symbol
+package SmErr errExprSymExpected(Location pos){
+	return SmErr(pos,
 			format!"Expression does not evaluate to symbol",
 			SmErr.Type.SymExprExpected);
 }
 
 /// Parameter count mismatch
-package SmErr errParamCount(ASTNode node, string name, size_t expected,
+package SmErr errParamCount(Location pos, string name, size_t expected,
 		size_t got){
-	return SmErr(node.pos,
+	return SmErr(pos,
 			format!"Mismatched parameter count for `%s`: expected %d, received %d"(
 				name, expected, got),
 			SmErr.Type.ParamCountMis);
 }
-
 /// Recursive Dependency
 package SmErr errRecDep(Location pos, string name){
 	return SmErr(pos,
@@ -239,8 +242,16 @@ package SmErr errNotCallable(Location pos, string symN){
 package SmErr errCallableConflict(R)(Location pos, string symN, R range) if (
 		isInputRange!(R, string)){
 	return SmErr(pos,
-			format!"multiple matches: for callable `%s` with parameters %(%r%)"(
+			format!"ambiguous call: for callable `%s` with parameters %(%r%)"(
 				symN, range), SmErr.Type.CallableConflict);
+}
+/// ditto
+package SmErr errCallableConflict(R0, R1)(Location pos,
+		R0 paramsA, R1 paramsB) if (
+		isInputRange!(R0, string) && isInputRange!(R1, string)){
+	return SmErr(pos,
+			format!"ambiguous call: matches with both: (%(%r%)) and (%(%r%))"(
+				paramsA, paramsB), SmErr.Type.CallableConflict);
 }
 
 /// use of undefined identifier
@@ -284,4 +295,21 @@ package SmErr errDerefNoRef(Location pos, string type){
 package SmErr errConstConst(Location pos, string type){
 	return SmErr(pos, type.format!"constOf const: cannot const `%s`",
 			SmErr.Type.ConstConst);
+}
+
+/// unknown intrinsic
+package SmErr errIntrUnk(Location pos, string intrN){
+	return SmErr(pos, intrN.format!"unknown intrinsic: `%s`", SmErr.Type.IntrUnk);
+}
+
+/// Member not existing
+package SmErr errMemberNoExist(Location pos, string sym, string mem){
+	return SmErr(pos,
+			format!"inaccessible member: member `%s` for `%s` cannot be accessed"(
+				sym, mem), SmErr.Type.MemberNoExist);
+}
+
+/// $err intrinsic error
+package SmErr errErr(Location pos, string err){
+	return SmErr(pos, err.format!"$err: %s", SmErr.Type.Err);
 }
