@@ -987,3 +987,54 @@ SmErrsVal!RExpr shiftTranslate(string name, Location pos, STab,
 	r.pos = pos;
 	return SmErrsVal!RExpr(r);
 }
+
+@CallabilityChecker
+@Intr(IntrN.Is)
+@Intr(IntrN.IsNot)
+@Intr(IntrN.IsLess)
+bool cmpCanCall(AValCT[] params){
+	if (params.length != 2 ||
+			!params[0].isVal ||
+			!params[1].isVal)
+		return false;
+	return params[0].valType.val == params[1].valType.val;
+}
+
+@ExprTranslator
+@Intr(IntrN.Is)
+@Intr(IntrN.IsNot)
+@Intr(IntrN.IsLess)
+SmErrsVal!RExpr cmpTranslate(string name, Location pos, STab,
+		IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+	RExpr r;
+	switch (name){
+		case IntrN.Is:
+			r = new RCmpIsExpr(params[0].toRExpr, params[1].toRExpr);
+			break;
+		case IntrN.IsNot:
+			r = new RCmpNotIsExpr(params[0].toRExpr, params[1].toRExpr);
+			break;
+		case IntrN.IsLess:
+			r = new RCmpLessExpr(params[0].toRExpr, params[1].toRExpr);
+			break;
+		default:
+			assert (false);
+	}
+	return SmErrsVal!RExpr(r);
+}
+
+@Intr(IntrN.Not){
+	@CallabilityChecker
+	bool notCanCall(AValCT[] params){
+		return params.length == 1 &&
+			params[0].isVal &&
+			params[0].valType.val.type == ADataType.Type.Bool;
+	}
+	@ExprTranslator
+	SmErrsVal!RExpr notTranslate(string, Location pos, STab,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+		RNotExpr r = new RNotExpr(params[0].toRExpr);
+		r.pos = pos;
+		return SmErrsVal!RExpr(r);
+	}
+}
