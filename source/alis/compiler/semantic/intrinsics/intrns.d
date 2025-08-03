@@ -21,20 +21,6 @@ package:
 alias CallabilityCheckers = CallabilityCheckersOf!(mixin(__MODULE__));
 alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
 
-@Intr(IntrN.CTWrite){
-	@CallabilityChecker
-	bool ctWriteCanCall(AValCT[] params) pure {
-		return params.length != 0;
-	}
-	@ExprTranslator
-	SmErrsVal!RExpr ctWriteTranslate(string, Location, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
-		import std.stdio : writefln;
-		writefln!"CTWRITE: %(%s%)"(params);
-		return SmErrsVal!RExpr(RNoOpExpr.instance);
-	}
-}
-
 @Intr(IntrN.Type){
 	@CallabilityChecker
 	bool typeCanCall(AValCT[]) pure {
@@ -799,5 +785,34 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
 		return SmErrsVal!RExpr([
 				errErr(pos, params[0].val.as!string.val)]);
+	}
+}
+
+@Intr(IntrN.CTWrite){
+	@CallabilityChecker
+	bool ctWriteCanCall(AValCT[] params) pure {
+		return params.length != 0;
+	}
+	@ExprTranslator
+	SmErrsVal!RExpr ctWriteTranslate(string, Location, STab,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+		import std.stdio : writefln;
+		writefln!"CTWRITE: %(%s%)"(params);
+		return SmErrsVal!RExpr(RNoOpExpr.instance);
+	}
+}
+
+@Intr(IntrN.RTWrite){
+	@CallabilityChecker
+	bool rtWriteCanCall(AValCT[] params) pure {
+		return params.length == 1;
+	}
+	@ExprTranslator
+	SmErrsVal!RExpr rtWriteTranslate(string, Location pos, STab,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+		RTWriteExpr r = new RTWriteExpr;
+		r.val = params[0].toRExpr;
+		r.pos = pos;
+		return SmErrsVal!RExpr(r);
 	}
 }
