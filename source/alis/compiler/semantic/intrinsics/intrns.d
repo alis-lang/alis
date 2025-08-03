@@ -888,3 +888,69 @@ SmErrsVal!RExpr bitBinTranslate(string name, Location pos, STab,
 	r.pos = pos;
 	return SmErrsVal!RExpr(r);
 }
+
+@CallabilityCheckers
+@Intr(IntrN.Add)
+@Intr(IntrN.Sub)
+@Intr(IntrN.Mul)
+@Intr(IntrN.Div)
+bool arithBinCanCall(AValCT[] params){
+	if (params.length != 2 || !params[0].isVal || !params[1].isVal)
+		return false;
+	ADataType type = params[0].valType.val;
+	if (type.type != ADataType.Type.FloatX ||
+			type.type != ADataType.Type.IntX ||
+			type.type != ADataType.Type.UIntX)
+		return false;
+	return type == params[1].valType.val;
+}
+
+@ExprTranslator
+@Intr(IntrN.Add)
+@Intr(IntrN.Sub)
+@Intr(IntrN.Mul)
+@Intr(IntrN.Div)
+SmErrsVal!RExpr arithBinTranslate(string name, Location pos, STab,
+		IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+	RExpr r;
+	switch (name){
+		case IntrN.Add:
+			r = new RAddExpr(params[0].toRExpr, params[1].toRExpr);
+			break;
+		case IntrN.Sub:
+			r = new RSubExpr(params[0].toRExpr, params[1].toRExpr);
+			break;
+		case IntrN.Mul:
+			r = new RMulExpr(params[0].toRExpr, params[1].toRExpr);
+			break;
+		case IntrN.Div:
+			r = new RDivExpr(params[0].toRExpr, params[1].toRExpr);
+			break;
+		default:
+			assert (false);
+	}
+	r.pos = pos;
+	return SmErrsVal!RExpr(r);
+}
+
+@Intr(IntrN.Mod){
+	@CallabilityChecker
+	bool modCanCall(AValCT[] params){
+		if (params.length != 2 || !params[0].isVal || !params[1].isVal)
+			return false;
+		ADataType type = params[0].valType.val;
+		if (type.type != ADataType.Type.FloatX ||
+				type.type != ADataType.Type.IntX ||
+				type.type != ADataType.Type.UIntX)
+			return false;
+		type = params[1].valType.val;
+		return type.type == ADataType.Type.UIntX;
+	}
+	@ExprTranslator
+	SmErrsVal!RExpr modTranslte(string, Location pos, STab,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+		RModExpr r = new RModExpr(params[0].toRExpr, params[1].toRExpr);
+		r.pos = pos;
+		return SmErrsVal!RExpr(r);
+	}
+}
