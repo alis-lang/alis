@@ -1038,3 +1038,23 @@ SmErrsVal!RExpr cmpTranslate(string name, Location pos, STab,
 		return SmErrsVal!RExpr(r);
 	}
 }
+
+@Intr(IntrN.To){
+	@CallabilityChecker
+	bool toCanCall(AValCT[] params){
+		if (params.length != 2 ||
+				!params[0].isVal ||
+				!(!params[1].isVal && params[1].asType.isVal))
+			return false;
+		ADataType from = params[0].valType.val;
+		ADataType target = params[1].asType.val;
+		return from.canCastTo(target);
+	}
+	@ExprTranslator
+	SmErrsVal!RExpr toTranslate(string, Location pos, STab,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+		RToExpr r = new RToExpr(params[0].toRExpr, params[1].asType.val);
+		r.pos = pos;
+		return SmErrsVal!RExpr(r);
+	}
+}
