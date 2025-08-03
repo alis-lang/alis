@@ -816,3 +816,56 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		return SmErrsVal!RExpr(r);
 	}
 }
+
+@Intr(IntrN.Negate){
+	@CallabilityChecker
+	bool negateCanCall(AValCT[] params){
+		if (params.length != 1 || !params[0].isVal)
+			return false;
+		ADataType type = params[0].valType.val;
+		return type.type == ADataType.Type.FloatX ||
+			type.type == ADataType.Type.IntX;
+	}
+	@ExprTranslator
+	SmErrsVal!RExpr negateTranslate(string, Location pos, STab,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+		RNegExpr r = new RNegExpr(params[0].toRExpr);
+		r.pos = pos;
+		return SmErrsVal!RExpr(r);
+	}
+}
+
+@CallabilityChecker
+@Intr(IntrN.BitAnd)
+@Intr(IntrN.BitOr)
+@Intr(IntrN.BitXor)
+bool bitBinCanCall(AValCT[] params){
+	return params.length == 2 &&
+		params[0].isVal &&
+		params[1].isVal &&
+		params[0].valType.val == params[1].valType.val;
+}
+
+@ExprTranslator
+@Intr(IntrN.BitAnd)
+@Intr(IntrN.BitOr)
+@Intr(IntrN.BitXor)
+SmErrsVal!RExpr bitBinTranslate(string name, Location pos, STab,
+		IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+	RExpr r;
+	switch (name){
+		case IntrN.BitAnd:
+			r = new RBitAndExpr(params[0].toRExpr, params[1].toRExpr);
+			break;
+		case IntrN.BitOr:
+			r = new RBitOrExpr(params[0].toRExpr, params[1].toRExpr);
+			break;
+		case IntrN.BitXor:
+			r = new RBitXorExpr(params[0].toRExpr, params[1].toRExpr);
+			break;
+		default:
+			assert (false);
+	}
+	r.pos = pos;
+	return SmErrsVal!RExpr(r);
+}
