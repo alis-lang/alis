@@ -2084,9 +2084,7 @@ These should only be used for debugging.
 
 - `rtWrite(T...)` - prints parameters, at runtime. **Only for debugging Alis
 	itself. May not be available in final version**
-- `rtWriteln(T...)` - prints parameters, at runtime. **Only for debugging Alis
-	itself. May not be available in final version**
-- `ctWriteln(T...)` - prints parameters, at compile time.
+- `ctWrite(T...)` - prints parameters, at compile time.
 
 ## Arithmetic Operations
 
