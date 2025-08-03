@@ -652,3 +652,74 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		return SmErrsVal!RExpr(r);
 	}
 }
+
+@Intr(IntrN.Member){
+	@CallabilityChecker
+	bool memberCanCall(AValCT[] params){
+		if (params.length != 2)
+			return false;
+		if (params[1].type != AValCT.Type.Literal ||
+				params[1].val.type != ADataType.ofString)
+			return false;
+		if (params[0].type == AValCT.Type.Symbol)
+			return params[0].symS.type == ASymbol.type.Enum;
+		ADataType type = params[0].valType.val;
+		return type.type == ADataType.Type.Struct ||
+			type.type == ADataType.Type.Union;
+	}
+
+	@ExprTranslator
+	SmErrsVal!RExpr memberTranslate(string, Location pos, STab,
+			IdentU[] ctx, void[0][ASymbol*] dep, RFn[string], AValCT[] params){
+		assert (params.length == 2);
+		assert (params[1].type == AValCT.Type.Literal);
+		assert (params[1].val.type == ADataType.ofString);
+		string name = params[1].val.as!string.val;
+		if (params[0].type == AValCT.Type.Symbol){
+			assert (params[0].symS.type == ASymbol.Type.Enum);
+			AEnum* enumS = &params[0].symS.enumS;
+			immutable ptrdiff_t index = enumS.memId.countUntil(name);
+			if (index < 0){
+				return SmErrsVal!RExpr([
+						errMemberNoExist(pos, enumS.ident.toString, name)]);
+			}
+			REnumMemberGetExpr r = new REnumMemberGetExpr(
+					AVal(enumS.type, enumS.memVal[index]), enumS, name);
+			r.pos = pos;
+			return SmErrsVal!RExpr(r);
+		}
+		ADataType type = params[0].valType.val;
+		assert (type.type == ADataType.Type.Struct ||
+				type.type == ADataType.Type.Enum);
+		RExpr r;
+		RExpr lhsExpr = params[0].toRExpr;
+		if (type.type == ADataType.Type.Struct){
+			AStruct* structS = type.structS;
+			if (structS.exists(name, ctx))
+				r = new RStructMemberGetExpr(lhsExpr,
+						structS.names[name],
+						type.isConst || (
+							structS.ident.length && ctx.length &&
+							ctx[0] != structS.ident[0] &&
+							structS.nameVis[name] == Visibility.IPub)
+						);
+		} else
+		if (type.type == ADataType.Type.Union){
+			AUnion* unionS = type.unionS;
+			if (unionS.exists(name, ctx))
+				r = new RUnionMemberGetExpr(lhsExpr,
+						unionS.names[name],
+						type.isConst || (
+							unionS.ident.length && ctx.length &&
+							ctx[0] != unionS.ident[0] &&
+							unionS.nameVis[name] == Visibility.IPub)
+						);
+		}
+		if (r is null){
+			return SmErrsVal!RExpr([
+					errMemberNoExist(pos, type.toString, name)]);
+		}
+		r.pos = pos;
+		return SmErrsVal!RExpr(r);
+	}
+}
