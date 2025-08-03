@@ -376,7 +376,7 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		return true;
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr unionIsTranslate(string, Location pos, STab,
+	SmErrsVal!RExpr unionIsTranslate(string, Location, STab,
 			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
 		RUnionMemberGetExpr p = cast(RUnionMemberGetExpr)(params[0].toRExpr);
 		assert (p !is null);
@@ -656,7 +656,7 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 
 	@ExprTranslator
 	SmErrsVal!RExpr memberTranslate(string, Location pos, STab,
-			IdentU[] ctx, void[0][ASymbol*] dep, RFn[string], AValCT[] params){
+			IdentU[] ctx, void[0][ASymbol*], RFn[string], AValCT[] params){
 		assert (params.length == 2);
 		assert (params[1].type == AValCT.Type.Literal);
 		assert (params[1].val.type == ADataType.ofString);
@@ -721,7 +721,7 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 	}
 	@ExprTranslator
 	SmErrsVal!RExpr attrsOfTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[]){
 		return SmErrsVal!RExpr([
 				errUnsup(pos, "$attrsOf")]);
 	}
@@ -738,7 +738,7 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 	}
 	@ExprTranslator
 	SmErrsVal!RExpr byAttrsTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[]){
 		return SmErrsVal!RExpr([
 				errUnsup(pos, "$byAttrs")]);
 	}
@@ -1004,7 +1004,7 @@ bool cmpCanCall(AValCT[] params){
 @Intr(IntrN.Is)
 @Intr(IntrN.IsNot)
 @Intr(IntrN.IsLess)
-SmErrsVal!RExpr cmpTranslate(string name, Location pos, STab,
+SmErrsVal!RExpr cmpTranslate(string name, Location, STab,
 		IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
 	RExpr r;
 	switch (name){
