@@ -939,18 +939,51 @@ SmErrsVal!RExpr arithBinTranslate(string name, Location pos, STab,
 		if (params.length != 2 || !params[0].isVal || !params[1].isVal)
 			return false;
 		ADataType type = params[0].valType.val;
-		if (type.type != ADataType.Type.FloatX ||
-				type.type != ADataType.Type.IntX ||
+		if (type.type != ADataType.Type.IntX ||
 				type.type != ADataType.Type.UIntX)
 			return false;
-		type = params[1].valType.val;
-		return type.type == ADataType.Type.UIntX;
+		return type == params[1].valType.val;
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr modTranslte(string, Location pos, STab,
+	SmErrsVal!RExpr modTranslate(string, Location pos, STab,
 			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
 		RModExpr r = new RModExpr(params[0].toRExpr, params[1].toRExpr);
 		r.pos = pos;
 		return SmErrsVal!RExpr(r);
 	}
+}
+
+@CallabilityChecker
+@Intr(IntrN.ShiftL)
+@Intr(IntrN.ShiftR)
+bool shiftCanCall(AValCT[] params){
+	if (params.length != 2 || !params[0].isVal || !params[1].isVal)
+		return false;
+	ADataType type = params[0].valType.val;
+	if (type.type != ADataType.Type.FloatX ||
+			type.type != ADataType.Type.IntX ||
+			type.type != ADataType.Type.UIntX)
+		return false;
+	type = params[1].valType.val;
+	return type.type == ADataType.Type.UIntX;
+}
+
+@ExprTranslator
+@Intr(IntrN.ShiftL)
+@Intr(IntrN.ShiftR)
+SmErrsVal!RExpr shiftTranslate(string name, Location pos, STab,
+		IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+	RExpr r;
+	switch (name){
+		case IntrN.ShiftL:
+			r = new RShiftLExpr(params[0].toRExpr, params[1].toRExpr);
+			break;
+		case IntrN.ShiftR:
+			r = new RShiftRExpr(params[0].toRExpr, params[1].toRExpr);
+			break;
+		default:
+			assert (false);
+	}
+	r.pos = pos;
+	return SmErrsVal!RExpr(r);
 }
