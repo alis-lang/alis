@@ -984,10 +984,18 @@ private bool expT(Location pos, ADataType type, ref St st){
 		assert (lhsVal.isVal);
 		ADataType lhsType = lhsVal.valType.val;
 		if (lhsType.type != ADataType.Type.Ref){
-			st.errs ~= errRefableNot(node.lhs.pos);
+			st.errs ~= errNotRef(node.lhs.pos);
 			return;
 		}
 		ADataType expectedType = *(lhsType.refT);
+		if (expectedType.isConst){
+			st.errs ~= errAssignConst(node.pos, expectedType.toString);
+			return;
+		}
+		if (expectedType.type == ADataType.Type.Ref){
+			st.errs ~= errAssignRef(node.pos);
+			return;
+		}
 		AValCT rhsVal; {
 			SmErrsVal!AValCT res = eval4Val(node.rhs, st.stabR, st.ctx,
 					st.dep, st.fns);
@@ -1003,77 +1011,78 @@ private bool expT(Location pos, ADataType type, ref St st){
 					rhsType.toString);
 			return;
 		}
+		SmErrsVal!RExpr rhsExpr = rhsVal.toRExpr.to(expectedType).val;
+		if (rhsExpr.isErr){
+			st.errs ~= rhsExpr.err;
+			return;
+		}
+		// TODO: opFree?
 		RAssignExpr r = new RAssignExpr();
 		r.refExpr = lhsVal.toRExpr;
-		r.valExpr = rhsVal.toRExpr;
+		r.valExpr = rhsExpr.val;
 		r.pos = node.pos;
 		st.res = r;
 	}
 
 	void opAssignRefBinIter(OpAssignRefBin node, ref St st){
 		if (st.params.length){
-			st.errs ~= errNotCallable(node.pos, "reference assignment operation");
+			st.errs ~= errNotCallable(node.pos, "ref assignment operation");
 			return;
 		}
 		if (st.isExpT){
 			st.errs ~= errIncompatType(node.pos, st.expT.toString, "struct{}");
 			return;
 		}
-		// TODO: implement opAssignRef
-		/*RExpr lhsExpr; {
-			SmErrsVal!RExpr res = resolve(node.lhs, st.stabR, st.ctx, st.dep, st.fns);
+		AValCT lhsVal; {
+			SmErrsVal!AValCT res = eval4Val(node.lhs, st.stabR, st.ctx,
+					st.dep, st.fns);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
 			}
-			lhsExpr = res.val;
+			lhsVal = res.val;
 		}
-		ADataType lhsType; {
-			SmErrsVal!ADataType res = typeOf(lhsExpr);
-			if (res.isErr){
-				st.errs ~= res.err;
-				return;
-			}
-			lhsType = res.val;
-		}
-		if (lhsType.isConst){
-			st.errs ~= errConstAssign(node.pos, lhsType.toString);
-			return;
-		}
+		assert (lhsVal.isVal);
+		ADataType lhsType = lhsVal.valType.val;
 		if (lhsType.type != ADataType.Type.Ref){
-			st.errs ~= errRefableNot(node.lhs.pos);
+			st.errs ~= errNotRef(node.lhs.pos);
 			return;
 		}
-
-		RExpr rhsExpr; {
-			SmErrsVal!RExpr res = resolve(node.rhs, st.stabR, st.ctx, st.dep, st.fns,
-					lhsType);
+		ADataType expectedType = *(lhsType.refT);
+		if (expectedType.isConst){
+			st.errs ~= errAssignConst(node.pos, expectedType.toString);
+			return;
+		}
+		if (expectedType.type != ADataType.Type.Ref){
+			st.errs ~= errAssignRefNotRef(node.pos);
+			return;
+		}
+		AValCT rhsVal; {
+			SmErrsVal!AValCT res = eval4Val(node.rhs, st.stabR, st.ctx,
+					st.dep, st.fns);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
 			}
-			rhsExpr = res.val;
+			rhsVal = res.val;
 		}
-		ADataType rhsType; {
-			SmErrsVal!ADataType res = typeOf(rhsExpr);
-			if (res.isErr){
-				st.errs ~= res.err;
-				return;
-			}
-			rhsType = res.val;
-		}
-
-		if (!rhsType.canCastTo(lhsType)){
-			st.errs ~= errIncompatType(node.pos, lhsType.toString,
+		ADataType rhsType = rhsVal.valType.val;
+		if (!rhsType.canCastTo(expectedType)){
+			st.errs ~= errIncompatType(node.pos, expectedType.toString,
 					rhsType.toString);
 			return;
 		}
-		rhsExpr = rhsExpr.to(lhsType).val;
-		RRefAssignExpr r = new RRefAssignExpr;
+		SmErrsVal!RExpr rhsExpr = rhsVal.toRExpr.to(expectedType).val;
+		if (rhsExpr.isErr){
+			st.errs ~= rhsExpr.err;
+			return;
+		}
+		// TODO: opFree?
+		RAssignExpr r = new RAssignExpr();
+		r.refExpr = lhsVal.toRExpr;
+		r.valExpr = rhsExpr.val;
 		r.pos = node.pos;
-		r.refExpr = lhsExpr;
-		r.valExpr = rhsExpr;
-		st.res = r;*/
+		st.res = r;
 	}
 
 	void opRefPostIter(OpRefPost node, ref St st){
@@ -1162,10 +1171,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 			expr = res.val;
 		}
 		if (expr.type.type != ADataType.Type.Ref){
-			st.errs ~= errRefableNot(node.pos);
+			st.errs ~= errNotRef(node.pos);
 			return;
 		}
-		expr.xRef = true;
+		expr.xRef = true; // TODO: xRef should be property of ADataType
 		st.res = expr;
 		if (st.params.length && expr.callabilityOf(st.params) == size_t.max){
 			st.errs ~= errCallableIncompat(node.pos, expr.type.toString,
