@@ -972,98 +972,42 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.errs ~= errIncompatType(node.pos, st.expT.toString, "struct{}");
 			return;
 		}
-		// TODO: implement opAssign
-		/*RExpr lhsExpr; {
-			SmErrsVal!RExpr res = resolve(node.lhs, st.stabR, st.ctx, st.dep, st.fns);
+		AValCT lhsVal; {
+			SmErrsVal!AValCT res = eval4Val(node.lhs, st.stabR, st.ctx,
+					st.dep, st.fns);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
 			}
-			lhsExpr = res.val;
+			lhsVal = res.val;
 		}
-		ADataType lhsType; {
-			SmErrsVal!ADataType res = typeOf(lhsExpr);
-			if (res.isErr){
-				st.errs ~= res.err;
-				return;
-			}
-			lhsType = res.val;
-		}
-		if (lhsType.isConst){
-			st.errs ~= errConstAssign(node.pos, lhsType.toString);
+		assert (lhsVal.isVal);
+		ADataType lhsType = lhsVal.valType.val;
+		if (lhsType.type != ADataType.Type.Ref){
+			st.errs ~= errRefableNot(node.lhs.pos);
 			return;
 		}
-		ADataType expectedType = lhsType.copy;
-		if (expectedType.type == ADataType.Type.Ref)
-			expectedType = *expectedType.refT;
-		if (expectedType.type == ADataType.Type.Ref){
-			st.errs ~= errRefAssign(node.pos);
-			return;
-		}
-
-		RExpr rhsExpr; {
-			SmErrsVal!RExpr res = resolve(node.rhs, st.stabR, st.ctx, st.dep, st.fns,
-					expectedType);
+		ADataType expectedType = *(lhsType.refT);
+		AValCT rhsVal; {
+			SmErrsVal!AValCT res = eval4Val(node.rhs, st.stabR, st.ctx,
+					st.dep, st.fns);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
 			}
-			rhsExpr = res.val;
+			rhsVal = res.val;
 		}
-		ADataType rhsType; {
-			SmErrsVal!ADataType res = typeOf(rhsExpr);
-			if (res.isErr){
-				st.errs ~= res.err;
-				return;
-			}
-			rhsType = res.val;
-		}
-
+		ADataType rhsType = rhsVal.valType.val;
 		if (!rhsType.canCastTo(expectedType)){
 			st.errs ~= errIncompatType(node.pos, expectedType.toString,
 					rhsType.toString);
 			return;
 		}
-		rhsExpr = rhsExpr.to(expectedType).val;
-		if (rhsType.type != ADataType.Type.Ref && !rhsType.isPrimitive){
-			// TODO: opFree?
-		}
-
-		if (RVarExpr varExpr = cast(RVarExpr)lhsExpr){
-			RVarAssignExpr r = new RVarAssignExpr;
-			r.pos = node.pos;
-			r.var = varExpr.var;
-			r.val = rhsExpr;
-			st.res = r;
-			return;
-		}
-
-		if (lhsType.type != ADataType.Type.Ref){
-			OpRefPre opRef = new OpRefPre;
-			opRef.pos = lhsExpr.pos;
-			opRef.operand = node.lhs;
-			SmErrsVal!RExpr lhsRes = resolve(opRef, st.stabR, st.ctx, st.dep, st.fns);
-			if (lhsRes.isErr){
-				st.errs ~= lhsRes.err;
-				return;
-			}
-			lhsExpr = lhsRes.val;
-			SmErrsVal!ADataType typeRes = typeOf(lhsExpr);
-			if (typeRes.isErr){
-				st.errs ~= typeRes.err;
-				return;
-			}
-			lhsType = typeRes.val;
-		}
-		if (lhsType.type != ADataType.Type.Ref){ // just in case
-			st.errs ~= errAssignNotRefable(node.pos);
-			return;
-		}
-		RRefAssignExpr r = new RRefAssignExpr;
+		RAssignExpr r = new RAssignExpr();
+		r.refExpr = lhsVal.toRExpr;
+		r.valExpr = rhsVal.toRExpr;
 		r.pos = node.pos;
-		r.refExpr = lhsExpr;
-		r.valExpr = rhsExpr;
-		st.res = r;*/
+		st.res = r;
 	}
 
 	void opAssignRefBinIter(OpAssignRefBin node, ref St st){
