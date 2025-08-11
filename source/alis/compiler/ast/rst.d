@@ -320,29 +320,8 @@ public:
 	}
 }
 
-/// Resolved Assignment Expression
-public class RVarAssignExpr : RExpr{
-public:
-	/// variable
-	AVar var;
-	/// value
-	RExpr val;
-
-	this(){
-		this.type = ADataType();
-	}
-
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		ret["_name"] = "RVarAssignExpr";
-		ret["var"] = var.toString;
-		ret["val"] = val.jsonOf;
-		return ret;
-	}
-}
-
-/// Resolved Reference Assign Expression
-public class RRefAssignExpr : RExpr{
+/// Resolved Assign Expression
+public class RAssignExpr : RExpr{
 public:
 	/// left side. will evaluate to a reference
 	RExpr refExpr;
@@ -355,7 +334,7 @@ public:
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
-		ret["_name"] = "RRefAssignExpr";
+		ret["_name"] = "RAssignExpr";
 		ret["refExpr"] = refExpr.jsonOf;
 		ret["valExpr"] = refExpr.jsonOf;
 		return ret;

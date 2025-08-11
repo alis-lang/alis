@@ -46,9 +46,9 @@ public struct SmErr{
 		NotCallable, /// Callable expected, not found (sadly)
 		CallableConflict, /// Multiple callables matched
 		Undef, /// use of undefined identifier
-		ConstAssign, /// assigning to const
-		RefAssign, /// assigning to ref using =
-		AssignNotRefable, /// Assignment LHS is not Ref-able
+		AssignConst, /// assigning to const
+		AssignRef, /// assigning to ref using =
+		NotRef, /// Expected ref, is not ref
 		AssignRefNotRef, /// `@=` used with non-ref LHS
 		DerefNoRef, /// trying to deref something that is not a ref
 		ConstConst, /// trying to const a const
@@ -260,27 +260,27 @@ package SmErr errUndef(Location pos, string id){
 }
 
 /// assigning to const
-package SmErr errConstAssign(Location pos, string type){
+package SmErr errAssignConst(Location pos, string type){
 	return SmErr(pos,
 			type.format!"assignment to const: cannot assign to type `%s`",
-			SmErr.Type.ConstAssign);
+			SmErr.Type.AssignConst);
 }
 
 /// assigning to ref using =
-package SmErr errRefAssign(Location pos){
+package SmErr errAssignRef(Location pos){
 	return SmErr(pos, "assignment to ref: cannot use `=` to assign to ref",
-			SmErr.Type.RefAssign);
+			SmErr.Type.AssignRef);
 }
 
-/// Assignment LHS is not Ref-able
-package SmErr errAssignNotRefable(Location pos){
-	return SmErr(pos, "assignment to non referenceable value",
-		SmErr.Type.AssignNotRefable);
+/// Expected ref, is not ref
+package SmErr errNotRef(Location pos){
+	return SmErr(pos, "Reference expected", SmErr.Type.NotRef);
 }
 
-/// Expression is not  ref-able
-package SmErr errRefableNot(Location pos){
-	return SmErr(pos, "expression is not referenceable",
+/// `@=` used with non-ref LHS
+package SmErr errAssignRefNotRef(Location pos){
+	return SmErr(pos,
+			"ref-assign to non-ref: cannot use `@= to assign to non-ref",
 			SmErr.Type.AssignRefNotRef);
 }
 
