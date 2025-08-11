@@ -162,7 +162,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.pos = node.pos;
 		r.block = new RBlock;
 		r.block.pos = node.block.pos;
-		// TODO: handlue @auto
+		// TODO: handle @auto
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
 		foreach (Statement stmnt; node.block.statements){
 			SmErrsVal!RStatement stmntRes = resolveStmnt(stmnt, st.stabR, st.ctx,
@@ -1077,7 +1077,6 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.errs ~= rhsExpr.err;
 			return;
 		}
-		// TODO: opFree?
 		RAssignExpr r = new RAssignExpr();
 		r.refExpr = lhsVal.toRExpr;
 		r.valExpr = rhsExpr.val;
