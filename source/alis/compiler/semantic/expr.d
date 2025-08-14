@@ -130,7 +130,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 				r = new RAValCTExpr(res.AValCT);
 				break;
 			case ASymbol.Type.EnumConst:
-				r = new RAValCTExpr(AVal(res.enumCS.type, res.enumCS.data).AValCT);
+				r = new REnumConstGetExpr(AVal(res.enumCS.type, res.enumCS.data),
+						&res.enumCS);
+				//r = new RAValCTExpr(AVal(res.enumCS.type, res.enumCS.data).AValCT);
 				break;
 			case ASymbol.Type.Fn:
 				r = new RFnExpr(&res.fnS);

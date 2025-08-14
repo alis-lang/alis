@@ -61,6 +61,18 @@ package:
 	}
 }
 
+/// Enum Const Get Expression
+package class REnumConstGetExpr : RLiteralExpr{
+package:
+	/// EnumConst
+	AEnumConst* enumCS;
+
+	this (AVal val, AEnumConst* enumCS){
+		super(val);
+		this.enumCS = enumCS;
+	}
+}
+
 /// Wrapper for AValCT
 /// **should never occur in a finalized RST**
 package class RAValCTExpr : RExpr{
