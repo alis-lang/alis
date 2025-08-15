@@ -1061,12 +1061,68 @@ public struct ADataType{
 		return ret;
 	}
 
-	/// Returns: true if this can be implicitly casted to target
+	/// Whether this type can be in-place casted to target
+	/// in-place casted means:
+	/// - source and target types have same sizeOf
+	/// - source data can be read as target type without any modifications
+	///
+	/// Returns: true if this can be casted in-place to target
+	bool canIPCastTo(const ADataType target) const pure {
+		if (this == target)
+			return true;
+		if (isConst && !target.isConst)
+			return false;
+		final switch (type){
+			case Type.Seq:
+				if (seqT.length != target.seqT.length)
+					return false;
+				foreach (size_t i; 0 .. seqT.length){
+					if (!seqT[i].canIPCastTo(target.seqT[i]))
+						return false;
+				}
+				return true;
+			case Type.IntX:
+			case Type.UIntX:
+			case Type.FloatX:
+			case Type.Char:
+			case Type.Bool:
+				return target.type == type && sizeOf == target.sizeOf;
+			case Type.Slice:
+				return target.type == Type.Slice && refT.canIPCastTo(*target.refT);
+			case Type.Array:
+				return (target.type == Type.Array || target.type == Type.Slice) &&
+					refT.canIPCastTo(*target.refT);
+			case Type.Fn:
+				if (target.type != Type.Fn || !retT.canIPCastTo(*target.retT) ||
+						paramT.length != target.paramT.length)
+					return false;
+				foreach (size_t i; 0 .. paramT.length){
+					if (!paramT[i].canIPCastTo(target.paramT[i]) ||
+							paramT[i].sizeOf != target.paramT[i].sizeOf)
+						return false;
+				}
+				return true;
+			case Type.Ref:
+				return target.type == Type.Ref && refT.canIPCastTo(*target.refT);
+			case Type.NoInit:
+				return target.type == Type.NoInit;
+			case Type.Struct:
+				return false; // TODO: implement canIPCastTo for Struct
+			case Type.Union:
+				return false; // TODO: implement canIPCastTo for Union
+			case Type.Enum:
+				return enumS.type.canIPCastTo(target);
+		}
+		assert(false);
+	}
+
+	/// Returns: true if this can be casted to target
 	bool canCastTo(const ADataType target) const pure {
 		if (this == target)
 			return true;
 		if (isConst && !target.isConst)
 			return false;
+		// TODO: handle target being struct/union/enum initialization
 		final switch (type){
 			case Type.Seq:
 				if (seqT.length != target.seqT.length)
@@ -1085,35 +1141,30 @@ public struct ADataType{
 				return target.type == Type.FloatX && x <= target.x;
 			case Type.Char:
 				return target.type == Type.Char ||
-					(target.type == Type.IntX && target.x > 8) ||
+					(target.type == Type.IntX && target.x > char.sizeof * 8) ||
 					(target.type == Type.UIntX);
 			case Type.Bool:
 				return target.type == Type.Bool ||
 					target.type == Type.IntX ||
 					target.type == Type.UIntX;
 			case Type.Slice:
-				// TODO: allow $slice(X) -> $slice(const X)
-				return target.type == Type.Slice && *refT == *target.refT;
+				return target.type == Type.Slice && refT.canIPCastTo(*target.refT);
 			case Type.Array:
-				// TODO: allow $array(X) -> $slice(const X)
 				return (target.type == Type.Array || target.type == Type.Slice) &&
-					*refT == *target.refT;
+					refT.canIPCastTo(*target.refT);
 			case Type.Fn:
-				if (target.type != Type.Fn || *retT != *target.retT ||
+				if (target.type != Type.Fn || !retT.canIPCastTo(*target.retT) ||
 						paramT.length != target.paramT.length)
 					return false;
 				foreach (size_t i; 0 .. paramT.length){
-					if (paramT[i] != target.paramT[i])
+					if (!paramT[i].canIPCastTo(target.paramT[i]))
 						return false;
 				}
 				return true;
 			case Type.Ref:
-				if (target.type == Type.Ref){
-					// TODO: allow X -> const X
-					return *refT == *target.refT;
-				}
-				// TODO: allow X -> const X
-				return *refT == target;
+				if (target.type == Type.Ref)
+					return refT.canIPCastTo(*target.refT);
+				return refT.canIPCastTo(target);
 			case Type.NoInit:
 				return target.type == Type.NoInit;
 			case Type.Struct:
@@ -1121,7 +1172,7 @@ public struct ADataType{
 			case Type.Union:
 				return false; // TODO: implement canCastTo for Union
 			case Type.Enum:
-				return false; // TODO: implement canCastTo for Enum
+				return enumS.type.canCastTo(target);
 		}
 		debug stderr.writefln!"STUB: canCastTo(%s, %s) -> false"(this, target);
 		return false;
@@ -1231,6 +1282,8 @@ public struct ADataType{
 				break;
 			case Type.Slice:
 			case Type.Array:
+				ret.refT = [(*refT).copy].ptr;
+				break;
 			case Type.Ref:
 				ret.refT = [(*refT).copy].ptr;
 				break;
