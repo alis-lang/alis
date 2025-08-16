@@ -79,8 +79,6 @@ package class RAValCTExpr : RExpr{
 public:
 	/// evaluation result
 	AValCT res;
-	/// the expression itself. can be null
-	RExpr expr; // TODO: is it used?
 
 	this (){}
 	this(AValCT res){
@@ -91,8 +89,6 @@ public:
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "REvaldExpr";
 		ret["res"] = res.toString;
-		if (expr)
-			ret["expr"] = expr.jsonOf;
 		return ret;
 	}
 
@@ -117,7 +113,7 @@ public:
 RExpr toRExpr()(auto ref AValCT val){
 	final switch (val.type){
 		case AValCT.Type.Literal:
-			// TODO: translate to RLiteralExpr?
+			// translate to RLiteralExpr? no.
 		case AValCT.Type.Symbol:
 		case AValCT.Type.Type:
 			return new RAValCTExpr(val);
