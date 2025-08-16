@@ -103,9 +103,9 @@ private bool expT(Location pos, ADataType type, ref St st){
 				}
 			}
 		} else {
-			bool found = false;
 			foreach (symR; st.stabR.find(node.ident.IdentU, st.ctx)){
 				auto syms = symR;
+				bool found = false;
 				foreach (ASymbol* s; symR){
 					if (found){
 						st.errs ~= errIdentAmbig(node.pos, node.ident,
@@ -115,6 +115,8 @@ private bool expT(Location pos, ADataType type, ref St st){
 					found = true;
 					res = s;
 				}
+				if (found)
+					break;
 			}
 		}
 		if (res is null){
