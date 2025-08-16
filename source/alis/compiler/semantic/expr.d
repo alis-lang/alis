@@ -1174,7 +1174,8 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.errs ~= errNotRef(node.pos);
 			return;
 		}
-		expr.xRef = true; // TODO: xRef should be property of ADataType
+		// TODO: what should opRefPre do????
+		//expr.xRef = true;
 		st.res = expr;
 		if (st.params.length && expr.callabilityOf(st.params) == size_t.max){
 			st.errs ~= errCallableIncompat(node.pos, expr.type.toString,

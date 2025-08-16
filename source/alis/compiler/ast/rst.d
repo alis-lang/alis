@@ -11,6 +11,7 @@ import std.json,
 			 std.conv,
 			 std.range,
 			 std.array,
+			 std.format,
 			 std.algorithm;
 
 import std.meta;
@@ -83,7 +84,10 @@ public:
 }
 
 /// Resolved Statement
-public abstract class RStatement : Statement{}
+public abstract class RStatement : Statement{
+public:
+	override abstract string toString() const pure;
+}
 
 /// Resolved Block
 public class RBlock : RStatement{
@@ -106,6 +110,12 @@ public:
 			.array;
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"block(%s, {%s})"(localsT.length.iota.map!(
+					i => format!"%s->%s"(localsN[i], localsT[i])),
+				statements.map!(s => s.toString).join("; "));
+	}
 }
 
 /// Resolved Return Statement
@@ -121,6 +131,10 @@ public:
 		ret["_name"] = "RReturn";
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"return(%s)"(val);
+	}
 }
 
 /// Resolved ReturnFromFunction Statement
@@ -135,6 +149,10 @@ public:
 			ret["val"] = val.jsonOf;
 		ret["_name"] = "RReturnFn";
 		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"returnFn(%s)"(val);
 	}
 }
 
@@ -157,6 +175,10 @@ public:
 		ret["_name"] = "RIf";
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"if(%s){%s} else {%s}"(condition, onTrue, onFalse);
+	}
 }
 
 /// resolved while statement node
@@ -173,6 +195,10 @@ public:
 		ret["body"] = body.jsonOf;
 		ret["_name"] = "RWhile";
 		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"while(%s){%s}"(condition, body);
 	}
 }
 
@@ -191,6 +217,10 @@ public:
 		ret["_name"] = "RDoWhile";
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"do{%s}while(%s)"(body, condition);
+	}
 }
 
 /// resolved switch case statement
@@ -199,7 +229,7 @@ public:
 	/// value to switch on
 	RExpr val;
 	/// values to match against
-	RLiteralExpr[] vals;
+	AVal[] vals;
 	/// statements to jump to
 	RStatement[] stmnts;
 	/// default statement, if any
@@ -217,6 +247,12 @@ public:
 		ret["_name"] = "RSwitch";
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"switch(%s, default=%s, %s)"(val, def, vals.length.iota.map!(
+					i => format!"%s->%s"(vals[i], stmnts[i])
+					));
+	}
 }
 
 /// Resolved Expression
@@ -224,9 +260,6 @@ public abstract class RExpr : RStatement{
 protected:
 	OptVal!ADataType _type;
 public:
-	/// if this has been explicitly marked to return a reference
-	/// i.e: prefix `@` operator applied
-	bool xRef = false;
 	/// Returns: true if `this.type` is applicable
 	bool hasType() const pure {
 		return _type.isVal;
@@ -253,9 +286,7 @@ public:
 		return ret;
 	}
 
-	override string toString() const pure {
-		return "TODO"; // TODO: implement RExpr.toString
-	}
+	override abstract string toString() const pure;
 
 	/// Returns: new RST which converts this RST into `target` type, or nothing
 	/// if cannot be done
@@ -282,6 +313,10 @@ public:
 			_instance = new RNoOpExpr;
 		return _instance;
 	}
+
+	override string toString() const pure {
+		return format!"$noop()->%s"(type);
+	}
 }
 
 /// Resolved Var Get expression
@@ -304,6 +339,10 @@ public:
 		ret["var"] = var.toString;
 		return ret;
 	}
+
+	override string toString() const pure {
+		return var.format!"$varGet(%s)->%s"(type);
+	}
 }
 
 /// Resolved Block Expression
@@ -317,6 +356,10 @@ public:
 		ret["_name"] = "RBlockExpr";
 		ret["block"] = block.jsonOf;
 		return ret;
+	}
+
+	override string toString() const pure {
+		return block.format!"$block(%s)->%s"(type);
 	}
 }
 
@@ -339,6 +382,10 @@ public:
 		ret["valExpr"] = refExpr.jsonOf;
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"$refAssign(%s, %s)->%s"(refExpr, valExpr, type);
+	}
 }
 
 /// Resolved Dereference Expression
@@ -359,6 +406,10 @@ public:
 		ret["val"] = val.jsonOf;
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"$deref(%s)->%s"(val, type);
+	}
 }
 
 /// Resolved Comma expression
@@ -377,6 +428,11 @@ public:
 		ret["_name"] = "RCommaExpr";
 		ret["exprs"] = exprs.map!(a => a.jsonOf).array;
 		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"$comma(%s)->%s"(
+				exprs.map!(e => e.toString).join(", "), type);
 	}
 }
 
@@ -403,6 +459,11 @@ public:
 		ret["params"] = params.map!(a => a.jsonOf).array;
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"$call(%s, %s)->%s"(callee,
+				params.map!(p => p.toString).join(", "), type);
+	}
 }
 
 /// Resolved VTable Member Get Expression
@@ -413,7 +474,11 @@ public:
 	/// member name
 	string member;
 
-	// TODO: implement constructor for RVTGetExpr
+	this (RExpr val, string member){
+		this.val = val;
+		this.member = member;
+		// TODO: figure out return type for VT member
+	}
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
@@ -421,6 +486,10 @@ public:
 		ret["val"] = val.jsonOf;
 		ret["member"] = member;
 		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"$vtGet(%s, %s)->%s"(val, member, type);
 	}
 }
 
@@ -459,6 +528,10 @@ public:
 		ret["memId"] = memId;
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"$structGet(%s, %s)->%s"(val, memId, type);
+	}
 }
 
 /// Resolved Union Member Get Expression
@@ -496,6 +569,10 @@ public:
 		ret["memId"] = memId;
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"$unionGet(%s, %s)->%s"(val, memId, type);
+	}
 }
 
 /// Resolved Function Expression
@@ -514,6 +591,10 @@ public:
 		ret["_name"] = "RFnExpr";
 		ret["fn"] = fn.toString;
 		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"$fn(%s)->%s"(fn, type);
 	}
 }
 
@@ -553,6 +634,12 @@ public:
 		ret["_name"] = "RStructLiteralExpr";
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"$structLit(%s)->%s"(names.length.iota.map!(
+					i => format!"%s=%s"(names[i], vals[i])),
+				type);
+	}
 }
 
 /// Resolved Array Literal Expression
@@ -579,6 +666,11 @@ public:
 		ret["_name"] = "RArrayLiteralExpr";
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"$arrayLit(%r)->%s"(
+				elements.map!(e => e.toString).join(", "), type);
+	}
 }
 
 /// Resolved Literal Value Expression
@@ -597,6 +689,10 @@ public:
 		ret["_name"] = "RLiteralExpr";
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"$lit(%s)->%s"(val, type);
+	}
 }
 
 /// array length get expressino
@@ -614,6 +710,10 @@ public:
 		ret["arr"] = arr.jsonOf;
 		ret["_name"] = "RArrayLenExpr";
 		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"$arrLen(%s)->%s"(arr, type);
 	}
 }
 
@@ -635,6 +735,10 @@ public:
 		ret["len"] = len.jsonOf;
 		ret["_name"] = "RArrayLenSetExpr";
 		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"$arrLen(%s, %s)->%s"(arr, len, type);
 	}
 }
 
@@ -662,6 +766,10 @@ public:
 		ret["_name"] = "RArrayIndexExpr";
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"$arrInd(%s, %s)->%s"(arr, ind, type);
+	}
 }
 
 /// union member check
@@ -683,6 +791,10 @@ public:
 		ret["_name"] = "RUnionIsExpr";
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"$unionIs(%s, %s)->%s"(val, memId, type);
+	}
 }
 
 /// get stack trace
@@ -696,6 +808,10 @@ public:
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "RStackTraceExpr";
 		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"$stackTrace()->%s"(type);
 	}
 }
 
@@ -713,6 +829,10 @@ public:
 		ret["val"] = val.jsonOf;
 		ret["_name"] = "RTWriteExpr";
 		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"$rtWrite(%s)->%s"(val, type);
 	}
 }
 
@@ -732,6 +852,10 @@ public:
 		ret["_name"] = "RNegExpr";
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"$negate(%s)->%s"(val, type);
+	}
 }
 
 /// bitwise not
@@ -749,6 +873,10 @@ public:
 		ret["val"] = val.jsonOf;
 		ret["_name"] = "RBitNotExpr";
 		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"$bitNot(%s)->%s"(val, type);
 	}
 }
 
@@ -772,6 +900,10 @@ public:
 		ret["_name"] = "RBitAndExpr";
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"$bitAnd(%s, %s)->%s"(valA, valB, type);
+	}
 }
 
 /// bitwise or
@@ -793,6 +925,10 @@ public:
 		ret["valB"] = valB.jsonOf;
 		ret["_name"] = "RBitOrExpr";
 		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"$bitOr(%s, %s)->%s"(valA, valB, type);
 	}
 }
 
@@ -816,6 +952,10 @@ public:
 		ret["_name"] = "RBitXorExpr";
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"$bitXor(%s, %s)->%s"(valA, valB, type);
+	}
 }
 
 /// addition
@@ -837,6 +977,10 @@ public:
 		ret["rhs"] = rhs.jsonOf;
 		ret["_name"] = "RAddExpr";
 		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"$add(%s, %s)->%s"(lhs, rhs, type);
 	}
 }
 
@@ -860,6 +1004,10 @@ public:
 		ret["_name"] = "RSubExpr";
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"$sub(%s, %s)->%s"(lhs, rhs, type);
+	}
 }
 
 /// multiplication
@@ -881,6 +1029,10 @@ public:
 		ret["rhs"] = rhs.jsonOf;
 		ret["_name"] = "RMulExpr";
 		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"$mul(%s, %s)->%s"(lhs, rhs, type);
 	}
 }
 
@@ -904,6 +1056,10 @@ public:
 		ret["_name"] = "RDivExpr";
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"$div(%s, %s)->%s"(lhs, rhs, type);
+	}
 }
 
 /// modulus
@@ -926,6 +1082,10 @@ public:
 		ret["_name"] = "RModExpr";
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"$mod(%s, %s)->%s"(lhs, rhs, type);
+	}
 }
 
 /// left shift
@@ -947,6 +1107,10 @@ public:
 		ret["_name"] = "RShiftLExpr";
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"$shiftL(%s, %s)->%s"(val, by, type);
+	}
 }
 
 /// left shift
@@ -967,6 +1131,10 @@ public:
 		ret["by"] = by.jsonOf;
 		ret["_name"] = "RShiftRExpr";
 		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"$shiftR(%s, %s)->%s"(val, by, type);
 	}
 }
 
@@ -990,6 +1158,10 @@ public:
 		ret["_name"] = "RCmpIsExpr";
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"$is(%s, %s)->%s"(valA, valB, type);
+	}
 }
 
 /// `a !is b` comparison
@@ -1011,6 +1183,10 @@ public:
 		ret["valB"] = valB.jsonOf;
 		ret["_name"] = "RCmpNotIsExpr";
 		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"$isNot(%s, %s)->%s"(valA, valB, type);
 	}
 }
 
@@ -1034,6 +1210,10 @@ public:
 		ret["_name"] = "RCmpLessExpr";
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"$isLess(%s, %s)->%s"(lhs, rhs, type);
+	}
 }
 
 /// boolean not
@@ -1051,6 +1231,10 @@ public:
 		ret["val"] = val.jsonOf;
 		ret["_name"] = "RNotExpr";
 		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"$not(%s)->%s"(val, type);
 	}
 }
 
@@ -1072,5 +1256,9 @@ public:
 		ret["target"] = target.toString;
 		ret["_name"] = "RToExpr";
 		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"$to(%s, %s)->%s"(val, target, type);
 	}
 }

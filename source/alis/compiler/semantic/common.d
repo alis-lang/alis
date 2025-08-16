@@ -13,6 +13,7 @@ import std.algorithm,
 			 std.json,
 			 std.meta,
 			 std.traits,
+			 std.format,
 			 std.conv;
 
 debug import std.stdio;
@@ -24,6 +25,10 @@ package:
 	RExpr callee;
 	AValCT[] params;
 	this(){}
+public:
+	override string toString() const pure {
+		return "RTmPartInitExpr";
+	}
 }
 
 /// Resolved Partial Template Instantiation Expression
@@ -33,6 +38,10 @@ package:
 	// TODO: include expected param types
 	this(){}
 	// TODO
+public:
+	override string toString() const pure {
+		return "RTmPartInitExpr";
+	}
 }
 
 /// Resolved Partial Intrinsic Call Expression
@@ -44,6 +53,10 @@ package:
 	/// parameters
 	AValCT[] params;
 	this(){}
+public:
+	override string toString() const pure {
+		return "RIntrinsicPartCallExpr";
+	}
 }
 
 /// Enum Member Get Expression
@@ -106,6 +119,10 @@ public:
 			case AValCT.Type.Expr:
 				return res.expr;
 		}
+	}
+
+	override string toString() const pure {
+		return format!"$AValCT(%s)"(res);
 	}
 }
 
