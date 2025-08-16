@@ -115,15 +115,6 @@ unittest{
 	assert ("bar".isIntrN == false);
 }
 
-/// Visibility specifier
-/// first rightmost bit -> 1 if can read
-/// second rightmost bit -> 1 if can write
-public enum Visibility : ubyte{
-	Default = 0,
-	IPub = 1,
-	Pub = 2,
-}
-
 /// ASTNode location
 public struct Location{
 	size_t line;

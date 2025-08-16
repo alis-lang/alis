@@ -23,7 +23,14 @@ public import alis.compiler.ast.rst : RExpr;
 
 debug import std.stdio;
 
-public import alis.compiler.common : Visibility; // TODO move it here
+/// Visibility specifier
+/// first rightmost bit -> 1 if can read
+/// second rightmost bit -> 1 if can write
+public enum Visibility : ubyte{
+	Default = 0,
+	IPub = 1,
+	Pub = 2,
+}
 
 /// Alis value, with ADataType
 public struct AVal{
