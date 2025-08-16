@@ -276,7 +276,7 @@ unsignedSwitch:
 			void[] d = new void[size_t.sizeof * 3];
 			d[0 .. size_t.sizeof] = val.ptr.asBytes;
 			d[size_t.sizeof .. 2 * size_t.sizeof] = val.length.asBytes;
-			d[2 * size_t.sizeof .. $][] = val.length.asBytes; // TODO: use capacity
+			d[2 * size_t.sizeof .. $][] = max(val.capacity, val.length).asBytes;
 			ADataType t = ADataType.of!T;
 			assert (t.sizeOf == d.length);
 			return AVal(t, d).OptVal!AVal;
