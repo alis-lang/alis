@@ -299,38 +299,78 @@ unsignedSwitch:
 	}
 
 	public string toString() const pure {
+		import alis.utils : as, asBytes;
 		if (this.type == ADataType.ofString){
 			return (cast(AVal)this).as!string.val;
 		}
-		// TODO: implement AVal.toString
 		final switch (type.type){
 		case ADataType.Type.Seq:
 			break;
 		case ADataType.Type.IntX:
+			switch (type.x){
+				static foreach (T; SignedInts){
+					case T.sizeof * 8:
+						return format!("%d_I" ~ (T.sizeof * 8).to!string)
+							(alis.utils.as!T(data));
+				}
+				default:
+					assert (false);
+			}
 			break;
 		case ADataType.Type.UIntX:
+			switch (type.x){
+				static foreach (T; UnsignedInts){
+					case T.sizeof * 8:
+						return format!("%d_U" ~ (T.sizeof * 8).to!string)
+							(alis.utils.as!T(data));
+				}
+				default:
+					assert (false);
+			}
 			break;
 		case ADataType.Type.FloatX:
+			switch (type.x){
+				static foreach (T; Floats){
+					case T.sizeof * 8:
+						return format!("%f_F" ~ (T.sizeof * 8).to!string)
+							(alis.utils.as!T(data));
+				}
+				default:
+					assert (false);
+			}
 			break;
 		case ADataType.Type.Char:
+			return [(cast(char[])data)[0]];
 			break;
 		case ADataType.Type.Bool:
+			return (cast(ubyte[])data)[0] == 0 ? "false" : "true";
 			break;
 		case ADataType.Type.Slice:
-			break;
 		case ADataType.Type.Array:
+			void[] buf = (cast(void*)data.ptr)
+				[0 .. cast(size_t)(data.ptr + null.sizeof)];
+			size_t eSize = type.refT.sizeOf;
+			(buf.length / eSize).iota
+				.map!(
+					i => AVal(*type.refT, buf[i * eSize .. (i + 1) * eSize]).toString)
+				.join(", ")
+				.format!"[%s]";
 			break;
 		case ADataType.Type.Ref:
+			return (cast(void*[])data).format!"%(%x %)";
 			break;
 		case ADataType.Type.Fn:
+			return format!"fn %s->%s"(
+					type.paramT.map!(p => p.toString).join(", "), type.retT);
 			break;
 		case ADataType.Type.Struct:
-			break;
+			break; // TODO: implement AVal.toString for Struct
 		case ADataType.Type.Union:
-			break;
+			break; // TODO: implement AVal.toString for Union
 		case ADataType.Type.Enum:
-			break;
+			break; // TODO: implement AVal.toString for Enum
 		case ADataType.Type.NoInit:
+			return "$noinitval";
 			break;
 		}
 		return format!"{type: %s, data: %s}"(type, cast(ubyte[])data);
@@ -338,7 +378,12 @@ unsignedSwitch:
 	}
 
 	/// constructor
-	this(ADataType type, void[] data) pure {
+	this(const ADataType type, void[] data) pure {
+		this (type.copy, data);
+	}
+
+	/// ditto
+	this (ADataType type, void[] data) pure {
 		assert (data.length == type.sizeOf,
 				format!"%d != %d"(data.length, type.sizeOf));
 		this.type = type;
