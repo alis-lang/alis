@@ -96,11 +96,13 @@ public:
 	this (){}
 	this(AValCT res){
 		this.res = res;
+		if (res.isVal)
+			this.type = res.valType.val;
 	}
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
-		ret["_name"] = "REvaldExpr";
+		ret["_name"] = "RAValCTExpr";
 		ret["res"] = res.toString;
 		return ret;
 	}
