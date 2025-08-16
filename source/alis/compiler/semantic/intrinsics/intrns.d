@@ -17,6 +17,8 @@ import std.format,
 			 std.array,
 			 std.algorithm;
 
+debug import std.stdio;
+
 package:
 alias CallabilityCheckers = CallabilityCheckersOf!(mixin(__MODULE__));
 alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
@@ -889,7 +891,7 @@ SmErrsVal!RExpr bitBinTranslate(string name, Location pos, STab,
 	return SmErrsVal!RExpr(r);
 }
 
-@CallabilityCheckers
+@CallabilityChecker
 @Intr(IntrN.Add)
 @Intr(IntrN.Sub)
 @Intr(IntrN.Mul)
@@ -898,8 +900,8 @@ bool arithBinCanCall(AValCT[] params){
 	if (params.length != 2 || !params[0].isVal || !params[1].isVal)
 		return false;
 	ADataType type = params[0].valType.val;
-	if (type.type != ADataType.Type.FloatX ||
-			type.type != ADataType.Type.IntX ||
+	if (type.type != ADataType.Type.FloatX &&
+			type.type != ADataType.Type.IntX &&
 			type.type != ADataType.Type.UIntX)
 		return false;
 	return type == params[1].valType.val;
