@@ -120,7 +120,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 							valRes.val.val.type.toString);
 				}
 			} else {
-				symC.paramsV ~= type.initB;
+				symC.paramsV ~= null;
 			}
 			symC.paramsN ~= param.name;
 			symC.paramsT ~= type;
@@ -136,7 +136,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		STab subSt = new STab;
 		foreach (size_t i; 0 .. symC.paramsN.length){
 			ASymbol* param = new ASymbol(
-					AVar([symC.uid.IdentU, symC.paramsN[i].IdentU],
+					AVar(st.ctx ~ symC.uid.IdentU ~ symC.paramsN[i].IdentU,
 						symC.paramsT[i], symC.paramsV[i]));
 			subSt.add(symC.paramsN[i].IdentU, param, param.ident[0 .. 1]);
 		}
