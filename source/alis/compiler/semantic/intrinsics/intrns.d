@@ -941,7 +941,7 @@ SmErrsVal!RExpr arithBinTranslate(string name, Location pos, STab,
 		if (params.length != 2 || !params[0].isVal || !params[1].isVal)
 			return false;
 		ADataType type = params[0].valType.val;
-		if (type.type != ADataType.Type.IntX ||
+		if (type.type != ADataType.Type.IntX &&
 				type.type != ADataType.Type.UIntX)
 			return false;
 		return type == params[1].valType.val;
@@ -962,8 +962,8 @@ bool shiftCanCall(AValCT[] params){
 	if (params.length != 2 || !params[0].isVal || !params[1].isVal)
 		return false;
 	ADataType type = params[0].valType.val;
-	if (type.type != ADataType.Type.FloatX ||
-			type.type != ADataType.Type.IntX ||
+	if (type.type != ADataType.Type.FloatX &&
+			type.type != ADataType.Type.IntX &&
 			type.type != ADataType.Type.UIntX)
 		return false;
 	type = params[1].valType.val;
