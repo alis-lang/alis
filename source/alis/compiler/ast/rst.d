@@ -81,6 +81,11 @@ public:
 		ret["_name"] = "RFn";
 		return ret;
 	}
+
+	override string toString() const pure {
+		return format!"fn %s (%s)->%s"(ident, paramsT.length.iota.map!(
+					i => format!"%s:%s"(paramsN[i], paramsT[i])), body);
+	}
 }
 
 /// Resolved Statement
