@@ -803,14 +803,6 @@ public struct ASymbol{
 	}
 }
 
-/// an Alis Module. Aggregates all public symbols for a module
-public struct AModule{
-	/// globals
-	// TODO: HOW TO STORE GLOBALS????
-	/// symbols (globals will be repeated in this)
-	ASymbol[IdentU] st;
-}
-
 /// Alis Data Type.
 public struct ADataType{
 	/// possible Data Types
