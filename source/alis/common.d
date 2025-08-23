@@ -1518,7 +1518,7 @@ public struct AStruct{
 							: nameVis[n] == Visibility.Pub ? "pub "
 							: nameVis[n] == Visibility.IPub ? "ipub " : "idk ")
 							.format!"%s%s"(n)).array,
-						initD[i].isVal ? cast(ubyte[])initD[i].val : []
+						initD[i].isVal ? (cast(ubyte[])initD[i].val).to!string : "noinit"
 						)));
 	}
 }
