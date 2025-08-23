@@ -1099,8 +1099,43 @@ public struct ADataType{
 
 	/// Gets initializing bytes for this type
 	void[] initB() const pure {
-		debug stderr.writefln!"STUB: ADataType(%s).initB returning zeroes"(this);
-		return new void[sizeOf]; // TODO: implement initB
+		final switch (type){
+			case ADataType.Type.Seq:
+				void[] outBuf;
+				foreach (subType; this.seqT)
+					outBuf ~= subType.initB;
+				return outBuf;
+			case ADataType.Type.IntX:
+			case ADataType.Type.UIntX:
+				return new void[sizeOf]; // zero
+			case ADataType.Type.FloatX:
+				switch (this.x){
+					static foreach (Type; Floats){
+						case Type.sizeof * 8:
+							return (cast(Type)0.0).asBytes;
+					}
+					default:
+						return new void[sizeOf];
+				}
+			case ADataType.Type.Char:
+				return cast(void[])['\0'];
+			case ADataType.Type.Bool:
+				return cast(void[])[false];
+			case ADataType.Type.Slice:
+			case ADataType.Type.Array:
+			case ADataType.Type.Ref:
+			case ADataType.Type.Fn:
+				return new void[sizeOf];
+			case ADataType.Type.Struct:
+				// TODO: implement initB for Struct
+			case ADataType.Type.Union:
+				// TODO: implement initB for Struct
+			case ADataType.Type.Enum:
+				assert (this.enumS.memVal.length);
+				return this.enumS.memVal[0].dup;
+			case ADataType.Type.NoInit:
+				return null;
+		}
 	}
 
 	string toString() const pure {
