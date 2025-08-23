@@ -318,6 +318,14 @@ package SmErr errErr(Location pos, string err){
 /// Cannot initialize a value
 package SmErr errInitFail(Location pos, string type){
 	return SmErr(pos,
-			type.format!"initialization error: cannot initialize type `%s",
+			type.format!"initialization error: cannot initialize type `%s`",
+			SmErr.Type.InitFail);
+}
+
+/// ditto
+package SmErr errInitFail(Location pos, string type, string subType){
+	return SmErr(pos,
+			format!"initialization error: cannot initialize type `%s` in `%s`"(
+				subType, type),
 			SmErr.Type.InitFail);
 }

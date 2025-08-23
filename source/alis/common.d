@@ -1138,7 +1138,7 @@ public struct ADataType{
 				assert (this.enumS.memVal.length);
 				return this.enumS.memVal[0].dup.OptVal!(void[]);
 			case ADataType.Type.NoInit:
-				return null.OptVal!(void[]);
+				return OptVal!(void[])();
 		}
 	}
 
