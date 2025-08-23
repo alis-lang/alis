@@ -1097,44 +1097,48 @@ public struct ADataType{
 		return false;
 	}
 
-	/// Gets initializing bytes for this type
-	void[] initB() const pure {
+	/// Gets initializing bytes for this type, if it can be initialized
+	OptVal!(void[]) initB() const pure {
 		final switch (type){
 			case ADataType.Type.Seq:
 				void[] outBuf;
-				foreach (subType; this.seqT)
-					outBuf ~= subType.initB;
-				return outBuf;
+				foreach (subType; this.seqT){
+					OptVal!(void[]) subInit = subType.initB;
+					if (!subInit.isVal)
+						return OptVal!(void[])();
+					outBuf ~= subInit.val;
+				}
+				return outBuf.OptVal!(void[]);
 			case ADataType.Type.IntX:
 			case ADataType.Type.UIntX:
-				return new void[sizeOf]; // zero
+				return new void[sizeOf].OptVal!(void[]); // zero
 			case ADataType.Type.FloatX:
 				switch (this.x){
 					static foreach (Type; Floats){
 						case Type.sizeof * 8:
-							return (cast(Type)0.0).asBytes;
+							return (cast(Type)0.0).asBytes.OptVal!(void[]);
 					}
 					default:
-						return new void[sizeOf];
+						return new void[sizeOf].OptVal!(void[]);
 				}
 			case ADataType.Type.Char:
-				return cast(void[])['\0'];
+				return (cast(void[])['\0']).OptVal!(void[]);
 			case ADataType.Type.Bool:
-				return cast(void[])[false];
+				return (cast(void[])[false]).OptVal!(void[]);
 			case ADataType.Type.Slice:
 			case ADataType.Type.Array:
 			case ADataType.Type.Ref:
 			case ADataType.Type.Fn:
-				return new void[sizeOf];
+				return new void[sizeOf].OptVal!(void[]);
 			case ADataType.Type.Struct:
 				// TODO: implement initB for Struct
 			case ADataType.Type.Union:
 				// TODO: implement initB for Struct
 			case ADataType.Type.Enum:
 				assert (this.enumS.memVal.length);
-				return this.enumS.memVal[0].dup;
+				return this.enumS.memVal[0].dup.OptVal!(void[]);
 			case ADataType.Type.NoInit:
-				return null;
+				return null.OptVal!(void[]);
 		}
 	}
 
@@ -1472,7 +1476,7 @@ public struct AStruct{
 	/// data types for each field
 	ADataType[] types;
 	/// initialisation data for each field
-	void[][] initD;
+	OptVal!(void[])[] initD;
 	/// maps member names to indexes. Many to One
 	size_t[string] names;
 	/// visibility for each name
@@ -1513,7 +1517,8 @@ public struct AStruct{
 						.map!(n => (nameVis[n] == Visibility.Default ? ""
 							: nameVis[n] == Visibility.Pub ? "pub "
 							: nameVis[n] == Visibility.IPub ? "ipub " : "idk ")
-							.format!"%s%s"(n)).array, cast(ubyte[])initD[i]
+							.format!"%s%s"(n)).array,
+						initD[i].isVal ? cast(ubyte[])initD[i].val : []
 						)));
 	}
 }

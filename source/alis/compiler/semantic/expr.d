@@ -321,7 +321,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 						"inferring type for anonymous function params");
 				continue;
 			}
-			symC.paramsV ~= type.initB;
+			symC.paramsV ~= null;
 			symC.paramsN ~= param.name;
 			symC.paramsT ~= type;
 		}

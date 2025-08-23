@@ -368,7 +368,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 					type = val.val.type;
 				} else
 				if (val.canCastTo(type)){
-					symC.initD ~= val.to(type).val.val.data;
+					symC.initD ~= val.to(type).val.val.data.OptVal!(void[]);
 				} else {
 					st.errs ~= errIncompatType(field.pos, type.toString,
 							val.val.type.toString);
@@ -578,7 +578,7 @@ private void structDo(Struct s, AStruct* symC, ref St1 st){
 				type = val.val.type;
 			} else
 			if (val.canCastTo(type)){
-				symC.initD ~= val.to(type).val.val.data;
+				symC.initD ~= val.to(type).val.val.data.OptVal!(void[]);
 			} else {
 				st.errs ~= errIncompatType(field.pos, type.toString,
 						val.val.type.toString);
