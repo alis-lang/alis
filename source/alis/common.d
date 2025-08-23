@@ -379,90 +379,102 @@ unsignedSwitch:
 			return (cast(AVal)this).as!string.val;
 		}
 		final switch (type.type){
-		case ADataType.Type.Seq:
-			break;
-		case ADataType.Type.IntX:
-			switch (type.x){
-				static foreach (T; SignedInts){
-					case T.sizeof * 8:
-						return format!("%d_I" ~ (T.sizeof * 8).to!string)
-							(alis.utils.as!T(data));
+			case ADataType.Type.Seq:
+				break;
+			case ADataType.Type.IntX:
+				switch (type.x){
+					static foreach (T; SignedInts){
+						case T.sizeof * 8:
+							return format!("%d_I" ~ (T.sizeof * 8).to!string)
+								(alis.utils.as!T(data));
+					}
+					default:
+						assert (false);
 				}
-				default:
-					assert (false);
-			}
-			break;
-		case ADataType.Type.UIntX:
-			switch (type.x){
-				static foreach (T; UnsignedInts){
-					case T.sizeof * 8:
-						return format!("%d_U" ~ (T.sizeof * 8).to!string)
-							(alis.utils.as!T(data));
+				break;
+			case ADataType.Type.UIntX:
+				switch (type.x){
+					static foreach (T; UnsignedInts){
+						case T.sizeof * 8:
+							return format!("%d_U" ~ (T.sizeof * 8).to!string)
+								(alis.utils.as!T(data));
+					}
+					default:
+						assert (false);
 				}
-				default:
-					assert (false);
-			}
-			break;
-		case ADataType.Type.FloatX:
-			switch (type.x){
-				static foreach (T; Floats){
-					case T.sizeof * 8:
-						return format!("%f_F" ~ (T.sizeof * 8).to!string)
-							(alis.utils.as!T(data));
+				break;
+			case ADataType.Type.FloatX:
+				switch (type.x){
+					static foreach (T; Floats){
+						case T.sizeof * 8:
+							return format!("%f_F" ~ (T.sizeof * 8).to!string)
+								(alis.utils.as!T(data));
+					}
+					default:
+						assert (false);
 				}
-				default:
-					assert (false);
-			}
-			break;
-		case ADataType.Type.Char:
-			return [(cast(char[])data)[0]];
-			break;
-		case ADataType.Type.Bool:
-			return (cast(ubyte[])data)[0] == 0 ? "false" : "true";
-			break;
-		case ADataType.Type.Slice:
-		case ADataType.Type.Array:
-			void[] buf = (cast(void*)data.ptr)
-				[0 .. cast(size_t)(data.ptr + null.sizeof)];
-			size_t eSize = type.refT.sizeOf;
-			(buf.length / eSize).iota
-				.map!(
-					i => AVal(*type.refT, buf[i * eSize .. (i + 1) * eSize]).toString)
-				.join(", ")
-				.format!"[%s]";
-			break;
-		case ADataType.Type.Ref:
-			return (cast(void*[])data).format!"%(%x %)";
-			break;
-		case ADataType.Type.Fn:
-			return format!"fn %s->%s"(
-					type.paramT.map!(p => p.toString).join(", "), type.retT);
-			break;
-		case ADataType.Type.Struct:
-			break; // TODO: implement AVal.toString for Struct
-		case ADataType.Type.Union:
-			break; // TODO: implement AVal.toString for Union
-		case ADataType.Type.Enum:
-			break; // TODO: implement AVal.toString for Enum
-		case ADataType.Type.NoInit:
-			return "$noinitval";
-			break;
+				break;
+			case ADataType.Type.Char:
+				return [(cast(char[])data)[0]];
+				break;
+			case ADataType.Type.Bool:
+				return (cast(ubyte[])data)[0] == 0 ? "false" : "true";
+				break;
+			case ADataType.Type.Slice:
+			case ADataType.Type.Array:
+				void[] buf = (cast(void*)data.ptr)
+					[0 .. cast(size_t)(data.ptr + null.sizeof)];
+				size_t eSize = type.refT.sizeOf;
+				(buf.length / eSize).iota
+					.map!(
+						i => AVal(*type.refT, buf[i * eSize .. (i + 1) * eSize]).toString)
+					.join(", ")
+					.format!"[%s]";
+				break;
+			case ADataType.Type.Ref:
+				return (cast(void*[])data).format!"%(%x %)";
+				break;
+			case ADataType.Type.Fn:
+				return format!"fn %s->%s"(
+						type.paramT.map!(p => p.toString).join(", "), type.retT);
+				break;
+			case ADataType.Type.Struct:
+				break; // TODO: implement AVal.toString for Struct
+			case ADataType.Type.Union:
+				break; // TODO: implement AVal.toString for Union
+			case ADataType.Type.Enum:
+				foreach (size_t i; 0 .. type.enumS.memId.length){
+					if (data == type.enumS.memVal[i])
+						return type.enumS.ident.map!(id => id.toString).join(".")
+							.format!"%s.%s"(type.enumS.memId[i]);
+				}
+				return AVal(type.enumS.type, data).toString;
+			case ADataType.Type.NoInit:
+				return "$noinitval";
+				break;
 		}
 		return format!"{type: %s, data: %s}"(type, cast(ubyte[])data);
 		assert (false);
 	}
 
 	/// constructor
-	this(const ADataType type, void[] data) pure {
-		this (type.copy, data);
-	}
-
-	/// ditto
 	this (ADataType type, void[] data) pure {
 		assert (data.length == type.sizeOf,
 				format!"%d != %d"(data.length, type.sizeOf));
 		this.type = type;
 		this.data = data;
+	}
+	/// ditto
+	this(ADataType type, const void[] data) pure {
+		this (type, data.dup);
+	}
+	/// ditto
+	this(const ADataType type, void[] data) pure {
+		this (type.copy, data);
+	}
+	/// ditto
+	this(const ADataType type, const void[] data) pure {
+		this (type.copy, data.dup);
 	}
 
 	/// ditto
