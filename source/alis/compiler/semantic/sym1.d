@@ -104,23 +104,23 @@ private bool isRecDep(ASTNode node, ref St1 st){
 				st.errs ~= errAutoNoVal(param.pos);
 			if (param.val){
 				prevHadDef = true;
-				SmErrsVal!AValCT valRes = eval4Val(param.val, st.stabR, st.ctx, st.dep,
+				SmErrsVal!AVal valRes = eval4Val(param.val, st.stabR, st.ctx, st.dep,
 						st.fns);
 				if (valRes.isErr){
 					st.errs ~= valRes.err;
 					continue;
 				}
 				if (isAuto){
-					type = valRes.val.val.type;
+					type = valRes.val.type;
 				} else
 				if (valRes.val.canCastTo(type)){
-					symC.paramsV ~= valRes.val.to(type).val.val.data;
+					symC.paramsV ~= valRes.val.to(type).val.data.OptVal!(void[]);
 				} else {
 					st.errs ~= errIncompatType(param.val.pos, type.toString,
-							valRes.val.val.type.toString);
+							valRes.val.type.toString);
 				}
 			} else {
-				symC.paramsV ~= null;
+				symC.paramsV ~= OptVal!(void[])();
 			}
 			symC.paramsN ~= param.name;
 			symC.paramsT ~= type;
@@ -135,9 +135,14 @@ private bool isRecDep(ASTNode node, ref St1 st){
 
 		STab subSt = new STab;
 		foreach (size_t i; 0 .. symC.paramsN.length){
+			OptVal!(void[]) initD = symC.paramsV[i];
+			if (!initD.isVal)
+				initD = symC.paramsT[i].initB;
+			if (!initD.isVal)
+				initD = (new void[symC.paramsT[i].sizeOf]).OptVal!(void[]);
 			ASymbol* param = new ASymbol(
 					AVar(st.ctx ~ symC.uid.IdentU ~ symC.paramsN[i].IdentU,
-						symC.paramsT[i], symC.paramsV[i]));
+						symC.paramsT[i], initD.val));
 			subSt.add(symC.paramsN[i].IdentU, param, param.ident[0 .. 1]);
 		}
 
@@ -175,21 +180,21 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			symC.type = typeRes.val;
 		}
 
-		SmErrsVal!AValCT valRes = eval4Val(node.val, st.stabR, st.ctx, st.dep,
+		SmErrsVal!AVal valRes = eval4Val(node.val, st.stabR, st.ctx, st.dep,
 				st.fns);
 		if (valRes.isErr){
 			st.errs ~= valRes.err;
 			return;
 		}
-		symC.data = valRes.val.val.data;
+		symC.data = valRes.val.data;
 		if (isAuto){
-			symC.type = valRes.val.val.type;
+			symC.type = valRes.val.type;
 		} else
 		if (valRes.val.canCastTo(symC.type)){
-			symC.data = valRes.val.to(symC.type).val.val.data;
+			symC.data = valRes.val.to(symC.type).val.data;
 		} else {
 			st.errs ~= errIncompatType(node.pos, symC.type.toString,
-					valRes.val.val.type.toString);
+					valRes.val.type.toString);
 			return;
 		}
 	}
@@ -227,15 +232,15 @@ private bool isRecDep(ASTNode node, ref St1 st){
 				st.errs ~= errEnumMemValMis(member);
 				return;
 			}
-			SmErrsVal!AValCT valRes = eval4Val(member.value, st.stabR, st.ctx,
+			SmErrsVal!AVal valRes = eval4Val(member.value, st.stabR, st.ctx,
 					st.dep, st.fns);
 			if (valRes.isErr){
 				st.errs ~= valRes.err;
 				return;
 			}
-			types ~= valRes.val.val.type;
+			types ~= valRes.val.type;
 			symC.memId ~= member.name;
-			symC.memVal ~= valRes.val.val.data;
+			symC.memVal ~= valRes.val.data;
 		}
 
 		if (isAuto){
@@ -253,14 +258,13 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		}
 
 		foreach (size_t i; 0 .. symC.memVal.length){
-			OptVal!AValCT valRes = AVal(types[i], symC.memVal[i]).AValCT
-				.to(symC.type);
+			OptVal!AVal valRes = AVal(types[i], symC.memVal[i]).to(symC.type);
 			if (!valRes.isVal){
 				st.errs ~= errIncompatType(node.members[i].pos,
 						symC.type.toString, types[i].toString);
 				continue;
 			}
-			symC.memVal[i] = valRes.val.to(symC.type).val.val.data;
+			symC.memVal[i] = valRes.val.to(symC.type).val.data;
 		}
 	}
 
@@ -355,9 +359,9 @@ private bool isRecDep(ASTNode node, ref St1 st){
 				}
 				type = typeRes.val;
 			}
-			AValCT val;
 			if (field.val){
-				SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx, st.dep,
+				AVal val;
+				SmErrsVal!AVal valRes = eval4Val(field.val, st.stabR, st.ctx, st.dep,
 						st.fns);
 				if (valRes.isErr){
 					st.errs ~= valRes.err;
@@ -365,13 +369,13 @@ private bool isRecDep(ASTNode node, ref St1 st){
 				}
 				val = valRes.val;
 				if (isAuto){
-					type = val.val.type;
+					type = val.type;
 				} else
 				if (val.canCastTo(type)){
-					symC.initD ~= val.to(type).val.val.data.OptVal!(void[]);
+					symC.initD ~= val.to(type).val.data.OptVal!(void[]);
 				} else {
 					st.errs ~= errIncompatType(field.pos, type.toString,
-							val.val.type.toString);
+							val.type.toString);
 					continue;
 				}
 			} else {
@@ -412,27 +416,33 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			symC.type = typeVal.val;
 		}
 		if (node.value){
-			SmErrsVal!AValCT valVal = eval4Val(node.value, st.stabR, st.ctx, st.dep,
-					st.fns);
-			if (valVal.isErr){
-				st.errs ~= valVal.err;
+			SmErrsVal!AVal val = eval4Val(node.value, st.stabR, st.ctx, st.dep,
+					st.fns); // TODO: handle value being dynamic
+			if (val.isErr){
+				st.errs ~= val.err;
 				return;
 			}
 			if (isAuto){
-				symC.type = valVal.val.val.type;
+				symC.type = val.val.type;
 			} else
-			if (valVal.val.canCastTo(symC.type)){
-
+			if (val.val.canCastTo(symC.type)){
+				symC.initD = val.val.to(symC.type).val.data;
 			} else {
 				st.errs ~= errIncompatType(node.value.pos, symC.type.toString,
-						valVal.val.val.type.toString);
-				return;
+						val.val.type.toString);
 			}
-		} else if (isAuto){
+			return;
+		}
+		if (isAuto){
 			st.errs ~= errAutoNoVal(node.pos);
 			return;
 		}
-		// TODO: who gonna implement VarDef????
+		OptVal!(void[]) initD = symC.type.initB;
+		if (!initD.isVal){
+			st.errs ~= errInitFail(node.type.pos, symC.type.toString);
+			return;
+		}
+		symC.initD = initD.val;
 	}
 
 	void aliasIter(AliasDef node, ref St1 st){
@@ -565,9 +575,9 @@ private void structDo(Struct s, AStruct* symC, ref St1 st){
 			}
 			type = typeRes.val;
 		}
-		AValCT val;
+		AVal val;
 		if (field.val){
-			SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx, st.dep,
+			SmErrsVal!AVal valRes = eval4Val(field.val, st.stabR, st.ctx, st.dep,
 					st.fns);
 			if (valRes.isErr){
 				st.errs ~= valRes.err;
@@ -575,13 +585,13 @@ private void structDo(Struct s, AStruct* symC, ref St1 st){
 			}
 			val = valRes.val;
 			if (isAuto){
-				type = val.val.type;
+				type = val.type;
 			} else
 			if (val.canCastTo(type)){
-				symC.initD ~= val.to(type).val.val.data.OptVal!(void[]);
+				symC.initD ~= val.to(type).val.data.OptVal!(void[]);
 			} else {
 				st.errs ~= errIncompatType(field.pos, type.toString,
-						val.val.type.toString);
+						val.type.toString);
 				continue;
 			}
 		} else {
@@ -684,13 +694,13 @@ package void unionNamedDo(NamedUnion node, ASymbol* sym, ref St1 st){
 			}
 			type = typeRes.val;
 		}
-		AValCT val;
+		AVal val;
 		if (field.val !is null){
 			if (symC.initI != size_t.max){
 				st.errs ~= errUnionMultiDef(field.pos);
 			}
 			symC.initI = i;
-			SmErrsVal!AValCT valRes = eval4Val(field.val, st.stabR, st.ctx, st.dep,
+			SmErrsVal!AVal valRes = eval4Val(field.val, st.stabR, st.ctx, st.dep,
 					st.fns);
 			if (valRes.isErr){
 				st.errs ~= valRes.err;
@@ -698,13 +708,13 @@ package void unionNamedDo(NamedUnion node, ASymbol* sym, ref St1 st){
 			}
 			val = valRes.val;
 			if (isAuto){
-				type = val.val.type;
+				type = val.type;
 			}	else
 			if (val.canCastTo(type)){
-				symC.initD = val.to(type).val.val.data;
+				symC.initD = val.to(type).val.data;
 			} else {
 				st.errs ~= errIncompatType(field.pos, type.toString,
-						val.val.type.toString);
+						val.type.toString);
 				continue;
 			}
 		}
@@ -749,18 +759,18 @@ package void unionUnnamedDo(UnnamedUnion node, ASymbol* sym, ref St1 st){
 		if (!member.val) continue;
 		if (symC.initI != size_t.max)
 			st.errs ~= errUnionMultiDef(member.pos);
-		SmErrsVal!AValCT valRes = eval4Val(member.val, st.stabR, st.ctx, st.dep,
+		SmErrsVal!AVal valRes = eval4Val(member.val, st.stabR, st.ctx, st.dep,
 				st.fns);
 		if (valRes.isErr){
 			st.errs ~= valRes.err;
 			continue;
 		}
 		if (valRes.val.canCastTo(typeRes.val)){
-			symC.initD = valRes.val.to(typeRes.val).val.val.data;
+			symC.initD = valRes.val.to(typeRes.val).val.data;
 			symC.initI = cast(ptrdiff_t)symC.types.length - 1;
 		} else {
 			st.errs ~= errIncompatType(member.pos, typeRes.val.toString,
-					valRes.val.val.type.toString);
+					valRes.val.type.toString);
 		}
 	}
 	if (symC.initI == size_t.max)

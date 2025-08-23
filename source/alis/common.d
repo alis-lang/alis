@@ -478,7 +478,8 @@ unsignedSwitch:
 	}
 
 	/// ditto
-	this(T...)(T val) pure if (T.length && allSatisfy!(isType, T)){
+	this(T...)(T val) pure if (T.length && allSatisfy!(isType, T) &&
+			!is (T[0] : const ADataType)){
 		this.type = ADataType.of!T;
 		static if (T.length == 1){
 			OptVal!AVal v = of(val);
@@ -1631,7 +1632,7 @@ public struct AFn{
 	/// parameter types
 	ADataType[] paramsT;
 	/// parameter default values, if any
-	void[][] paramsV;
+	OptVal!(void[])[] paramsV;
 	/// unique id. this is also the label name in ABC
 	string uid;
 	/// whether this is an alis function (true) or an external (false)
@@ -1646,7 +1647,9 @@ public struct AFn{
 					ident, uid,
 					paramsN.length.iota
 						.map!(i => format!"%s %s=%s"(paramsN[i], paramsT[i],
-								cast(ubyte[])paramsV[i])),
+								paramsV[i].isVal
+								? (cast(ubyte[])paramsV[i].val).to!string
+								: "noinit")),
 					retT);
 	}
 }
