@@ -339,7 +339,6 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		}
 
 		foreach (AggMemberNamed field; fields){
-			// TODO: handle @auto
 			immutable bool isAuto = cast(AutoExpr)field.type !is null;
 			ADataType type;
 			if (isAuto){
@@ -376,10 +375,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 					continue;
 				}
 			} else {
-				// TODO: ask ADataType for initD
-				symC.initD ~= [];
-				// TODO: remove this "fake" error
-				st.errs ~= errUnsup(field.pos, "no default value for struct field");
+				symC.initD ~= type.initB;
 			}
 			foreach (string name; aliasMap.byKey
 					.filter!(n => aliasMap[n] == field.name)){
