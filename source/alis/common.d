@@ -67,14 +67,14 @@ public struct AVal{
 	}
 
 	/// converts this value into `target` type
-	/// only call this if `this.canCastTo(target)`
+	/// only call this if `this.canCastTo(target)`, or bad things will happen
 	/// Returns: converted value, or nothing if cannot be done
 	public OptVal!AVal to(ADataType target) pure {
 		assert (this.canCastTo(target));
 		AVal ret;
 		if (type == target)
 			return this.OptVal!AVal;
-		switch (type.type){
+		final switch (type.type){
 			case ADataType.Type.Seq:
 				if (target.type != ADataType.type.Seq ||
 						target.seqT.length != type.seqT.length)
@@ -140,8 +140,6 @@ public struct AVal{
 						return OptVal!AVal();
 				}
 			case ADataType.Type.FloatX:
-				if (target.type != ADataType.Type.FloatX)
-					return OptVal!AVal();
 				switch (target.x){
 					static foreach (Type; Floats){
 						case Type.sizeof * 8:
@@ -153,13 +151,57 @@ public struct AVal{
 					default:
 						return OptVal!AVal();
 				}
-				assert (false);
-				break;
-			default:
-				// TODO: implement AVal.to fully
-				debug stderr.writefln!
-					"STUB: AVal.to(ADataType) not implemented for %s->%s"(this, target);
-				return OptVal!AVal();
+			case ADataType.Type.Bool:
+				if (target.type == ADataType.Type.Bool)
+					return this.OptVal!AVal;
+				switch (target.type){
+					case ADataType.Type.IntX:
+						switch (target.x){
+							static foreach (Type; SignedInts){
+								case Type.sizeof * 8:
+									return (cast(ubyte[])data)[0] == 0
+										? (cast(Type)0).AVal.OptVal!AVal
+										: (cast(Type)1).AVal.OptVal!AVal;
+							}
+							default:
+								return OptVal!AVal();
+						}
+					case ADataType.Type.UIntX:
+						switch (target.x){
+							static foreach (Type; UnsignedInts){
+								case Type.sizeof * 8:
+									return (cast(ubyte[])data)[0] == 0
+										? (cast(Type)0).AVal.OptVal!AVal
+										: (cast(Type)1).AVal.OptVal!AVal;
+							}
+							default:
+								return OptVal!AVal();
+						}
+					default:
+						return OptVal!AVal();
+				}
+			case ADataType.Type.Array:
+				switch (target.type){
+					case ADataType.Type.Slice:
+						return AVal(target, data[0 .. null.sizeof + size_t.sizeof].dup)
+							.OptVal!AVal;
+					case ADataType.Type.Array:
+						return AVal(target, data.dup).OptVal!AVal;
+					default:
+						assert (false);
+				}
+			case ADataType.Type.Slice:
+			case ADataType.Type.Ref:
+			case ADataType.Type.Fn:
+				return AVal(type, data.dup).OptVal!AVal;
+			case ADataType.Type.NoInit:
+				return this.OptVal!AVal;
+			case ADataType.Type.Struct:
+				// TODO: implement AVal.to for Struct
+			case ADataType.Type.Union:
+				// TODO: implement AVal.to for Union
+			case ADataType.Type.Enum:
+				return AVal(type.enumS.type, data).to(target);
 		}
 		return ret.OptVal!AVal;
 	}
