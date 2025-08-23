@@ -75,6 +75,22 @@ public struct AVal{
 		if (type == target)
 			return this.OptVal!AVal;
 		switch (type.type){
+			case ADataType.Type.Seq:
+				if (target.type != ADataType.type.Seq ||
+						target.seqT.length != type.seqT.length)
+					return OptVal!AVal();
+				size_t off = 0;
+				void[] outBuf;
+				foreach (size_t i, ADataType t; type.seqT){
+					OptVal!AVal converted = AVal(t,
+							(data.ptr + off)[0 .. t.sizeOf]).to(target.seqT[i]);
+					if (!converted.isVal)
+						return OptVal!AVal();
+					outBuf ~= converted.val.data;
+					off += t.sizeOf;
+				}
+				return AVal(target, outBuf).OptVal!AVal;
+				break;
 			case ADataType.Type.IntX:
 			case ADataType.Type.UIntX:
 			case ADataType.Type.Char:
@@ -123,6 +139,22 @@ public struct AVal{
 					default:
 						return OptVal!AVal();
 				}
+			case ADataType.Type.FloatX:
+				if (target.type != ADataType.Type.FloatX)
+					return OptVal!AVal();
+				switch (target.x){
+					static foreach (Type; Floats){
+						case Type.sizeof * 8:
+							OptVal!Type r = this.as!Type;
+							if (r.isVal)
+								return OptVal!AVal(r.val.AVal);
+							return OptVal!AVal();
+					}
+					default:
+						return OptVal!AVal();
+				}
+				assert (false);
+				break;
 			default:
 				// TODO: implement AVal.to fully
 				debug stderr.writefln!
