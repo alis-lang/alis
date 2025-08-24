@@ -18,7 +18,7 @@ public union ByteUnion(T, ubyte N = T.sizeof){
 
 /// Reads a void[] as a type
 /// Returns: value in type T
-pragma(inline, true) public T as(T)(void[] data) pure {
+pragma(inline, true) public inout(T) as(T)(inout void[] data) pure {
 	assert(data.length >= T.sizeof);
 	return *(cast(T*)data.ptr);
 }

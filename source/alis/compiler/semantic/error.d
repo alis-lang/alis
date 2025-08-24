@@ -55,6 +55,7 @@ public struct SmErr{
 		IntrUnk, /// unknown intrinsic
 		MemberNoExist, /// Member not existing
 		Err, /// error through the $err intrinsic
+		InitFail, /// Cannot initialize a value
 	}
 
 	/// where error happen
@@ -77,41 +78,41 @@ public struct SmErr{
 
 /// Identifier re-use error
 package SmErr errIdentReuse(Location pos, string ident){
-	return SmErr(pos, format!"Identifier `%s` conflicts"(ident),
+	return SmErr(pos, format!"identifier `%s` conflicts"(ident),
 			SmErr.Type.IdentReuse);
 }
 
 /// Unsupported AST node
 package SmErr errUnsup(ASTNode node){
 	return SmErr(node.pos,
-			typeid(node).to!string.format!"Unsupported node `%s`",
+			typeid(node).to!string.format!"unsupported node `%s`",
 			SmErr.Type.UnsupFeat);
 }
 
 /// Unsupported Feature
 package SmErr errUnsup(Location pos, string feat){
-	return SmErr(pos, feat.format!"Unsupported Feature: %s",
+	return SmErr(pos, feat.format!"unsupported feature: %s",
 			SmErr.Type.UnsupFeat);
 }
 
 /// Expression should have resolved to Value
 package SmErr errExprValExpected(Location pos){
 	return SmErr(pos,
-			format!"Expression does not evaluate to value",
+			format!"expression does not evaluate to value",
 			SmErr.Type.ValExprExpected);
 }
 
 /// Expression should have resolved to type
 package SmErr errExprTypeExpected(Location pos){
 	return SmErr(pos,
-			format!"Expression does not evaluate to type",
+			format!"expression does not evaluate to type",
 			SmErr.Type.TypeExprExpected);
 }
 
 /// Expression should have resolved to Symbol
 package SmErr errExprSymExpected(Location pos){
 	return SmErr(pos,
-			format!"Expression does not evaluate to symbol",
+			format!"expression does not evaluate to symbol",
 			SmErr.Type.SymExprExpected);
 }
 
@@ -119,14 +120,14 @@ package SmErr errExprSymExpected(Location pos){
 package SmErr errParamCount(Location pos, string name, size_t expected,
 		size_t got){
 	return SmErr(pos,
-			format!"Mismatched parameter count for `%s`: expected %d, received %d"(
+			format!"mismatched parameter count for `%s`: expected %d, received %d"(
 				name, expected, got),
 			SmErr.Type.ParamCountMis);
 }
 /// Recursive Dependency
 package SmErr errRecDep(Location pos, string name){
 	return SmErr(pos,
-			name.format!"Recursive Dependency on %s",
+			name.format!"recursive dependency on %s",
 			SmErr.Type.RecursiveDep);
 }
 
@@ -134,7 +135,7 @@ package SmErr errRecDep(Location pos, string name){
 package SmErr errIncompatType()(Location pos, string expected,
 		string got){
 	return SmErr(pos,
-			format!"Incompatible Types: Cannot implicitly cast `%s` to `%s`"(
+			format!"incompatible types: cannot implicitly cast `%s` to `%s`"(
 				got, expected),
 			SmErr.Type.IncompatTypes);
 }
@@ -142,54 +143,54 @@ package SmErr errIncompatType()(Location pos, string expected,
 /// incompatible types in enum values
 package SmErr errIncompatType(EnumDef node){
 	return SmErr(node.pos,
-			format!"Incompatible Types: Enum %s members of incompatible types"(
+			format!"incompatible types: enum %s members of incompatible types"(
 				node.name), SmErr.Type.IncompatTypes);
 }
 
 /// enum member value missing
 package SmErr errEnumMemValMis(EnumMember member){
-	return SmErr(member.pos, member.name.format!"Enum Member %s has no value",
+	return SmErr(member.pos, member.name.format!"enum member %s has no value",
 			SmErr.Type.EnumMemValMis);
 }
 
 /// multiple inheritence
 package SmErr errMultiInherit(Location pos){
-	return SmErr(pos, "Multiple `alias this`", SmErr.Type.MultiInherit);
+	return SmErr(pos, "multiple `alias this`", SmErr.Type.MultiInherit);
 }
 
 /// field named `this`
 package SmErr errFieldThis(Location pos){
-	return SmErr(pos, "Field cannot be named `this`", SmErr.Type.FieldThis);
+	return SmErr(pos, "field cannot be named `this`", SmErr.Type.FieldThis);
 }
 
 /// Cannot have auto when no value provided
 package SmErr errAutoNoVal(Location pos){
-	return SmErr(pos, "Cannot infer auto type in absense of value",
+	return SmErr(pos, "cannot infer auto type in absense of value",
 			SmErr.Type.AutoNoVal);
 }
 
 /// Union has more than one default values
 package SmErr errUnionMultiDef(Location pos){
-	return SmErr(pos, "Union cannot have more than one default value",
+	return SmErr(pos, "union cannot have more than one default value",
 			SmErr.Type.UnionMultiDef);
 }
 /// Union has no default value
 package SmErr errUnionNoDef(Location pos){
-	return SmErr(pos, "Union has no default value",
+	return SmErr(pos, "union has no default value",
 			SmErr.Type.UnionNoDef);
 }
 
 /// Unnamed union must have unique types
 package SmErr errUnUnionTypeUnique(Location pos, ADataType a, ADataType b){
 	return SmErr(pos,
-			format!"Unnamed Union's types must be unique: %s is compatible with %s"(
+			format!"unnamed union's types must be unique: %s is compatible with %s"(
 				a, b), SmErr.Type.UnUnionTypeUnique);
 }
 
 /// Function Parameter expected to have default value
 package SmErr errFParamNoDef(Location pos, string name){
 	return SmErr(pos,
-			name.format!"Function parameter %s should have default value",
+			name.format!"function parameter %s should have default value",
 			SmErr.Type.FParamNoDef);
 }
 
@@ -202,7 +203,7 @@ package SmErr errUnxp(Location pos, string err){
 package SmErr errIdentAmbig(R)(Location pos, string ident, R matches) if (
 		isInputRange!(R, string)){
 	return SmErr(pos,
-			format!"Identifier %s is ambiguous, matches with: %(%r,%)"(
+			format!"identifier %s is ambiguous, matches with: %(%r,%)"(
 				ident, matches), SmErr.Type.IdentAmbig);
 }
 
@@ -221,7 +222,7 @@ package SmErr errTypeInferFail(Location pos, string name){
 
 /// Bounds violation
 package SmErr errBounds(Location pos, size_t max, size_t got){
-	return SmErr(pos, format!"Bounds violation: %d exceeds bound %d"(
+	return SmErr(pos, format!"bounds violation: %d exceeds bound %d"(
 				got, max), SmErr.Type.Bounds);
 }
 /// Callable symbol called with incompatible params
@@ -274,7 +275,7 @@ package SmErr errAssignRef(Location pos){
 
 /// Expected ref, is not ref
 package SmErr errNotRef(Location pos){
-	return SmErr(pos, "Reference expected", SmErr.Type.NotRef);
+	return SmErr(pos, "reference expected", SmErr.Type.NotRef);
 }
 
 /// `@=` used with non-ref LHS
@@ -312,4 +313,19 @@ package SmErr errMemberNoExist(Location pos, string sym, string mem){
 /// $err intrinsic error
 package SmErr errErr(Location pos, string err){
 	return SmErr(pos, err.format!"$err: %s", SmErr.Type.Err);
+}
+
+/// Cannot initialize a value
+package SmErr errInitFail(Location pos, string type){
+	return SmErr(pos,
+			type.format!"initialization error: cannot initialize type `%s`",
+			SmErr.Type.InitFail);
+}
+
+/// ditto
+package SmErr errInitFail(Location pos, string type, string subType){
+	return SmErr(pos,
+			format!"initialization error: cannot initialize type `%s` in `%s`"(
+				subType, type),
+			SmErr.Type.InitFail);
 }

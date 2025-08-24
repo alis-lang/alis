@@ -3,7 +3,8 @@ Grammar Rules for Alis
 +/
 module alis.compiler.parser.grammar;
 
-import alis.compiler.ast,
+import alis.common,
+			 alis.compiler.ast,
 			 alis.compiler.common,
 			 alis.compiler.error,
 			 alis.compiler.lexer,

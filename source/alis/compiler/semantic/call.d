@@ -134,8 +134,13 @@ package SmErrsVal!RExpr fnCall(RFnExpr callee, AValCT[] params){
 	if (errs.length)
 		return SmErrsVal!RExpr(errs);
 	foreach (size_t i; params.length .. symC.paramsT.length){
+		if (!symC.paramsV[i].isVal){
+			return SmErrsVal!RExpr([
+					errCallableIncompat(callee.pos, callee.toString,
+						params.map!(p => p.toString))]);
+		}
 		RLiteralExpr val =
-			new RLiteralExpr(AVal(symC.paramsT[i], symC.paramsV[i]));
+			new RLiteralExpr(AVal(symC.paramsT[i], symC.paramsV[i].val));
 		val.pos = callee.pos;
 		casted[i] = val;
 	}

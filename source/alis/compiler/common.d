@@ -115,15 +115,6 @@ unittest{
 	assert ("bar".isIntrN == false);
 }
 
-/// Visibility specifier
-/// first rightmost bit -> 1 if can read
-/// second rightmost bit -> 1 if can write
-public enum Visibility : ubyte{
-	Default = 0,
-	IPub = 1,
-	Pub = 2,
-}
-
 /// ASTNode location
 public struct Location{
 	size_t line;
@@ -237,13 +228,13 @@ package char charUnescape(char c){
 
 /// Reads a void[] as a type
 /// Returns: value in type T
-pragma(inline, true) package T as(T)(void[] data) {
+pragma(inline, true) package inout(T) as(T)(inout void[] data) {
 	assert(data.length >= T.sizeof);
 	return *(cast(T*)data.ptr);
 }
 
 /// Returns: void[] against a value of type T
-pragma(inline, true) package void[] asBytes(T)(T val) {
+pragma(inline, true) package inout(void[]) asBytes(T)(inout T val) {
 	void[] ret;
 	ret.length = T.sizeof;
 	return ret[] = (cast(void*)&val)[0 .. T.sizeof];

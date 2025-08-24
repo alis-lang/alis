@@ -8,7 +8,8 @@ import std.array,
 			 std.conv,
 			 std.algorithm;
 
-import alis.compiler.common : ASTNode, Visibility, IsASTNode;
+import alis.common;
+import alis.compiler.common : ASTNode, IsASTNode;
 
 import std.meta,
 			 std.traits;

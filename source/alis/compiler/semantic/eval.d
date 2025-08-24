@@ -182,35 +182,33 @@ package SmErrsVal!AValCT eval(Expression expr, STab stab, IdentU[] ctx,
 
 /// Evaluates an RExpr expecting a value. See `eval`
 /// Returns: AValCT with Type.Literal, or SmErr[]
-package SmErrsVal!AValCT eval4Val(RExpr expr, STab stab, IdentU[] ctx){
-	// TODO: make this function return AVal, not AValCT
-	SmErrsVal!AValCT ret = eval(expr, stab, ctx);
-	if (ret.isErr){
+package SmErrsVal!AVal eval4Val(RExpr expr, STab stab, IdentU[] ctx){
+	SmErrsVal!AValCT res = eval(expr, stab, ctx);
+	if (res.isErr){
 		debug{
 			import std.stdio;
-			stderr.writefln!"STUB: eval4Val errored %s, returning 5.int"(ret.err);
-			return SmErrsVal!AValCT(5.AVal.AValCT);
+			stderr.writefln!"STUB: eval4Val errored %s, returning 5.int"(res.err);
+			return SmErrsVal!AVal(5.AVal);
 		}
-		return ret;
+		return res.err.SmErrsVal!AVal;
 	}
-	if (ret.val.type != AValCT.Type.Literal)
-		return SmErrsVal!AValCT([errExprValExpected(expr.pos)]);
-	return ret.val.SmErrsVal!AValCT;
+	if (res.val.type != AValCT.Type.Literal)
+		return SmErrsVal!AVal([errExprValExpected(expr.pos)]);
+	return res.val.val.SmErrsVal!AVal;
 }
 
 /// ditto
-package SmErrsVal!AValCT eval4Val(Expression expr, STab stab, IdentU[] ctx,
+package SmErrsVal!AVal eval4Val(Expression expr, STab stab, IdentU[] ctx,
 		void[0][ASymbol*] dep, RFn[string] fns, AValCT[] params = null){
-	// TODO: make this function return AVal, not AValCT
 	SmErrsVal!RExpr resolved = resolve(expr, stab, ctx, dep, fns, params);
 	if (resolved.isErr){
 		debug{
 			import std.stdio;
 			stderr.writefln!"STUB: eval4Val errored %s, returning 5.int"(
 					resolved.err);
-			return SmErrsVal!AValCT(5.AVal.AValCT);
+			return SmErrsVal!AVal(5.AVal);
 		}
-		return SmErrsVal!AValCT(resolved.err);
+		return SmErrsVal!AVal(resolved.err);
 	}
 	return eval4Val(resolved.val, stab, ctx);
 }
