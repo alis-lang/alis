@@ -142,6 +142,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			ASymbol* param = new ASymbol(
 					AVar(st.ctx ~ symC.uid.IdentU ~ symC.paramsN[i].IdentU,
 						symC.paramsT[i], initD.val));
+			param.isComplete = true;
 			subSt.add(symC.paramsN[i].IdentU, param, param.ident[0 .. 1]);
 		}
 
