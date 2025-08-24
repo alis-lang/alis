@@ -639,18 +639,18 @@ Same rules regarding `this` member as struct apply.
 
 ## Default Member
 
-A union must at all times have a valid member. The default member at
+A union can be assigned a default member. The default member at
 initialization can be denoted by assigning a default value to it. For example:
 
 ```
 union Foo{
-	void bar = void; // bar is default
+	void bar = $init; // bar is default
 	int baz;
 }
 
 union Num{
 	int i;
-	float f = float.init; // f is default
+	float f = float.$init; // f is default
 }
 ```
 
@@ -716,7 +716,7 @@ In case of `this` member, following is also possible:
 
 ```
 union Foo{
-	void bar = void;
+	void bar = $init;
 	int bar;
 	alias this = bar;
 }
