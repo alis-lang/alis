@@ -1209,7 +1209,7 @@ public struct ADataType{
 			case Type.Struct:
 				if (structS is null)
 					return 0;
-				return structS.sizeOf;
+				return this.structS.sizeOf;
 				//assert (false, "thou shall not call ADataType.sizeOf on Struct!");
 			case Type.Union:
 				assert (unionS !is null);
@@ -1513,6 +1513,22 @@ public struct AStruct{
 		return types.map!(t => t.sizeOf).sum;
 	}
 
+	/// initialization bytes for this struct
+	/// Returns: Initialization bytes, or nothing if cannot initialize
+	public OptVal!(void[]) initB() const pure {
+		foreach (const OptVal!(void[]) fieldInit; initD){
+			if (!fieldInit.isVal)
+				return OptVal!(void[])();
+		}
+		void[] ret = new void[sizeOf];
+		size_t offset = 0;
+		foreach (const OptVal!(void[]) fieldInit; initD){
+			ret[offset .. offset + fieldInit.val.length] = fieldInit.val;
+			offset += fieldInit.val.length;
+		}
+		return OptVal!(void[])(ret);
+	}
+
 	string toString() const pure {
 		return format!"struct %s{%(%r,%)}"(ident,
 				types.length.iota.map!(i => types[i].format!"%s[%(%r,%)]=%s"(
@@ -1536,7 +1552,7 @@ public struct AUnion{
 	size_t[string] names;
 	/// name's visibility. can be null, if unnamed
 	Visibility[string] nameVis;
-	/// initialisation type's index
+	/// initialisation type's index, or `size_t.max` if none
 	size_t initI;
 	/// initialisation data
 	void[] initD;
@@ -1568,9 +1584,22 @@ public struct AUnion{
 	@property bool isUnnamed() const pure {
 		return names.length == 0;
 	}
+	private @property sizeOfField() const pure {
+		return types.map!(t => t.sizeOf).fold!((a, b) => max(a, b));
+	}
 	/// Returns: size of this union
 	@property size_t sizeOf() const pure {
-		return types.map!(t => t.sizeOf).fold!((a, b) => max(a, b)) + size_t.sizeof;
+		return sizeOfField + size_t.sizeof;
+	}
+
+	/// initialization bytes for this union
+	/// Returns: Initialization bytes, or nothing if cannot initialize
+	public OptVal!(void[]) initB() const pure {
+		if (initI == size_t.max)
+			return OptVal!(void[])();
+		void[] ret = new void[sizeOf];
+		*(cast(size_t*)(ret.ptr + sizeOfField)) = initI;
+		return ret.OptVal!(void[]);
 	}
 
 	string toString() const pure {
