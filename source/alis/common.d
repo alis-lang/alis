@@ -1135,6 +1135,8 @@ public struct ADataType{
 				// TODO: implement initB for Struct
 			case ADataType.Type.Union:
 				// TODO: implement initB for Struct
+				debug stderr.writefln!"STUB: initB for Struct/Union returning 0s";
+				return (new void[sizeOf]).OptVal!(void[]);
 			case ADataType.Type.Enum:
 				assert (this.enumS.memVal.length);
 				return this.enumS.memVal[0].dup.OptVal!(void[]);
