@@ -711,7 +711,7 @@ package void unionNamedDo(NamedUnion node, ASymbol* sym, ref St1 st){
 				type = val.type;
 			}	else
 			if (val.canCastTo(type)){
-				symC.initD = val.to(type).val.data;
+				symC.initD = val.to(type).val.data.OptVal!(void[]);
 			} else {
 				st.errs ~= errIncompatType(field.pos, type.toString,
 						val.type.toString);
@@ -726,9 +726,6 @@ package void unionNamedDo(NamedUnion node, ASymbol* sym, ref St1 st){
 		symC.names[field.name] = symC.types.length;
 		symC.nameVis[field.name] = field.visibility;
 		symC.types ~= type;
-	}
-	if (symC.initI == size_t.max){
-		st.errs ~= errUnionNoDef(node.pos);
 	}
 }
 
@@ -766,15 +763,13 @@ package void unionUnnamedDo(UnnamedUnion node, ASymbol* sym, ref St1 st){
 			continue;
 		}
 		if (valRes.val.canCastTo(typeRes.val)){
-			symC.initD = valRes.val.to(typeRes.val).val.data;
+			symC.initD = valRes.val.to(typeRes.val).val.data.OptVal!(void[]);
 			symC.initI = cast(ptrdiff_t)symC.types.length - 1;
 		} else {
 			st.errs ~= errIncompatType(member.pos, typeRes.val.toString,
 					valRes.val.type.toString);
 		}
 	}
-	if (symC.initI == size_t.max)
-		st.errs ~= errUnionNoDef(node.pos);
 	foreach (size_t i; 0 .. symC.types.length){
 		foreach (size_t j; i + 1 .. symC.types.length){
 			if (symC.types[i] == symC.types[j])

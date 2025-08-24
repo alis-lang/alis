@@ -1555,7 +1555,7 @@ public struct AUnion{
 	/// initialisation type's index, or `size_t.max` if none
 	size_t initI;
 	/// initialisation data
-	void[] initD;
+	OptVal!(void[]) initD;
 	/// Visibility outside its parent module
 	Visibility vis;
 
@@ -1610,7 +1610,7 @@ public struct AUnion{
 							: nameVis[n] == Visibility.Pub ? "pub "
 							: nameVis[n] == Visibility.IPub ? "ipub " : "idk ")
 							.format!"%s%s"(n)).array,
-							initI == i ? (cast(ubyte[])initD).format!"=%s" : ""
+							initI == i ? (cast(ubyte[])initD.val).format!"=%s" : ""
 						)));
 
 	}
