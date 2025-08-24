@@ -86,7 +86,6 @@ private bool isRecDep(ASTNode node, ref St1 st){
 				continue;
 			}
 			nameSet[param.name] = (void[0]).init;
-			// TODO: handle @auto
 			immutable bool isAuto = cast(AutoExpr)param.type !is null;
 			ADataType type;
 			if (!isAuto){
