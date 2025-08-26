@@ -1132,11 +1132,11 @@ public struct ADataType{
 			case ADataType.Type.Fn:
 				return new void[sizeOf].OptVal!(void[]);
 			case ADataType.Type.Struct:
-				// TODO: implement initB for Struct
+				if (this.structS is null)
+					return [].OptVal!(void[]);
+				return this.structS.initB;
 			case ADataType.Type.Union:
-				// TODO: implement initB for Struct
-				debug stderr.writefln!"STUB: initB for Struct/Union returning 0s";
-				return (new void[sizeOf]).OptVal!(void[]);
+				return this.unionS.initB;
 			case ADataType.Type.Enum:
 				assert (this.enumS.memVal.length);
 				return this.enumS.memVal[0].dup.OptVal!(void[]);
@@ -1460,7 +1460,11 @@ public struct ADataType{
 				}
 				return true;
 			case Type.Struct:
-				return structS !is null && structS == rhs.structS;
+				if (this.structS is null)
+					return rhs.structS is null;
+				if (rhs.structS is null)
+					return false;
+				return structS == rhs.structS;
 			case Type.Union:
 				return unionS !is null && unionS == rhs.unionS;
 			case Type.Enum:
