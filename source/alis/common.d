@@ -1132,6 +1132,8 @@ public struct ADataType{
 			case ADataType.Type.Fn:
 				return new void[sizeOf].OptVal!(void[]);
 			case ADataType.Type.Struct:
+				if (this.structS is null)
+					return [].OptVal!(void[]);
 				return this.structS.initB;
 			case ADataType.Type.Union:
 				return this.unionS.initB;
@@ -1458,7 +1460,11 @@ public struct ADataType{
 				}
 				return true;
 			case Type.Struct:
-				return structS !is null && structS == rhs.structS;
+				if (this.structS is null)
+					return rhs.structS is null;
+				if (rhs.structS is null)
+					return false;
+				return structS == rhs.structS;
 			case Type.Union:
 				return unionS !is null && unionS == rhs.unionS;
 			case Type.Enum:

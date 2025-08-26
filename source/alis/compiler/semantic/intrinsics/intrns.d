@@ -459,6 +459,8 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 						assert (false);
 					case ADataType.Type.Struct:
 						AStruct* symC = p.typeT.structS;
+						if (symC is null)
+							break;
 						names = symC.names.byKey
 							.filter!(s => symC.exists(s, ctx))
 							.map!(s => s.AVal.AValCT)
@@ -562,7 +564,7 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 						assert (false);
 					case ADataType.Type.Struct:
 						AStruct* symC = p.typeT.structS;
-						if (!symC.exists(name, ctx))
+						if (symC is null || !symC.exists(name, ctx))
 							return SmErrsVal!RExpr([errMemberNoExist(pos, p.toString, name)]);
 						immutable size_t target = symC.names[name];
 						foreach (string n, size_t id; symC.names){
@@ -683,7 +685,7 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		RExpr lhsExpr = params[0].toRExpr;
 		if (type.type == ADataType.Type.Struct){
 			AStruct* structS = type.structS;
-			if (structS.exists(name, ctx))
+			if (structS !is null && structS.exists(name, ctx))
 				r = new RStructMemberGetExpr(lhsExpr,
 						structS.names[name],
 						type.isConst || (
