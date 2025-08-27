@@ -445,7 +445,19 @@ unsignedSwitch:
 				return (cast(ushort[])data).format!"<%(%04x %):%s>"(type.toString);
 				break;
 			case ADataType.Type.Struct:
-				break; // TODO: implement AVal.toString for Struct
+				size_t offset = 0;
+				return type.structS.types.length.iota
+					.map!(i => AVal(type.structS.types[i],
+								data[offset .. offset + type.structS.types[i].sizeOf]).toString,
+							i => i)
+					.tee!(i => offset += type.structS.types[i[1]].sizeOf)
+					.map!(i => format!"%s=%s"(
+								type.structS.names.byKey
+									.filter!(n => type.structS.nameVis[n] == i[1])
+									.join("="),
+								i[1]))
+					.join(", ")
+					.format!"{%s}";
 			case ADataType.Type.Union:
 				immutable size_t fieldSize = type.unionS.sizeOfField;
 				immutable size_t memId = data[fieldSize .. $].as!size_t;
