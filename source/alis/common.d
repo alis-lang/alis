@@ -441,11 +441,8 @@ unsignedSwitch:
 					.format!"[%s]";
 				break;
 			case ADataType.Type.Ref:
-				return (cast(void*[])data).format!"%(%x %)";
-				break;
 			case ADataType.Type.Fn:
-				return format!"fn %s->%s"(
-						type.paramT.map!(p => p.toString).join(", "), type.retT);
+				return (cast(ushort[])data).format!"<%(%04x %):%s>"(type.toString);
 				break;
 			case ADataType.Type.Struct:
 				break; // TODO: implement AVal.toString for Struct
