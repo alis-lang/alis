@@ -453,7 +453,7 @@ unsignedSwitch:
 					.tee!(i => offset += type.structS.types[i[1]].sizeOf)
 					.map!(i => format!"%s=%s"(
 								type.structS.names.byKey
-									.filter!(n => type.structS.nameVis[n] == i[1])
+									.filter!(n => type.structS.names[n] == i[1])
 									.join("="),
 								i[1]))
 					.join(", ")
