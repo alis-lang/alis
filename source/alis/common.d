@@ -447,7 +447,18 @@ unsignedSwitch:
 			case ADataType.Type.Struct:
 				break; // TODO: implement AVal.toString for Struct
 			case ADataType.Type.Union:
-				break; // TODO: implement AVal.toString for Union
+				immutable size_t fieldSize = type.unionS.sizeOfField;
+				immutable size_t memId = data[fieldSize .. $].as!size_t;
+				AVal val = AVal(type.unionS.types[memId],
+							data[0 .. type.unionS.types[memId].sizeOf]);
+				if (type.unionS.isUnnamed)
+					return val.toString;
+				return format!"{%s=%s}"(
+						type.unionS.names.byKey
+							.filter!(n => type.unionS.names[n] == memId)
+							.join("="),
+						val);
+				break;
 			case ADataType.Type.Enum:
 				foreach (size_t i; 0 .. type.enumS.memId.length){
 					if (data == type.enumS.memVal[i])
@@ -460,7 +471,6 @@ unsignedSwitch:
 				break;
 		}
 		return format!"{type: %s, data: %s}"(type, cast(ubyte[])data);
-		assert (false);
 	}
 
 	/// constructor
@@ -1594,7 +1604,8 @@ public struct AUnion{
 	@property bool isUnnamed() const pure {
 		return names.length == 0;
 	}
-	private @property sizeOfField() const pure {
+	/// Returns: size of this union excluding memId at end
+	@property sizeOfField() const pure {
 		return types.map!(t => t.sizeOf).fold!((a, b) => max(a, b));
 	}
 	/// Returns: size of this union
