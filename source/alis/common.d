@@ -380,6 +380,15 @@ unsignedSwitch:
 		}
 		final switch (type.type){
 			case ADataType.Type.Seq:
+				size_t offset = 0;
+				return type.seqT.length.iota
+					.map!(i => AVal(type.seqT[i],
+								data[offset .. offset + type.seqT[i].sizeOf]).toString,
+							i => i)
+					.tee!(i => offset += type.seqT[i[1]].sizeOf)
+					.map!(i => i[0])
+					.join(", ")
+					.format!"(%s)";
 				break;
 			case ADataType.Type.IntX:
 				switch (type.x){
