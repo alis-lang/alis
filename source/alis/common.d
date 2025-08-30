@@ -918,6 +918,14 @@ public struct ASymbol{
 	}
 }
 
+/// Type or Level of Type Casting
+enum CastLevel : int{
+	None = 0, /// no cast needed
+	InPlace = 1, /// in-place cast, i.e: Ref Cast but sizeOf matches as well
+	Ref = 2, /// can be referenced by pointer of target type as well
+	Simple = 3, /// copy will be created
+}
+
 /// Alis Data Type.
 public struct ADataType{
 	/// possible Data Types
@@ -960,6 +968,159 @@ public struct ADataType{
 			/// parameter types, for `Fn`
 			ADataType[] paramT;
 		}
+	}
+
+	/// Finds CastLevel possible between `this` and `target`
+	/// `ctx` is only needed for `Struct` and `Union`
+	///
+	/// Returns: Lowest possible `CastLevel`, or no value if not possible
+	OptVal!CastLevel castability(const ADataType target,
+			IdentU[] ctx = null) const pure {
+		if (this.isConst && !target.isConst)
+			return OptVal!CastLevel();
+main_switch:
+		final switch (this.type){
+			case ADataType.Type.Seq:
+				if (seqT.length != target.seqT.length)
+					return OptVal!CastLevel();
+				CastLevel maxLevel = CastLevel.None;
+				foreach (size_t i; 0 .. seqT.length){
+					OptVal!CastLevel r = this.seqT[i].castability(target.seqT[i], ctx);
+					if (!r.isVal)
+						break main_switch;
+					maxLevel = maxLevel.max(r.val);
+				}
+				return maxLevel.OptVal!CastLevel;
+
+			case ADataType.Type.IntX:
+				if (target.type != ADataType.Type.IntX)
+					break;
+				if (target.x == this.x)
+					return CastLevel.None.OptVal!CastLevel;
+				if (target.x > this.x)
+					return CastLevel.Simple.OptVal!CastLevel;
+				break;
+
+			case ADataType.Type.UIntX:
+				switch (target.type){
+					case ADataType.Type.UIntX:
+						if (target.x == this.x)
+							return CastLevel.None.OptVal!CastLevel;
+						if (target.x > this.x)
+							return CastLevel.Simple.OptVal!CastLevel;
+						break;
+					case ADataType.Type.IntX:
+						if (target.x > this.x)
+							return CastLevel.Simple.OptVal!CastLevel;
+						break;
+					default:
+						break;
+				}
+				break;
+
+			case ADataType.Type.FloatX:
+				if (target.type != ADataType.Type.FloatX)
+					break;
+				if (target.x == this.x)
+					return CastLevel.None.OptVal!CastLevel;
+				if (target.x > this.x)
+					return CastLevel.Simple.OptVal!CastLevel;
+				break;
+
+			case ADataType.Type.Char:
+				switch (target.type){
+					case ADataType.Type.Char:
+						return CastLevel.None.OptVal!CastLevel;
+					case ADataType.Type.UIntX:
+						if (target.x == char.sizeof * 8)
+							return CastLevel.InPlace.OptVal!CastLevel;
+						goto case;
+					case ADataType.Type.IntX:
+						if (target.x > char.sizeof * 8)
+							return CastLevel.Simple.OptVal!CastLevel;
+						break;
+					default:
+						break;
+				}
+				break;
+
+			case ADataType.Type.Bool:
+				switch (target.type){
+					case ADataType.Type.Bool:
+						return CastLevel.None.OptVal!CastLevel;
+					case ADataType.Type.UIntX:
+					case ADataType.Type.IntX:
+						if (target.x == bool.sizeof * 8)
+							return CastLevel.InPlace.OptVal!CastLevel;
+						return CastLevel.Simple.OptVal!CastLevel;
+					default:
+						break;
+				}
+				break;
+
+			case ADataType.Type.Slice:
+				if (target.type != ADataType.Type.Slice)
+					break;
+				OptVal!CastLevel r = this.refT.castability(*target.refT, ctx);
+				if (!r.isVal || r.val > CastLevel.InPlace)
+					break;
+				return r.val.OptVal!CastLevel;
+
+			case ADataType.Type.Array:
+				if (target.type != ADataType.Type.Slice &&
+						target.type != ADataType.Type.Array)
+					break;
+				OptVal!CastLevel r = this.refT.castability(*target.refT, ctx);
+				if (!r.isVal || r.val > CastLevel.InPlace)
+					break;
+				if (target.type == ADataType.Type.Array)
+					return r.val.OptVal!CastLevel;
+				return CastLevel.Simple.OptVal!CastLevel;
+
+			case ADataType.Type.Fn:
+				if (target.type != ADataType.Type.Fn ||
+						target.paramT.length != this.paramT.length)
+					break;
+				CastLevel maxLevel = CastLevel.None;
+				OptVal!CastLevel r = this.refT.castability(*target.refT, ctx);
+				if (!r.isVal || r.val > CastLevel.InPlace)
+					break;
+				maxLevel = maxLevel.max(r.val);
+				foreach (size_t i; 0 .. this.paramT.length){
+					r = this.paramT[i].castability(target.paramT[i], ctx);
+					if (!r.isVal || r.val > CastLevel.InPlace)
+						break main_switch;
+					maxLevel = maxLevel.max(r.val);
+				}
+				return maxLevel.OptVal!CastLevel;
+
+			case ADataType.Type.Ref:
+				if (target.type == ADataType.Type.Ref){
+					OptVal!CastLevel r = this.refT.castability(*target.refT, ctx);
+					if (!r.isVal || r.val > CastLevel.Ref)
+						break;
+					return r.val.OptVal!CastLevel;
+				}
+				// auto de-ref case
+				OptVal!CastLevel r = this.refT.castability(target, ctx);
+				if (!r.isVal)
+					break;
+				return CastLevel.Simple.OptVal!CastLevel;
+
+			case ADataType.Type.NoInit:
+				if (target.type != ADataType.Type.NoInit)
+					break;
+				return CastLevel.None.OptVal!CastLevel;
+
+			case ADataType.Type.Struct:
+				break; // TODO: implement castability for Struct
+			case ADataType.Type.Union:
+				break; // TODO: implement castability for Union
+
+			case ADataType.Type.Enum:
+				return this.enumS.type.castability(target, ctx);
+		}
+		return OptVal!CastLevel();
 	}
 
 	/// Returns: whether this is a primitive type
