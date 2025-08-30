@@ -1055,9 +1055,9 @@ public struct ADataType{
 			case Type.NoInit:
 				return target.type == Type.NoInit;
 			case Type.Struct:
-				return false; // TODO: implement canIPCastTo for Struct
+				return false; // can only IPCast struct to itself
 			case Type.Union:
-				return false; // TODO: implement canIPCastTo for Union
+				return false; // can only IPCast union to itself
 			case Type.Enum:
 				return enumS.type.canIPCastTo(target);
 		}
