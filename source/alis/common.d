@@ -1702,6 +1702,8 @@ public struct AStruct{
 				return OptVal!(void[])();
 			toInit = id;
 		}
+		if (toInit == size_t.max)
+			return OptVal!(void[])();
 		OptVal!AVal convd = src.to(this.types[toInit], ctx);
 		if (!convd.isVal)
 			return OptVal!(void[])();
@@ -1788,11 +1790,52 @@ public struct AUnion{
 
 	/// initialization bytes for this union
 	/// Returns: Initialization bytes, or nothing if cannot initialize
-	public OptVal!(void[]) initB() const pure {
+	OptVal!(void[]) initB() const pure {
 		if (initI == size_t.max)
 			return OptVal!(void[])();
 		void[] ret = new void[sizeOf];
 		*(cast(size_t*)(ret.ptr + sizeOfField)) = initI;
+		return ret.OptVal!(void[]);
+	}
+
+	/// ditto
+	OptVal!(void[]) initB(AVal src, IdentU[] ctx) const pure {
+		if (src.type.type == ADataType.Type.Struct &&
+				src.type.structS !is null &&
+				!src.type.structS.isUnique &&
+				src.type.structS.names.length == 1 &&
+				exists(src.type.structS.names.byKey.takeOne[0], ctx)){
+			size_t id = this.names[src.type.structS.names.byKey.takeOne[0]];
+			const ADataType dstType = this.types[id];
+			OptVal!AVal convd = src.to(dstType, ctx);
+			if (convd.isVal){
+				void[] ret = new void[sizeOf];
+				ret[0 .. dstType.sizeOf] = convd.val.data;
+				*(cast(size_t*)(ret.ptr + sizeOfField)) = id;
+				return ret.OptVal!(void[]);
+			}
+		}
+
+		void[][size_t] visIds;
+		foreach (string name; this.names.byKey.filter!(n => this.exists(n, ctx))){
+			visIds[this.names[name]] = (void[]).init;
+		}
+		size_t toInit = size_t.max;
+		foreach (size_t id; visIds.byKey){
+			if (!src.type.canCastTo(this.types[id], ctx)) continue;
+			if (toInit != size_t.max)
+				return OptVal!(void[])();
+			toInit = id;
+		}
+		if (toInit == size_t.max)
+			return OptVal!(void[])();
+		const ADataType dstType = this.types[toInit];
+		OptVal!AVal convd = src.to(dstType, ctx);
+		if (!convd.isVal)
+			return OptVal!(void[])();
+		void[] ret = new void[sizeOf];
+		ret[0 .. dstType.sizeOf] = convd.val.data;
+		*(cast(size_t*)(ret.ptr + sizeOfField)) = toInit;
 		return ret.OptVal!(void[]);
 	}
 
