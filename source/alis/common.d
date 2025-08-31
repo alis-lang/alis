@@ -946,7 +946,7 @@ public struct ADataType{
 		NoInit, /// `$noinit`
 	}
 	/// whether it is a const
-	bool isConst = false;
+	bool isConst = false; // TODO: const should only apply to refT
 	/// type
 	Type type = Type.Struct;
 	union{
@@ -976,8 +976,6 @@ public struct ADataType{
 	/// Returns: Lowest possible `CastLevel`, or no value if not possible
 	OptVal!CastLevel castability(const ADataType target,
 			IdentU[] ctx = null) const pure {
-		if (this.isConst && !target.isConst)
-			return OptVal!CastLevel();
 main_switch:
 		final switch (this.type){
 			case ADataType.Type.Seq:
