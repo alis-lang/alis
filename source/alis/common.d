@@ -69,7 +69,8 @@ public struct AVal{
 	/// converts this value into `target` type
 	/// only call this if `this.canCastTo(target)`, or bad things will happen
 	/// Returns: converted value, or nothing if cannot be done
-	public OptVal!AVal to(ADataType target) pure {
+	public OptVal!AVal to(const ADataType target,
+			IdentU[] ctx = null) pure {
 		assert (this.canCastTo(target));
 		AVal ret;
 		if (type == target)
@@ -982,7 +983,7 @@ public struct ADataType{
 	///
 	/// Returns: Lowest possible `CastLevel`, or no value if not possible
 	OptVal!CastLevel castability(const ADataType target,
-			IdentU[] ctx = null) const pure {
+			IdentU[] ctx = [IdentU.init]) const pure {
 main_switch:
 		final switch (this.type){
 			case ADataType.Type.Seq:
@@ -1176,7 +1177,8 @@ main_switch:
 	}
 
 	/// Returns: true if this can be casted in-place to target
-	bool canIPCastTo(const ADataType target, IdentU[] ctx = null) const pure {
+	bool canIPCastTo(const ADataType target,
+			IdentU[] ctx = [IdentU.init]) const pure {
 		OptVal!CastLevel r = this.castability(target, ctx);
 		if (!r.isVal)
 			return false;
@@ -1184,7 +1186,8 @@ main_switch:
 	}
 
 	/// Returns: true if this can be casted to target
-	bool canCastTo(const ADataType target, IdentU[] ctx = null) const pure {
+	bool canCastTo(const ADataType target,
+			IdentU[] ctx = [IdentU.init]) const pure {
 		return this.castability(target, ctx).isVal;
 	}
 
@@ -1607,6 +1610,13 @@ public struct AStruct{
 		return types.map!(t => t.sizeOf).sum;
 	}
 
+	/// Returns: offset of a member, by member Id. `size_t.max` if out of bounds
+	size_t offsetOf(size_t memId) const pure {
+		if (memId >= types.length)
+			return size_t.max;
+		return types[0 .. memId].map!(t => t.sizeOf).sum;
+	}
+
 	/// initialization bytes for this struct
 	/// Returns: Initialization bytes, or nothing if cannot initialize
 	public OptVal!(void[]) initB() const pure {
@@ -1619,6 +1629,95 @@ public struct AStruct{
 		foreach (const OptVal!(void[]) fieldInit; initD){
 			ret[offset .. offset + fieldInit.val.length] = fieldInit.val;
 			offset += fieldInit.val.length;
+		}
+		return OptVal!(void[])(ret);
+	}
+
+	/// ditto
+	public OptVal!(void[]) initB(AVal src,
+			IdentU[] ctx = [IdentU.init]) const pure {
+		if (src.type.type == ADataType.Type.Struct &&
+				src.type.structS !is null &&
+				!src.type.structS.isUnique){
+			AStruct* type = src.type.structS;
+			bool skip = false;
+			size_t[2][size_t] idMap; // index in dst -> [offset in src, index in src]
+			size_t[size_t] idRMap; // index in src -> index in dst
+			foreach (string name; type.names.byKey
+					.filter!(n => type.exists(n, ctx))){
+				if (!this.exists(name, ctx) ||
+						this.names[name] in idMap ||
+						!type.types[type.names[name]].canCastTo(
+							this.types[this.names[name]], ctx)){
+					skip = true;
+					break;
+				}
+				idMap[this.names[name]] = [size_t.max, type.names[name]];
+				idRMap[type.names[name]] = this.names[name];
+			}
+			if (!skip){
+				size_t offset = 0;
+				foreach (size_t i; 0 .. type.types.length){
+					if (i in idRMap)
+						idMap[idRMap[i]][0] = offset;
+					offset += type.types[i].sizeOf;
+				}
+				void[] ret = new void[sizeOf];
+				offset = 0;
+				foreach (size_t i; 0 .. this.types.length){
+					const ADataType dstType = this.types[i];
+					OptVal!(void[]) data = OptVal!(void[])();
+					if (size_t[2]* ptr = i in idMap){
+						ADataType srcType = type.types[(*ptr)[1]];
+						size_t off = (*ptr)[0];
+						OptVal!AVal convd = AVal(srcType,
+								src.data[off .. off + srcType.sizeOf]).to(dstType);
+						if (!convd.isVal){
+							skip = true;
+							break;
+						}
+						data = OptVal!(void[])(convd.val.data);
+					}
+					if (!data.isVal){
+						if (!initD[i].isVal){
+							skip = true;
+							break;
+						}
+						data = cast(OptVal!(void[]))initD[i];
+					}
+					ret[offset .. offset + dstType.sizeOf] = data.val;
+				}
+				return ret.OptVal!(void[]);
+			}
+		}
+
+		void[][size_t] visIds;
+		foreach (string name; this.names.byKey.filter!(n => this.exists(n, ctx))){
+			visIds[this.names[name]] = (void[]).init;
+		}
+		size_t toInit = size_t.max;
+		foreach (size_t id; visIds.byKey){
+			if (!src.type.canCastTo(this.types[id], ctx)) continue;
+			if (toInit != size_t.max)
+				return OptVal!(void[])();
+			toInit = id;
+		}
+		OptVal!AVal convd = src.to(this.types[toInit], ctx);
+		if (!convd.isVal)
+			return OptVal!(void[])();
+
+		void[] ret = new void[sizeOf];
+		size_t offset = 0;
+		foreach (size_t i; 0 .. this.types.length){
+			size_t size = this.types[i].sizeOf;
+			if (i == toInit){
+				ret[offset .. offset + size] = convd.val.data;
+			} else {
+				OptVal!(void[]) data = this.types[i].initB;
+				if (!data.isVal)
+					return OptVal!(void[])();
+				ret[offset .. offset + size] = data.val;
+			}
 		}
 		return OptVal!(void[])(ret);
 	}
