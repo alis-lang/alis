@@ -918,12 +918,19 @@ public struct ASymbol{
 	}
 }
 
-/// Type or Level of Type Casting
+/// Level of possible Type Casting
 enum CastLevel : int{
-	None = 0, /// no cast needed
-	InPlace = 1, /// in-place cast, i.e: Ref Cast but sizeOf matches as well
-	Ref = 2, /// can be referenced by pointer of target type as well
-	Simple = 3, /// copy will be created
+	/// no cast needed, types are same
+	None = 0,
+	/// data of type `source` can be read as being `target` without copying,
+	/// modifications, or slicing
+	InPlace = 1,
+	/// `source` type is a superset of `target` such that data of type `source`
+	/// contains `target` in its starting bytes (`[0 .. target.sizeOf]`)
+	/// as such, a `@target` can reference to data of type `source` safely
+	Ref = 2,
+	/// data needs to be copied/modified to cast from `source` to `target`
+	Simple = 3,
 }
 
 /// Alis Data Type.
@@ -1168,121 +1175,17 @@ main_switch:
 		return ret;
 	}
 
-	/// Whether this type can be in-place casted to target
-	/// in-place casted means:
-	/// - source and target types have same sizeOf
-	/// - source data can be read as target type without any modifications
-	///
 	/// Returns: true if this can be casted in-place to target
-	bool canIPCastTo(const ADataType target) const pure {
-		if (this == target)
-			return true;
-		if (isConst && !target.isConst)
+	bool canIPCastTo(const ADataType target, IdentU[] ctx = null) const pure {
+		OptVal!CastLevel r = this.castability(target, ctx);
+		if (!r.isVal)
 			return false;
-		final switch (type){
-			case Type.Seq:
-				if (seqT.length != target.seqT.length)
-					return false;
-				foreach (size_t i; 0 .. seqT.length){
-					if (!seqT[i].canIPCastTo(target.seqT[i]))
-						return false;
-				}
-				return true;
-			case Type.IntX:
-			case Type.UIntX:
-			case Type.FloatX:
-			case Type.Char:
-			case Type.Bool:
-				return target.type == type && sizeOf == target.sizeOf;
-			case Type.Slice:
-				return target.type == Type.Slice && refT.canIPCastTo(*target.refT);
-			case Type.Array:
-				return (target.type == Type.Array || target.type == Type.Slice) &&
-					refT.canIPCastTo(*target.refT);
-			case Type.Fn:
-				if (target.type != Type.Fn || !retT.canIPCastTo(*target.retT) ||
-						paramT.length != target.paramT.length)
-					return false;
-				foreach (size_t i; 0 .. paramT.length){
-					if (!paramT[i].canIPCastTo(target.paramT[i]) ||
-							paramT[i].sizeOf != target.paramT[i].sizeOf)
-						return false;
-				}
-				return true;
-			case Type.Ref:
-				return target.type == Type.Ref && refT.canIPCastTo(*target.refT);
-			case Type.NoInit:
-				return target.type == Type.NoInit;
-			case Type.Struct:
-				return false; // can only IPCast struct to itself
-			case Type.Union:
-				return false; // can only IPCast union to itself
-			case Type.Enum:
-				return enumS.type.canIPCastTo(target);
-		}
-		assert(false);
+		return r.val <= CastLevel.InPlace;
 	}
 
 	/// Returns: true if this can be casted to target
-	bool canCastTo(const ADataType target) const pure {
-		if (this == target)
-			return true;
-		if (isConst && !target.isConst)
-			return false;
-		// TODO: handle target being struct/union/enum initialization
-		final switch (type){
-			case Type.Seq:
-				if (seqT.length != target.seqT.length)
-					return false;
-				foreach (size_t i; 0 .. seqT.length){
-					if (!seqT[i].canCastTo(target.seqT[i]))
-						return false;
-				}
-				return true;
-			case Type.IntX:
-				return target.type == Type.IntX && x <= target.x;
-			case Type.UIntX:
-				return (target.type == Type.UIntX || target.type == Type.IntX) &&
-					x <= target.x;
-			case Type.FloatX:
-				return target.type == Type.FloatX && x <= target.x;
-			case Type.Char:
-				return target.type == Type.Char ||
-					(target.type == Type.IntX && target.x > char.sizeof * 8) ||
-					(target.type == Type.UIntX);
-			case Type.Bool:
-				return target.type == Type.Bool ||
-					target.type == Type.IntX ||
-					target.type == Type.UIntX;
-			case Type.Slice:
-				return target.type == Type.Slice && refT.canIPCastTo(*target.refT);
-			case Type.Array:
-				return (target.type == Type.Array || target.type == Type.Slice) &&
-					refT.canIPCastTo(*target.refT);
-			case Type.Fn:
-				if (target.type != Type.Fn || !retT.canIPCastTo(*target.retT) ||
-						paramT.length != target.paramT.length)
-					return false;
-				foreach (size_t i; 0 .. paramT.length){
-					if (!paramT[i].canIPCastTo(target.paramT[i]))
-						return false;
-				}
-				return true;
-			case Type.Ref:
-				if (target.type == Type.Ref)
-					return refT.canIPCastTo(*target.refT);
-				return refT.canIPCastTo(target);
-			case Type.NoInit:
-				return target.type == Type.NoInit;
-			case Type.Struct:
-				return false; // TODO: implement canCastTo for Struct
-			case Type.Union:
-				return false; // TODO: implement canCastTo for Union
-			case Type.Enum:
-				return enumS.type.canCastTo(target);
-		}
-		debug stderr.writefln!"STUB: canCastTo(%s, %s) -> false"(this, target);
-		return false;
+	bool canCastTo(const ADataType target, IdentU[] ctx = null) const pure {
+		return this.castability(target, ctx).isVal;
 	}
 
 	/// Gets initializing bytes for this type, if it can be initialized
