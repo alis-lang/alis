@@ -189,7 +189,7 @@ public struct AVal{
 					case ADataType.Type.Array:
 						return AVal(target, data.dup).OptVal!AVal;
 					default:
-						assert (false);
+						return OptVal!AVal();
 				}
 			case ADataType.Type.Slice:
 			case ADataType.Type.Ref:
@@ -198,9 +198,28 @@ public struct AVal{
 			case ADataType.Type.NoInit:
 				return this.OptVal!AVal;
 			case ADataType.Type.Struct:
-				// TODO: implement AVal.to for Struct
+				if (target.type == ADataType.Type.Struct){
+					if (this.type.structS == target.structS)
+						return AVal(target, data.dup).OptVal!AVal;
+					if (!this.type.structS.isUnique){
+						OptVal!(void[]) initB = target.structS.initB(this, ctx);
+						if (initB.isVal)
+							return AVal(target, initB.val).OptVal!AVal;
+					}
+				}
+				AStruct* symC = this.type.structS;
+				if (!symC.hasBase(ctx) || !symC.types[0].canCastTo(target, ctx))
+					return OptVal!AVal();
+				return AVal(symC.types[0], data[0 .. symC.types[0].sizeOf])
+					.to(target, ctx);
 			case ADataType.Type.Union:
-				// TODO: implement AVal.to for Union
+				AUnion* symC = this.type.unionS;
+				immutable size_t memId = data[symC.sizeOfField .. $].as!size_t;
+				if (!symC.hasBase(ctx) ||
+						memId != symC.names["this"])
+					return OptVal!AVal();
+				return AVal(symC.types[memId], data[0 .. symC.types[memId].sizeOf])
+					.OptVal!AVal;
 			case ADataType.Type.Enum:
 				return AVal(type.enumS.type, data).to(target);
 		}
@@ -220,7 +239,7 @@ public struct AVal{
 							type.x > T[0].sizeof * 8)
 						return OptVal!(T[0])();
 					switch (data.length){
-						static foreach (Type; AliasSeq!(float, double)){
+						static foreach (Type; Floats){
 							static if (T[0].sizeof >= Type.sizeof){
 								case Type.sizeof:
 									return OptVal!(T[0])(data.as!Type);
@@ -1303,15 +1322,12 @@ main_switch:
 				if (structS is null)
 					return 0;
 				return this.structS.sizeOf;
-				//assert (false, "thou shall not call ADataType.sizeOf on Struct!");
 			case Type.Union:
 				assert (unionS !is null);
 				return unionS.sizeOf;
-				//assert (false, "thou shall not call ADataType.sizeOf on Union!");
 			case Type.Enum:
 				assert(enumS !is null);
 				return enumS.type.sizeOf;
-				//assert (false, "thou shall not call ADataType.sizeOf on Enum!");
 			case Type.NoInit:
 				return 0;
 		}
