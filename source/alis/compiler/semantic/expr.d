@@ -370,6 +370,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RStructLiteralExpr r = new RStructLiteralExpr(names, vals, st.ctx ~
 				format!"struct$_%d_%d_$"(node.pos.line, node.pos.col).IdentU);
+		// TODO: add its type to stab
 		r.pos = node.pos;
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)

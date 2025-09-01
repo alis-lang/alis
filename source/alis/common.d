@@ -69,7 +69,8 @@ public struct AVal{
 	/// converts this value into `target` type
 	/// only call this if `this.canCastTo(target)`, or bad things will happen
 	/// Returns: converted value, or nothing if cannot be done
-	public OptVal!AVal to(ADataType target) pure {
+	public OptVal!AVal to(const ADataType target,
+			IdentU[] ctx = null) pure {
 		assert (this.canCastTo(target));
 		AVal ret;
 		if (type == target)
@@ -188,7 +189,7 @@ public struct AVal{
 					case ADataType.Type.Array:
 						return AVal(target, data.dup).OptVal!AVal;
 					default:
-						assert (false);
+						return OptVal!AVal();
 				}
 			case ADataType.Type.Slice:
 			case ADataType.Type.Ref:
@@ -197,9 +198,32 @@ public struct AVal{
 			case ADataType.Type.NoInit:
 				return this.OptVal!AVal;
 			case ADataType.Type.Struct:
-				// TODO: implement AVal.to for Struct
+				if (target.type == ADataType.Type.Struct){
+					if (this.type.structS == target.structS)
+						return AVal(target, data.dup).OptVal!AVal;
+					if (!this.type.structS.isUnique){
+						OptVal!(void[]) initB = target.structS.initB(this, ctx);
+						if (initB.isVal)
+							return AVal(target, initB.val).OptVal!AVal;
+					}
+				}
+				AStruct* symC = this.type.structS;
+				if (!symC.hasBase(ctx) || !symC.types[0].canCastTo(target, ctx))
+					return OptVal!AVal();
+				return AVal(symC.types[0], data[0 .. symC.types[0].sizeOf])
+					.to(target, ctx);
 			case ADataType.Type.Union:
-				// TODO: implement AVal.to for Union
+				if (target.type == ADataType.Type.Union){
+					if (this.type.unionS == target.unionS)
+						return AVal(target, data.dup).OptVal!AVal;
+				}
+				AUnion* symC = this.type.unionS;
+				immutable size_t memId = data[symC.sizeOfField .. $].as!size_t;
+				if (!symC.hasBase(ctx) ||
+						memId != symC.names["this"])
+					return OptVal!AVal();
+				return AVal(symC.types[memId], data[0 .. symC.types[memId].sizeOf])
+					.OptVal!AVal;
 			case ADataType.Type.Enum:
 				return AVal(type.enumS.type, data).to(target);
 		}
@@ -219,7 +243,7 @@ public struct AVal{
 							type.x > T[0].sizeof * 8)
 						return OptVal!(T[0])();
 					switch (data.length){
-						static foreach (Type; AliasSeq!(float, double)){
+						static foreach (Type; Floats){
 							static if (T[0].sizeof >= Type.sizeof){
 								case Type.sizeof:
 									return OptVal!(T[0])(data.as!Type);
@@ -380,6 +404,15 @@ unsignedSwitch:
 		}
 		final switch (type.type){
 			case ADataType.Type.Seq:
+				size_t offset = 0;
+				return type.seqT.length.iota
+					.map!(i => AVal(type.seqT[i],
+								data[offset .. offset + type.seqT[i].sizeOf]).toString,
+							i => i)
+					.tee!(i => offset += type.seqT[i[1]].sizeOf)
+					.map!(i => i[0])
+					.join(", ")
+					.format!"(%s)";
 				break;
 			case ADataType.Type.IntX:
 				switch (type.x){
@@ -432,16 +465,36 @@ unsignedSwitch:
 					.format!"[%s]";
 				break;
 			case ADataType.Type.Ref:
-				return (cast(void*[])data).format!"%(%x %)";
-				break;
 			case ADataType.Type.Fn:
-				return format!"fn %s->%s"(
-						type.paramT.map!(p => p.toString).join(", "), type.retT);
+				return (cast(ushort[])data).format!"<%(%04x %):%s>"(type.toString);
 				break;
 			case ADataType.Type.Struct:
-				break; // TODO: implement AVal.toString for Struct
+				size_t offset = 0;
+				return type.structS.types.length.iota
+					.map!(i => AVal(type.structS.types[i],
+								data[offset .. offset + type.structS.types[i].sizeOf]).toString,
+							i => i)
+					.tee!(i => offset += type.structS.types[i[1]].sizeOf)
+					.map!(i => format!"%s=%s"(
+								type.structS.names.byKey
+									.filter!(n => type.structS.names[n] == i[1])
+									.join("="),
+								i[1]))
+					.join(", ")
+					.format!"{%s}";
 			case ADataType.Type.Union:
-				break; // TODO: implement AVal.toString for Union
+				immutable size_t fieldSize = type.unionS.sizeOfField;
+				immutable size_t memId = data[fieldSize .. $].as!size_t;
+				AVal val = AVal(type.unionS.types[memId],
+							data[0 .. type.unionS.types[memId].sizeOf]);
+				if (type.unionS.isUnnamed)
+					return val.toString;
+				return format!"{%s=%s}"(
+						type.unionS.names.byKey
+							.filter!(n => type.unionS.names[n] == memId)
+							.join("="),
+						val);
+				break;
 			case ADataType.Type.Enum:
 				foreach (size_t i; 0 .. type.enumS.memId.length){
 					if (data == type.enumS.memVal[i])
@@ -454,7 +507,6 @@ unsignedSwitch:
 				break;
 		}
 		return format!"{type: %s, data: %s}"(type, cast(ubyte[])data);
-		assert (false);
 	}
 
 	/// constructor
@@ -890,6 +942,21 @@ public struct ASymbol{
 	}
 }
 
+/// Level of possible Type Casting
+enum CastLevel : int{
+	/// no cast needed, types are same
+	None = 0,
+	/// data of type `source` can be read as being `target` without copying,
+	/// modifications, or slicing
+	InPlace = 1,
+	/// `source` type is a superset of `target` such that data of type `source`
+	/// contains `target` in its starting bytes (`[0 .. target.sizeOf]`)
+	/// as such, a `@target` can reference to data of type `source` safely
+	Ref = 2,
+	/// data needs to be copied/modified to cast from `source` to `target`
+	Simple = 3,
+}
+
 /// Alis Data Type.
 public struct ADataType{
 	/// possible Data Types
@@ -910,7 +977,7 @@ public struct ADataType{
 		NoInit, /// `$noinit`
 	}
 	/// whether it is a const
-	bool isConst = false;
+	bool isConst = false; // TODO: const should only apply to refT
 	/// type
 	Type type = Type.Struct;
 	union{
@@ -932,6 +999,175 @@ public struct ADataType{
 			/// parameter types, for `Fn`
 			ADataType[] paramT;
 		}
+	}
+
+	/// Finds CastLevel possible between `this` and `target`
+	/// `ctx` is only needed for `Struct` and `Union`
+	///
+	/// Returns: Lowest possible `CastLevel`, or no value if not possible
+	OptVal!CastLevel castability(const ADataType target,
+			IdentU[] ctx = [IdentU.init]) const pure {
+main_switch:
+		final switch (this.type){
+			case ADataType.Type.Seq:
+				if (seqT.length != target.seqT.length)
+					return OptVal!CastLevel();
+				CastLevel maxLevel = CastLevel.None;
+				foreach (size_t i; 0 .. seqT.length){
+					OptVal!CastLevel r = this.seqT[i].castability(target.seqT[i], ctx);
+					if (!r.isVal)
+						break main_switch;
+					maxLevel = maxLevel.max(r.val);
+				}
+				return maxLevel.OptVal!CastLevel;
+
+			case ADataType.Type.IntX:
+				if (target.type != ADataType.Type.IntX)
+					break;
+				if (target.x == this.x)
+					return CastLevel.None.OptVal!CastLevel;
+				if (target.x > this.x)
+					return CastLevel.Simple.OptVal!CastLevel;
+				break;
+
+			case ADataType.Type.UIntX:
+				switch (target.type){
+					case ADataType.Type.UIntX:
+						if (target.x == this.x)
+							return CastLevel.None.OptVal!CastLevel;
+						if (target.x > this.x)
+							return CastLevel.Simple.OptVal!CastLevel;
+						break;
+					case ADataType.Type.IntX:
+						if (target.x > this.x)
+							return CastLevel.Simple.OptVal!CastLevel;
+						break;
+					default:
+						break;
+				}
+				break;
+
+			case ADataType.Type.FloatX:
+				if (target.type != ADataType.Type.FloatX)
+					break;
+				if (target.x == this.x)
+					return CastLevel.None.OptVal!CastLevel;
+				if (target.x > this.x)
+					return CastLevel.Simple.OptVal!CastLevel;
+				break;
+
+			case ADataType.Type.Char:
+				switch (target.type){
+					case ADataType.Type.Char:
+						return CastLevel.None.OptVal!CastLevel;
+					case ADataType.Type.UIntX:
+						if (target.x == char.sizeof * 8)
+							return CastLevel.InPlace.OptVal!CastLevel;
+						goto case;
+					case ADataType.Type.IntX:
+						if (target.x > char.sizeof * 8)
+							return CastLevel.Simple.OptVal!CastLevel;
+						break;
+					default:
+						break;
+				}
+				break;
+
+			case ADataType.Type.Bool:
+				switch (target.type){
+					case ADataType.Type.Bool:
+						return CastLevel.None.OptVal!CastLevel;
+					case ADataType.Type.UIntX:
+					case ADataType.Type.IntX:
+						if (target.x == bool.sizeof * 8)
+							return CastLevel.InPlace.OptVal!CastLevel;
+						return CastLevel.Simple.OptVal!CastLevel;
+					default:
+						break;
+				}
+				break;
+
+			case ADataType.Type.Slice:
+				if (target.type != ADataType.Type.Slice)
+					break;
+				OptVal!CastLevel r = this.refT.castability(*target.refT, ctx);
+				if (!r.isVal || r.val > CastLevel.InPlace)
+					break;
+				return r.val.OptVal!CastLevel;
+
+			case ADataType.Type.Array:
+				if (target.type != ADataType.Type.Slice &&
+						target.type != ADataType.Type.Array)
+					break;
+				OptVal!CastLevel r = this.refT.castability(*target.refT, ctx);
+				if (!r.isVal || r.val > CastLevel.InPlace)
+					break;
+				if (target.type == ADataType.Type.Array)
+					return r.val.OptVal!CastLevel;
+				return CastLevel.Simple.OptVal!CastLevel;
+
+			case ADataType.Type.Fn:
+				if (target.type != ADataType.Type.Fn ||
+						target.paramT.length != this.paramT.length)
+					break;
+				CastLevel maxLevel = CastLevel.None;
+				OptVal!CastLevel r = this.refT.castability(*target.refT, ctx);
+				if (!r.isVal || r.val > CastLevel.InPlace)
+					break;
+				maxLevel = maxLevel.max(r.val);
+				foreach (size_t i; 0 .. this.paramT.length){
+					r = this.paramT[i].castability(target.paramT[i], ctx);
+					if (!r.isVal || r.val > CastLevel.InPlace)
+						break main_switch;
+					maxLevel = maxLevel.max(r.val);
+				}
+				return maxLevel.OptVal!CastLevel;
+
+			case ADataType.Type.Ref:
+				if (target.type == ADataType.Type.Ref){
+					OptVal!CastLevel r = this.refT.castability(*target.refT, ctx);
+					if (!r.isVal || r.val > CastLevel.Ref)
+						break;
+					return r.val.OptVal!CastLevel;
+				}
+				// auto de-ref case
+				OptVal!CastLevel r = this.refT.castability(target, ctx);
+				if (!r.isVal)
+					break;
+				return CastLevel.Simple.OptVal!CastLevel;
+
+			case ADataType.Type.NoInit:
+				if (target.type != ADataType.Type.NoInit)
+					break;
+				return CastLevel.None.OptVal!CastLevel;
+
+			case ADataType.Type.Struct:
+				if (target.type == ADataType.Type.Struct){
+					if (this.structS == target.structS)
+						return CastLevel.None.OptVal!CastLevel;
+					if (!this.structS.isUnique){
+						if (target.structS.initB(AVal(target,
+									new void[target.sizeOf]), // HACK: hacky stuff
+								ctx).isVal)
+							return CastLevel.Simple.OptVal!CastLevel;
+					}
+				}
+				const AStruct* symC = this.structS;
+				if (symC.hasBase(ctx))
+					return symC.types[symC.names["this"]].castability(target, ctx);
+				return OptVal!CastLevel();
+
+			case ADataType.Type.Union:
+				if (target.type == ADataType.Type.Union){
+					if (this.unionS == target.unionS)
+						return CastLevel.None.OptVal!CastLevel;
+				}
+				return OptVal!CastLevel();
+
+			case ADataType.Type.Enum:
+				return this.enumS.type.castability(target, ctx);
+		}
+		return OptVal!CastLevel();
 	}
 
 	/// Returns: whether this is a primitive type
@@ -981,121 +1217,19 @@ public struct ADataType{
 		return ret;
 	}
 
-	/// Whether this type can be in-place casted to target
-	/// in-place casted means:
-	/// - source and target types have same sizeOf
-	/// - source data can be read as target type without any modifications
-	///
 	/// Returns: true if this can be casted in-place to target
-	bool canIPCastTo(const ADataType target) const pure {
-		if (this == target)
-			return true;
-		if (isConst && !target.isConst)
+	bool canIPCastTo(const ADataType target,
+			IdentU[] ctx = [IdentU.init]) const pure {
+		OptVal!CastLevel r = this.castability(target, ctx);
+		if (!r.isVal)
 			return false;
-		final switch (type){
-			case Type.Seq:
-				if (seqT.length != target.seqT.length)
-					return false;
-				foreach (size_t i; 0 .. seqT.length){
-					if (!seqT[i].canIPCastTo(target.seqT[i]))
-						return false;
-				}
-				return true;
-			case Type.IntX:
-			case Type.UIntX:
-			case Type.FloatX:
-			case Type.Char:
-			case Type.Bool:
-				return target.type == type && sizeOf == target.sizeOf;
-			case Type.Slice:
-				return target.type == Type.Slice && refT.canIPCastTo(*target.refT);
-			case Type.Array:
-				return (target.type == Type.Array || target.type == Type.Slice) &&
-					refT.canIPCastTo(*target.refT);
-			case Type.Fn:
-				if (target.type != Type.Fn || !retT.canIPCastTo(*target.retT) ||
-						paramT.length != target.paramT.length)
-					return false;
-				foreach (size_t i; 0 .. paramT.length){
-					if (!paramT[i].canIPCastTo(target.paramT[i]) ||
-							paramT[i].sizeOf != target.paramT[i].sizeOf)
-						return false;
-				}
-				return true;
-			case Type.Ref:
-				return target.type == Type.Ref && refT.canIPCastTo(*target.refT);
-			case Type.NoInit:
-				return target.type == Type.NoInit;
-			case Type.Struct:
-				return false; // TODO: implement canIPCastTo for Struct
-			case Type.Union:
-				return false; // TODO: implement canIPCastTo for Union
-			case Type.Enum:
-				return enumS.type.canIPCastTo(target);
-		}
-		assert(false);
+		return r.val <= CastLevel.InPlace;
 	}
 
 	/// Returns: true if this can be casted to target
-	bool canCastTo(const ADataType target) const pure {
-		if (this == target)
-			return true;
-		if (isConst && !target.isConst)
-			return false;
-		// TODO: handle target being struct/union/enum initialization
-		final switch (type){
-			case Type.Seq:
-				if (seqT.length != target.seqT.length)
-					return false;
-				foreach (size_t i; 0 .. seqT.length){
-					if (!seqT[i].canCastTo(target.seqT[i]))
-						return false;
-				}
-				return true;
-			case Type.IntX:
-				return target.type == Type.IntX && x <= target.x;
-			case Type.UIntX:
-				return (target.type == Type.UIntX || target.type == Type.IntX) &&
-					x <= target.x;
-			case Type.FloatX:
-				return target.type == Type.FloatX && x <= target.x;
-			case Type.Char:
-				return target.type == Type.Char ||
-					(target.type == Type.IntX && target.x > char.sizeof * 8) ||
-					(target.type == Type.UIntX);
-			case Type.Bool:
-				return target.type == Type.Bool ||
-					target.type == Type.IntX ||
-					target.type == Type.UIntX;
-			case Type.Slice:
-				return target.type == Type.Slice && refT.canIPCastTo(*target.refT);
-			case Type.Array:
-				return (target.type == Type.Array || target.type == Type.Slice) &&
-					refT.canIPCastTo(*target.refT);
-			case Type.Fn:
-				if (target.type != Type.Fn || !retT.canIPCastTo(*target.retT) ||
-						paramT.length != target.paramT.length)
-					return false;
-				foreach (size_t i; 0 .. paramT.length){
-					if (!paramT[i].canIPCastTo(target.paramT[i]))
-						return false;
-				}
-				return true;
-			case Type.Ref:
-				if (target.type == Type.Ref)
-					return refT.canIPCastTo(*target.refT);
-				return refT.canIPCastTo(target);
-			case Type.NoInit:
-				return target.type == Type.NoInit;
-			case Type.Struct:
-				return false; // TODO: implement canCastTo for Struct
-			case Type.Union:
-				return false; // TODO: implement canCastTo for Union
-			case Type.Enum:
-				return enumS.type.canCastTo(target);
-		}
-		debug stderr.writefln!"STUB: canCastTo(%s, %s) -> false"(this, target);
-		return false;
+	bool canCastTo(const ADataType target,
+			IdentU[] ctx = [IdentU.init]) const pure {
+		return this.castability(target, ctx).isVal;
 	}
 
 	/// Gets initializing bytes for this type, if it can be initialized
@@ -1132,11 +1266,11 @@ public struct ADataType{
 			case ADataType.Type.Fn:
 				return new void[sizeOf].OptVal!(void[]);
 			case ADataType.Type.Struct:
-				// TODO: implement initB for Struct
+				if (this.structS is null)
+					return [].OptVal!(void[]);
+				return this.structS.initB;
 			case ADataType.Type.Union:
-				// TODO: implement initB for Struct
-				debug stderr.writefln!"STUB: initB for Struct/Union returning 0s";
-				return (new void[sizeOf]).OptVal!(void[]);
+				return this.unionS.initB;
 			case ADataType.Type.Enum:
 				assert (this.enumS.memVal.length);
 				return this.enumS.memVal[0].dup.OptVal!(void[]);
@@ -1210,15 +1344,12 @@ public struct ADataType{
 				if (structS is null)
 					return 0;
 				return this.structS.sizeOf;
-				//assert (false, "thou shall not call ADataType.sizeOf on Struct!");
 			case Type.Union:
 				assert (unionS !is null);
 				return unionS.sizeOf;
-				//assert (false, "thou shall not call ADataType.sizeOf on Union!");
 			case Type.Enum:
 				assert(enumS !is null);
 				return enumS.type.sizeOf;
-				//assert (false, "thou shall not call ADataType.sizeOf on Enum!");
 			case Type.NoInit:
 				return 0;
 		}
@@ -1460,7 +1591,11 @@ public struct ADataType{
 				}
 				return true;
 			case Type.Struct:
-				return structS !is null && structS == rhs.structS;
+				if (this.structS is null)
+					return rhs.structS is null;
+				if (rhs.structS is null)
+					return false;
+				return structS == rhs.structS;
 			case Type.Union:
 				return unionS !is null && unionS == rhs.unionS;
 			case Type.Enum:
@@ -1513,6 +1648,13 @@ public struct AStruct{
 		return types.map!(t => t.sizeOf).sum;
 	}
 
+	/// Returns: offset of a member, by member Id. `size_t.max` if out of bounds
+	size_t offsetOf(size_t memId) const pure {
+		if (memId >= types.length)
+			return size_t.max;
+		return types[0 .. memId].map!(t => t.sizeOf).sum;
+	}
+
 	/// initialization bytes for this struct
 	/// Returns: Initialization bytes, or nothing if cannot initialize
 	public OptVal!(void[]) initB() const pure {
@@ -1525,6 +1667,97 @@ public struct AStruct{
 		foreach (const OptVal!(void[]) fieldInit; initD){
 			ret[offset .. offset + fieldInit.val.length] = fieldInit.val;
 			offset += fieldInit.val.length;
+		}
+		return OptVal!(void[])(ret);
+	}
+
+	/// ditto
+	public OptVal!(void[]) initB(AVal src,
+			IdentU[] ctx = [IdentU.init]) const pure {
+		if (src.type.type == ADataType.Type.Struct &&
+				src.type.structS !is null &&
+				!src.type.structS.isUnique){
+			AStruct* type = src.type.structS;
+			bool skip = false;
+			size_t[2][size_t] idMap; // index in dst -> [offset in src, index in src]
+			size_t[size_t] idRMap; // index in src -> index in dst
+			foreach (string name; type.names.byKey
+					.filter!(n => type.exists(n, ctx))){
+				if (!this.exists(name, ctx) ||
+						this.names[name] in idMap ||
+						!type.types[type.names[name]].canCastTo(
+							this.types[this.names[name]], ctx)){
+					skip = true;
+					break;
+				}
+				idMap[this.names[name]] = [size_t.max, type.names[name]];
+				idRMap[type.names[name]] = this.names[name];
+			}
+			if (!skip){
+				size_t offset = 0;
+				foreach (size_t i; 0 .. type.types.length){
+					if (i in idRMap)
+						idMap[idRMap[i]][0] = offset;
+					offset += type.types[i].sizeOf;
+				}
+				void[] ret = new void[sizeOf];
+				offset = 0;
+				foreach (size_t i; 0 .. this.types.length){
+					const ADataType dstType = this.types[i];
+					OptVal!(void[]) data = OptVal!(void[])();
+					if (size_t[2]* ptr = i in idMap){
+						ADataType srcType = type.types[(*ptr)[1]];
+						size_t off = (*ptr)[0];
+						OptVal!AVal convd = AVal(srcType,
+								src.data[off .. off + srcType.sizeOf]).to(dstType);
+						if (!convd.isVal){
+							skip = true;
+							break;
+						}
+						data = OptVal!(void[])(convd.val.data);
+					}
+					if (!data.isVal){
+						if (!initD[i].isVal){
+							skip = true;
+							break;
+						}
+						data = cast(OptVal!(void[]))initD[i];
+					}
+					ret[offset .. offset + dstType.sizeOf] = data.val;
+				}
+				return ret.OptVal!(void[]);
+			}
+		}
+
+		void[][size_t] visIds;
+		foreach (string name; this.names.byKey.filter!(n => this.exists(n, ctx))){
+			visIds[this.names[name]] = (void[]).init;
+		}
+		size_t toInit = size_t.max;
+		foreach (size_t id; visIds.byKey){
+			if (!src.type.canCastTo(this.types[id], ctx)) continue;
+			if (toInit != size_t.max)
+				return OptVal!(void[])();
+			toInit = id;
+		}
+		if (toInit == size_t.max)
+			return OptVal!(void[])();
+		OptVal!AVal convd = src.to(this.types[toInit], ctx);
+		if (!convd.isVal)
+			return OptVal!(void[])();
+
+		void[] ret = new void[sizeOf];
+		size_t offset = 0;
+		foreach (size_t i; 0 .. this.types.length){
+			size_t size = this.types[i].sizeOf;
+			if (i == toInit){
+				ret[offset .. offset + size] = convd.val.data;
+			} else {
+				OptVal!(void[]) data = this.types[i].initB;
+				if (!data.isVal)
+					return OptVal!(void[])();
+				ret[offset .. offset + size] = data.val;
+			}
 		}
 		return OptVal!(void[])(ret);
 	}
@@ -1584,7 +1817,8 @@ public struct AUnion{
 	@property bool isUnnamed() const pure {
 		return names.length == 0;
 	}
-	private @property sizeOfField() const pure {
+	/// Returns: size of this union excluding memId at end
+	@property sizeOfField() const pure {
 		return types.map!(t => t.sizeOf).fold!((a, b) => max(a, b));
 	}
 	/// Returns: size of this union
@@ -1594,11 +1828,52 @@ public struct AUnion{
 
 	/// initialization bytes for this union
 	/// Returns: Initialization bytes, or nothing if cannot initialize
-	public OptVal!(void[]) initB() const pure {
+	OptVal!(void[]) initB() const pure {
 		if (initI == size_t.max)
 			return OptVal!(void[])();
 		void[] ret = new void[sizeOf];
 		*(cast(size_t*)(ret.ptr + sizeOfField)) = initI;
+		return ret.OptVal!(void[]);
+	}
+
+	/// ditto
+	OptVal!(void[]) initB(AVal src, IdentU[] ctx) const pure {
+		if (src.type.type == ADataType.Type.Struct &&
+				src.type.structS !is null &&
+				!src.type.structS.isUnique &&
+				src.type.structS.names.length == 1 &&
+				exists(src.type.structS.names.byKey.takeOne[0], ctx)){
+			size_t id = this.names[src.type.structS.names.byKey.takeOne[0]];
+			const ADataType dstType = this.types[id];
+			OptVal!AVal convd = src.to(dstType, ctx);
+			if (convd.isVal){
+				void[] ret = new void[sizeOf];
+				ret[0 .. dstType.sizeOf] = convd.val.data;
+				*(cast(size_t*)(ret.ptr + sizeOfField)) = id;
+				return ret.OptVal!(void[]);
+			}
+		}
+
+		void[][size_t] visIds;
+		foreach (string name; this.names.byKey.filter!(n => this.exists(n, ctx))){
+			visIds[this.names[name]] = (void[]).init;
+		}
+		size_t toInit = size_t.max;
+		foreach (size_t id; visIds.byKey){
+			if (!src.type.canCastTo(this.types[id], ctx)) continue;
+			if (toInit != size_t.max)
+				return OptVal!(void[])();
+			toInit = id;
+		}
+		if (toInit == size_t.max)
+			return OptVal!(void[])();
+		const ADataType dstType = this.types[toInit];
+		OptVal!AVal convd = src.to(dstType, ctx);
+		if (!convd.isVal)
+			return OptVal!(void[])();
+		void[] ret = new void[sizeOf];
+		ret[0 .. dstType.sizeOf] = convd.val.data;
+		*(cast(size_t*)(ret.ptr + sizeOfField)) = toInit;
 		return ret.OptVal!(void[]);
 	}
 
