@@ -213,6 +213,10 @@ public struct AVal{
 				return AVal(symC.types[0], data[0 .. symC.types[0].sizeOf])
 					.to(target, ctx);
 			case ADataType.Type.Union:
+				if (target.type == ADataType.Type.Union){
+					if (this.type.unionS == target.unionS)
+						return AVal(target, data.dup).OptVal!AVal;
+				}
 				AUnion* symC = this.type.unionS;
 				immutable size_t memId = data[symC.sizeOfField .. $].as!size_t;
 				if (!symC.hasBase(ctx) ||
@@ -1138,9 +1142,27 @@ main_switch:
 				return CastLevel.None.OptVal!CastLevel;
 
 			case ADataType.Type.Struct:
-				break; // TODO: implement castability for Struct
+				if (target.type == ADataType.Type.Struct){
+					if (this.structS == target.structS)
+						return CastLevel.None.OptVal!CastLevel;
+					if (!this.structS.isUnique){
+						if (target.structS.initB(AVal(target,
+									new void[target.sizeOf]), // HACK: hacky stuff
+								ctx).isVal)
+							return CastLevel.Simple.OptVal!CastLevel;
+					}
+				}
+				const AStruct* symC = this.structS;
+				if (symC.hasBase(ctx))
+					return symC.types[symC.names["this"]].castability(target, ctx);
+				return OptVal!CastLevel();
+
 			case ADataType.Type.Union:
-				break; // TODO: implement castability for Union
+				if (target.type == ADataType.Type.Union){
+					if (this.unionS == target.unionS)
+						return CastLevel.None.OptVal!CastLevel;
+				}
+				return OptVal!CastLevel();
 
 			case ADataType.Type.Enum:
 				return this.enumS.type.castability(target, ctx);
