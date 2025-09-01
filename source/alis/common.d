@@ -1762,9 +1762,9 @@ public struct AStruct{
 			}
 		}
 
-		void[][size_t] visIds;
+		void[0][size_t] visIds;
 		foreach (string name; this.names.byKey.filter!(n => this.exists(n, ctx))){
-			visIds[this.names[name]] = (void[]).init;
+			visIds[this.names[name]] = (void[0]).init;
 		}
 		size_t toInit = size_t.max;
 		foreach (size_t id; visIds.byKey){
@@ -1887,9 +1887,9 @@ public struct AUnion{
 			}
 		}
 
-		void[][size_t] visIds;
+		void[0][size_t] visIds;
 		foreach (string name; this.names.byKey.filter!(n => this.exists(n, ctx))){
-			visIds[this.names[name]] = (void[]).init;
+			visIds[this.names[name]] = (void[0]).init;
 		}
 		size_t toInit = size_t.max;
 		foreach (size_t id; visIds.byKey){
