@@ -1786,7 +1786,7 @@ public struct AStruct{
 			if (i == toInit){
 				ret[offset .. offset + size] = convd.val.data;
 			} else {
-				OptVal!(void[]) data = this.types[i].initB;
+				const OptVal!(void[]) data = initD[i];
 				if (!data.isVal)
 					return OptVal!(void[])();
 				ret[offset .. offset + size] = data.val;
