@@ -48,8 +48,7 @@ public struct AVal{
 						case T.sizeof * 8:
 							return as!T.isVal;
 					}
-					default:
-						return false;
+					default: break;
 				}
 			} else
 			if (target.type == ADataType.Type.UIntX){
@@ -58,8 +57,7 @@ public struct AVal{
 						case T.sizeof * 8:
 							return as!T.isVal;
 					}
-					default:
-						return false;
+					default: break;
 				}
 			}
 		}
@@ -72,9 +70,26 @@ public struct AVal{
 	public OptVal!AVal to(const ADataType target,
 			IdentU[] ctx = null) pure {
 		assert (this.canCastTo(target));
+		if (ctx is null)
+			ctx = [IdentU.init];
 		AVal ret;
 		if (type == target)
 			return this.OptVal!AVal;
+		switch (target.type){
+			case ADataType.Type.Struct:
+				OptVal!(void[]) bytes = target.structS.initB(this, ctx);
+				if (bytes.isVal)
+					return AVal(target, bytes.val).OptVal!AVal;
+				break;
+			case ADataType.Type.Union:
+				OptVal!(void[]) bytes = target.unionS.initB(this, ctx);
+				if (bytes.isVal)
+					return AVal(target, bytes.val).OptVal!AVal;
+				break;
+			default:
+				break;
+		}
+
 		final switch (type.type){
 			case ADataType.Type.Seq:
 				if (target.type != ADataType.type.Seq ||
@@ -1007,6 +1022,24 @@ public struct ADataType{
 	/// Returns: Lowest possible `CastLevel`, or no value if not possible
 	OptVal!CastLevel castability(const ADataType target,
 			IdentU[] ctx = [IdentU.init]) const pure {
+		switch (target.type){
+			case ADataType.Type.Struct:
+				OptVal!(void[]) bytes = target.structS.initB(
+						AVal(this, new void[sizeOf]), // HACK: hacky stuff
+						ctx);
+				if (bytes.isVal)
+					return CastLevel.Simple.OptVal!CastLevel;
+				break;
+			case ADataType.Type.Union:
+				OptVal!(void[]) bytes = target.unionS.initB(
+						AVal(this, new void[sizeOf]), // HACK: hacky stuff
+						ctx);
+				if (bytes.isVal)
+					return CastLevel.Simple.OptVal!CastLevel;
+				break;
+			default:
+				break;
+		}
 main_switch:
 		final switch (this.type){
 			case ADataType.Type.Seq:
@@ -1624,7 +1657,7 @@ public struct AStruct{
 
 	/// if this is unique
 	@property bool isUnique() const pure {
-		return ident.length && ident[$ - 1].ident.canFind('$');
+		return ident.length && !ident[$ - 1].ident.canFind('$');
 	}
 	/// Whether a member exists and is accessible
 	bool exists(string name, IdentU[] ctx = [IdentU.init]) const pure {
@@ -1811,7 +1844,7 @@ public struct AUnion{
 	}
 	/// if this is unique
 	@property bool isUnique() const pure {
-		return ident.length && ident[$ - 1].ident.canFind('$');
+		return ident.length && !ident[$ - 1].ident.canFind('$');
 	}
 	/// Returns: true if this is an unnamed union
 	@property bool isUnnamed() const pure {
