@@ -77,12 +77,12 @@ public struct AVal{
 			return this.OptVal!AVal;
 		switch (target.type){
 			case ADataType.Type.Struct:
-				OptVal!(void[]) bytes = target.structS.initB(this, ctx);
+				OptVal!(void[]) bytes = target.structS.buildVal(this, ctx);
 				if (bytes.isVal)
 					return AVal(target, bytes.val).OptVal!AVal;
 				break;
 			case ADataType.Type.Union:
-				OptVal!(void[]) bytes = target.unionS.initB(this, ctx);
+				OptVal!(void[]) bytes = target.unionS.buildVal(this, ctx);
 				if (bytes.isVal)
 					return AVal(target, bytes.val).OptVal!AVal;
 				break;
@@ -217,9 +217,9 @@ public struct AVal{
 					if (this.type.structS == target.structS)
 						return AVal(target, data.dup).OptVal!AVal;
 					if (!this.type.structS.isUnique){
-						OptVal!(void[]) initB = target.structS.initB(this, ctx);
-						if (initB.isVal)
-							return AVal(target, initB.val).OptVal!AVal;
+						OptVal!(void[]) buildVal = target.structS.buildVal(this, ctx);
+						if (buildVal.isVal)
+							return AVal(target, buildVal.val).OptVal!AVal;
 					}
 				}
 				AStruct* symC = this.type.structS;
@@ -1024,14 +1024,14 @@ public struct ADataType{
 			IdentU[] ctx = [IdentU.init]) const pure {
 		switch (target.type){
 			case ADataType.Type.Struct:
-				OptVal!(void[]) bytes = target.structS.initB(
+				OptVal!(void[]) bytes = target.structS.buildVal(
 						AVal(this, new void[sizeOf]), // HACK: hacky stuff
 						ctx);
 				if (bytes.isVal)
 					return CastLevel.Simple.OptVal!CastLevel;
 				break;
 			case ADataType.Type.Union:
-				OptVal!(void[]) bytes = target.unionS.initB(
+				OptVal!(void[]) bytes = target.unionS.buildVal(
 						AVal(this, new void[sizeOf]), // HACK: hacky stuff
 						ctx);
 				if (bytes.isVal)
@@ -1179,7 +1179,7 @@ main_switch:
 					if (this.structS == target.structS)
 						return CastLevel.None.OptVal!CastLevel;
 					if (!this.structS.isUnique){
-						if (target.structS.initB(AVal(target,
+						if (target.structS.buildVal(AVal(target,
 									new void[target.sizeOf]), // HACK: hacky stuff
 								ctx).isVal)
 							return CastLevel.Simple.OptVal!CastLevel;
@@ -1265,13 +1265,13 @@ main_switch:
 		return this.castability(target, ctx).isVal;
 	}
 
-	/// Gets initializing bytes for this type, if it can be initialized
-	OptVal!(void[]) initB() const pure {
+	/// Returns: initialized instance of this, or nothing if cannot init
+	OptVal!(void[]) buildVal() const pure {
 		final switch (type){
 			case ADataType.Type.Seq:
 				void[] outBuf;
 				foreach (subType; this.seqT){
-					OptVal!(void[]) subInit = subType.initB;
+					OptVal!(void[]) subInit = subType.buildVal;
 					if (!subInit.isVal)
 						return OptVal!(void[])();
 					outBuf ~= subInit.val;
@@ -1301,9 +1301,9 @@ main_switch:
 			case ADataType.Type.Struct:
 				if (this.structS is null)
 					return [].OptVal!(void[]);
-				return this.structS.initB;
+				return this.structS.buildVal;
 			case ADataType.Type.Union:
-				return this.unionS.initB;
+				return this.unionS.buildVal;
 			case ADataType.Type.Enum:
 				assert (this.enumS.memVal.length);
 				return this.enumS.memVal[0].dup.OptVal!(void[]);
@@ -1688,9 +1688,8 @@ public struct AStruct{
 		return types[0 .. memId].map!(t => t.sizeOf).sum;
 	}
 
-	/// initialization bytes for this struct
-	/// Returns: Initialization bytes, or nothing if cannot initialize
-	public OptVal!(void[]) initB() const pure {
+	/// Returns: initialized instance of this, or nothing if cannot init
+	public OptVal!(void[]) buildVal() const pure {
 		foreach (const OptVal!(void[]) fieldInit; initD){
 			if (!fieldInit.isVal)
 				return OptVal!(void[])();
@@ -1705,7 +1704,7 @@ public struct AStruct{
 	}
 
 	/// ditto
-	public OptVal!(void[]) initB(AVal src,
+	public OptVal!(void[]) buildVal(AVal src,
 			IdentU[] ctx = [IdentU.init]) const pure {
 		if (src.type.type == ADataType.Type.Struct &&
 				src.type.structS !is null &&
@@ -1862,9 +1861,8 @@ public struct AUnion{
 		return sizeOfField + size_t.sizeof;
 	}
 
-	/// initialization bytes for this union
-	/// Returns: Initialization bytes, or nothing if cannot initialize
-	OptVal!(void[]) initB() const pure {
+	/// Returns: initialized instance of this, or nothing if cannot init
+	OptVal!(void[]) buildVal() const pure {
 		if (initI == size_t.max)
 			return OptVal!(void[])();
 		void[] ret = new void[sizeOf];
@@ -1873,7 +1871,7 @@ public struct AUnion{
 	}
 
 	/// ditto
-	OptVal!(void[]) initB(AVal src, IdentU[] ctx) const pure {
+	OptVal!(void[]) buildVal(AVal src, IdentU[] ctx) const pure {
 		if (src.type.type == ADataType.Type.Struct &&
 				src.type.structS !is null &&
 				!src.type.structS.isUnique &&

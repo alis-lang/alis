@@ -136,7 +136,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		foreach (size_t i; 0 .. symC.paramsN.length){
 			OptVal!(void[]) initD = symC.paramsV[i];
 			if (!initD.isVal)
-				initD = symC.paramsT[i].initB;
+				initD = symC.paramsT[i].buildVal;
 			if (!initD.isVal)
 				initD = (new void[symC.paramsT[i].sizeOf]).OptVal!(void[]);
 			ASymbol* param = new ASymbol(
@@ -379,7 +379,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 					continue;
 				}
 			} else {
-				symC.initD ~= type.initB;
+				symC.initD ~= type.buildVal;
 			}
 			foreach (string name; aliasMap.byKey
 					.filter!(n => aliasMap[n] == field.name)){
@@ -436,7 +436,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			st.errs ~= errAutoNoVal(node.pos);
 			return;
 		}
-		OptVal!(void[]) initD = symC.type.initB;
+		OptVal!(void[]) initD = symC.type.buildVal;
 		if (!initD.isVal){
 			st.errs ~= errInitFail(node.type.pos, symC.type.toString);
 			return;
@@ -594,7 +594,7 @@ private void structDo(Struct s, AStruct* symC, ref St1 st){
 				continue;
 			}
 		} else {
-			symC.initD ~= type.initB;
+			symC.initD ~= type.buildVal;
 		}
 		foreach (string name; aliasMap.byKey
 				.filter!(n => aliasMap[n] == field.name)){
