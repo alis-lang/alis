@@ -1297,9 +1297,10 @@ main_switch:
 				return (cast(void[])[false]).OptVal!(void[]);
 			case ADataType.Type.Slice:
 			case ADataType.Type.Array:
+				return new void[sizeOf].OptVal!(void[]);
 			case ADataType.Type.Ref:
 			case ADataType.Type.Fn:
-				return new void[sizeOf].OptVal!(void[]);
+				return OptVal!(void[])();
 			case ADataType.Type.Struct:
 				if (this.structS is null)
 					return [].OptVal!(void[]);
