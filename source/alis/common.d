@@ -494,7 +494,7 @@ unsignedSwitch:
 								type.structS.names.byKey
 									.filter!(n => type.structS.names[n] == i[1])
 									.join("="),
-								i[1]))
+								i[0]))
 					.join(", ")
 					.format!"{%s}";
 			case ADataType.Type.Union:
@@ -1790,6 +1790,7 @@ public struct AStruct{
 					return OptVal!(void[])();
 				ret[offset .. offset + size] = data.val;
 			}
+			offset += size;
 		}
 		return OptVal!(void[])(ret);
 	}
