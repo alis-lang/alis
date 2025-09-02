@@ -1339,15 +1339,15 @@ main_switch:
 			case Type.Struct:
 				if (structS is null)
 					return "struct{}";
-				return structS.ident.format!"struct(%s)";
+				return structS.ident.toString.format!"struct(%s)";
 			case Type.Union:
 				if (unionS is null)
 					return "union{}";
-				return unionS.ident.format!"union(%s)";
+				return unionS.ident.toString.format!"union(%s)";
 			case Type.Enum:
 				if (enumS is null)
 					return "enum{}";
-				return enumS.ident.format!"enum(%s)";
+				return enumS.ident.toString.format!"enum(%s)";
 			case Type.NoInit:
 				return "$noinit";
 		}
@@ -1796,14 +1796,17 @@ public struct AStruct{
 	}
 
 	string toString() const pure {
-		return format!"struct %s{%(%r,%)}"(ident,
-				types.length.iota.map!(i => types[i].format!"%s[%(%r,%)]=%s"(
+		return format!"struct %s{%(%r,%)}"(ident.toString,
+				types.length.iota.map!(i => .format!"[%-(%s,%)]:%s%s"(
 						names.byKey.filter!(n => names[n] == i)
 						.map!(n => (nameVis[n] == Visibility.Default ? ""
-							: nameVis[n] == Visibility.Pub ? "pub "
-							: nameVis[n] == Visibility.IPub ? "ipub " : "idk ")
+								: nameVis[n] == Visibility.Pub ? "pub "
+								: nameVis[n] == Visibility.IPub ? "ipub " : "idk ")
 							.format!"%s%s"(n)).array,
-						initD[i].isVal ? (cast(ubyte[])initD[i].val).to!string : "noinit"
+						types[i].toString,
+						initD[i].isVal
+							? AVal(types[i], initD[i].val).toString.format!"=%s"
+							: ""
 						)));
 	}
 }
@@ -1911,16 +1914,18 @@ public struct AUnion{
 	}
 
 	string toString() const pure {
-		return format!"union %s{%(%r,%)}"(ident,
-				types.length.iota.map!(i => types[i].format!"%s[%(%r,%)]%s"(
+		return format!"union %s{%(%r,%)}"(ident.toString,
+				types.length.iota.map!(i => format!"[%-(%s,%)]:%s%s"(
 						names.byKey.filter!(n => names[n] == i)
 						.map!(n => (nameVis[n] == Visibility.Default ? ""
-							: nameVis[n] == Visibility.Pub ? "pub "
-							: nameVis[n] == Visibility.IPub ? "ipub " : "idk ")
+								: nameVis[n] == Visibility.Pub ? "pub "
+								: nameVis[n] == Visibility.IPub ? "ipub " : "idk ")
 							.format!"%s%s"(n)).array,
-							initI == i ? (cast(ubyte[])initD.val).format!"=%s" : ""
+						types[i].toString,
+						initI == i
+							? AVal(types[i],initD.val).toString.format!"=%s"
+							: ""
 						)));
-
 	}
 }
 
@@ -1938,9 +1943,10 @@ public struct AEnum{
 	Visibility vis;
 
 	string toString() const pure {
-		return format!"enum %s:%s{%(%r,%)}"(ident, type,
+		return format!"enum %s:%s{%-(%s,%)}"(ident.toString, type,
 				memId.length.iota
-				.map!(i => format!"%s=%s"(memId[i], cast(ubyte[])memVal[i])));
+				.map!(i => format!"%s=%s"(memId[i], AVal(type, memVal[i]).toString))
+				);
 	}
 }
 
@@ -1956,7 +1962,8 @@ public struct AEnumConst{
 	Visibility vis;
 
 	string toString() const pure {
-		return format!"enum %s:%s=%s;"(ident, type, cast(ubyte[])data);
+		return format!"enum %s:%s=%s"(ident.toString, type,
+				AVal(type, data).toString);
 	}
 }
 
@@ -1981,14 +1988,14 @@ public struct AFn{
 
 	string toString() const pure {
 		return format!
-			"fn %s%s[%s](%(%r%))->%s"(
+			"fn %s%s[%s](%-(%s,%))->%s"(
 					(isAlisFn ? "" : "external "),
-					ident, uid,
+					ident.toString, uid,
 					paramsN.length.iota
-						.map!(i => format!"%s %s=%s"(paramsN[i], paramsT[i],
-								paramsV[i].isVal
-								? (cast(ubyte[])paramsV[i].val).to!string
-								: "noinit")),
+					.map!(i => format!"%s:%s%s"(paramsN[i], paramsT[i].toString,
+							paramsV[i].isVal
+							? AVal(paramsT[i], paramsV[i].val).toString.format!"=%s"
+							: "")),
 					retT);
 	}
 }
@@ -2001,8 +2008,6 @@ public struct AVar{
 	ADataType type;
 	/// initialisation data
 	void[] initD;
-	/// offset
-	size_t offset;
 	/// whether is global or local
 	bool isGlobal = false;
 	/// Visibility outside its parent module
@@ -2011,8 +2016,8 @@ public struct AVar{
 	string uid;
 
 	string toString() const pure {
-		return format!"var %s%s[%s]:%s=%s off=%d"(isGlobal ? "global" : null,
-				ident, uid, type, cast(ubyte[])initD, offset);
+		return format!"var %s%s[%s]:%s=%s"(isGlobal ? "global" : null,
+				ident.toString, uid, type.toString, AVal(type, initD).toString);
 	}
 }
 
@@ -2026,8 +2031,7 @@ public struct AAlias{
 	RExpr expr;
 
 	string toString() const pure {
-		return format!"alias %s%s=%s"(vis == Visibility.Pub ? "pub " : "",
-				ident, "<EXPR>");
+		return format!"alias %s=%s"(ident, expr is null ? null : expr.toString);
 	}
 }
 
@@ -2041,7 +2045,7 @@ public struct AImport{
 	Visibility vis;
 
 	string toString() const pure {
-		return format!"import %s as %s"(modIdent, ident);
+		return format!"import %s as %s"(modIdent, ident.toString);
 	}
 }
 

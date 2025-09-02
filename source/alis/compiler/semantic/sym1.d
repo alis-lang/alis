@@ -403,7 +403,6 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		scope(exit) sym.isComplete = true;
 		AVar* symC = &sym.varS;
 		symC.isGlobal = st.ctx.length <= 1;
-		symC.offset = size_t.max;
 		// TODO: handle @auto
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
 		if (!isAuto){
