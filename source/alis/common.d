@@ -1269,12 +1269,14 @@ main_switch:
 	OptVal!(void[]) buildVal() const pure {
 		final switch (type){
 			case ADataType.Type.Seq:
-				void[] outBuf;
+				void[] outBuf = new void[this.seqT.map!(t => t.sizeOf).sum];
+				size_t offset = 0;
 				foreach (subType; this.seqT){
 					OptVal!(void[]) subInit = subType.buildVal;
 					if (!subInit.isVal)
 						return OptVal!(void[])();
-					outBuf ~= subInit.val;
+					outBuf[offset .. subInit.val.length] = subInit.val;
+					offset += subInit.val.length;
 				}
 				return outBuf.OptVal!(void[]);
 			case ADataType.Type.IntX:
