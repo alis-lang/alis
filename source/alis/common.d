@@ -77,12 +77,12 @@ public struct AVal{
 			return this.OptVal!AVal;
 		switch (target.type){
 			case ADataType.Type.Struct:
-				OptVal!(void[]) bytes = target.structS.initB(this, ctx);
+				OptVal!(void[]) bytes = target.structS.buildVal(this, ctx);
 				if (bytes.isVal)
 					return AVal(target, bytes.val).OptVal!AVal;
 				break;
 			case ADataType.Type.Union:
-				OptVal!(void[]) bytes = target.unionS.initB(this, ctx);
+				OptVal!(void[]) bytes = target.unionS.buildVal(this, ctx);
 				if (bytes.isVal)
 					return AVal(target, bytes.val).OptVal!AVal;
 				break;
@@ -217,9 +217,9 @@ public struct AVal{
 					if (this.type.structS == target.structS)
 						return AVal(target, data.dup).OptVal!AVal;
 					if (!this.type.structS.isUnique){
-						OptVal!(void[]) initB = target.structS.initB(this, ctx);
-						if (initB.isVal)
-							return AVal(target, initB.val).OptVal!AVal;
+						OptVal!(void[]) buildVal = target.structS.buildVal(this, ctx);
+						if (buildVal.isVal)
+							return AVal(target, buildVal.val).OptVal!AVal;
 					}
 				}
 				AStruct* symC = this.type.structS;
@@ -494,7 +494,7 @@ unsignedSwitch:
 								type.structS.names.byKey
 									.filter!(n => type.structS.names[n] == i[1])
 									.join("="),
-								i[1]))
+								i[0]))
 					.join(", ")
 					.format!"{%s}";
 			case ADataType.Type.Union:
@@ -1024,14 +1024,14 @@ public struct ADataType{
 			IdentU[] ctx = [IdentU.init]) const pure {
 		switch (target.type){
 			case ADataType.Type.Struct:
-				OptVal!(void[]) bytes = target.structS.initB(
+				OptVal!(void[]) bytes = target.structS.buildVal(
 						AVal(this, new void[sizeOf]), // HACK: hacky stuff
 						ctx);
 				if (bytes.isVal)
 					return CastLevel.Simple.OptVal!CastLevel;
 				break;
 			case ADataType.Type.Union:
-				OptVal!(void[]) bytes = target.unionS.initB(
+				OptVal!(void[]) bytes = target.unionS.buildVal(
 						AVal(this, new void[sizeOf]), // HACK: hacky stuff
 						ctx);
 				if (bytes.isVal)
@@ -1179,7 +1179,7 @@ main_switch:
 					if (this.structS == target.structS)
 						return CastLevel.None.OptVal!CastLevel;
 					if (!this.structS.isUnique){
-						if (target.structS.initB(AVal(target,
+						if (target.structS.buildVal(AVal(target,
 									new void[target.sizeOf]), // HACK: hacky stuff
 								ctx).isVal)
 							return CastLevel.Simple.OptVal!CastLevel;
@@ -1265,16 +1265,18 @@ main_switch:
 		return this.castability(target, ctx).isVal;
 	}
 
-	/// Gets initializing bytes for this type, if it can be initialized
-	OptVal!(void[]) initB() const pure {
+	/// Returns: initialized instance of this, or nothing if cannot init
+	OptVal!(void[]) buildVal() const pure {
 		final switch (type){
 			case ADataType.Type.Seq:
-				void[] outBuf;
+				void[] outBuf = new void[this.seqT.map!(t => t.sizeOf).sum];
+				size_t offset = 0;
 				foreach (subType; this.seqT){
-					OptVal!(void[]) subInit = subType.initB;
+					OptVal!(void[]) subInit = subType.buildVal;
 					if (!subInit.isVal)
 						return OptVal!(void[])();
-					outBuf ~= subInit.val;
+					outBuf[offset .. subInit.val.length] = subInit.val;
+					offset += subInit.val.length;
 				}
 				return outBuf.OptVal!(void[]);
 			case ADataType.Type.IntX:
@@ -1295,15 +1297,16 @@ main_switch:
 				return (cast(void[])[false]).OptVal!(void[]);
 			case ADataType.Type.Slice:
 			case ADataType.Type.Array:
+				return new void[sizeOf].OptVal!(void[]);
 			case ADataType.Type.Ref:
 			case ADataType.Type.Fn:
-				return new void[sizeOf].OptVal!(void[]);
+				return OptVal!(void[])();
 			case ADataType.Type.Struct:
 				if (this.structS is null)
 					return [].OptVal!(void[]);
-				return this.structS.initB;
+				return this.structS.buildVal;
 			case ADataType.Type.Union:
-				return this.unionS.initB;
+				return this.unionS.buildVal;
 			case ADataType.Type.Enum:
 				assert (this.enumS.memVal.length);
 				return this.enumS.memVal[0].dup.OptVal!(void[]);
@@ -1339,15 +1342,15 @@ main_switch:
 			case Type.Struct:
 				if (structS is null)
 					return "struct{}";
-				return structS.ident.format!"struct(%s)";
+				return structS.ident.toString.format!"struct(%s)";
 			case Type.Union:
 				if (unionS is null)
 					return "union{}";
-				return unionS.ident.format!"union(%s)";
+				return unionS.ident.toString.format!"union(%s)";
 			case Type.Enum:
 				if (enumS is null)
 					return "enum{}";
-				return enumS.ident.format!"enum(%s)";
+				return enumS.ident.toString.format!"enum(%s)";
 			case Type.NoInit:
 				return "$noinit";
 		}
@@ -1688,9 +1691,8 @@ public struct AStruct{
 		return types[0 .. memId].map!(t => t.sizeOf).sum;
 	}
 
-	/// initialization bytes for this struct
-	/// Returns: Initialization bytes, or nothing if cannot initialize
-	public OptVal!(void[]) initB() const pure {
+	/// Returns: initialized instance of this, or nothing if cannot init
+	public OptVal!(void[]) buildVal() const pure {
 		foreach (const OptVal!(void[]) fieldInit; initD){
 			if (!fieldInit.isVal)
 				return OptVal!(void[])();
@@ -1705,7 +1707,7 @@ public struct AStruct{
 	}
 
 	/// ditto
-	public OptVal!(void[]) initB(AVal src,
+	public OptVal!(void[]) buildVal(AVal src,
 			IdentU[] ctx = [IdentU.init]) const pure {
 		if (src.type.type == ADataType.Type.Struct &&
 				src.type.structS !is null &&
@@ -1762,9 +1764,9 @@ public struct AStruct{
 			}
 		}
 
-		void[][size_t] visIds;
+		void[0][size_t] visIds;
 		foreach (string name; this.names.byKey.filter!(n => this.exists(n, ctx))){
-			visIds[this.names[name]] = (void[]).init;
+			visIds[this.names[name]] = (void[0]).init;
 		}
 		size_t toInit = size_t.max;
 		foreach (size_t id; visIds.byKey){
@@ -1786,24 +1788,28 @@ public struct AStruct{
 			if (i == toInit){
 				ret[offset .. offset + size] = convd.val.data;
 			} else {
-				OptVal!(void[]) data = this.types[i].initB;
+				const OptVal!(void[]) data = initD[i];
 				if (!data.isVal)
 					return OptVal!(void[])();
 				ret[offset .. offset + size] = data.val;
 			}
+			offset += size;
 		}
 		return OptVal!(void[])(ret);
 	}
 
 	string toString() const pure {
-		return format!"struct %s{%(%r,%)}"(ident,
-				types.length.iota.map!(i => types[i].format!"%s[%(%r,%)]=%s"(
+		return format!"struct %s{%(%r,%)}"(ident.toString,
+				types.length.iota.map!(i => .format!"[%-(%s,%)]:%s%s"(
 						names.byKey.filter!(n => names[n] == i)
 						.map!(n => (nameVis[n] == Visibility.Default ? ""
-							: nameVis[n] == Visibility.Pub ? "pub "
-							: nameVis[n] == Visibility.IPub ? "ipub " : "idk ")
+								: nameVis[n] == Visibility.Pub ? "pub "
+								: nameVis[n] == Visibility.IPub ? "ipub " : "idk ")
 							.format!"%s%s"(n)).array,
-						initD[i].isVal ? (cast(ubyte[])initD[i].val).to!string : "noinit"
+						types[i].toString,
+						initD[i].isVal
+							? AVal(types[i], initD[i].val).toString.format!"=%s"
+							: ""
 						)));
 	}
 }
@@ -1859,9 +1865,8 @@ public struct AUnion{
 		return sizeOfField + size_t.sizeof;
 	}
 
-	/// initialization bytes for this union
-	/// Returns: Initialization bytes, or nothing if cannot initialize
-	OptVal!(void[]) initB() const pure {
+	/// Returns: initialized instance of this, or nothing if cannot init
+	OptVal!(void[]) buildVal() const pure {
 		if (initI == size_t.max)
 			return OptVal!(void[])();
 		void[] ret = new void[sizeOf];
@@ -1870,7 +1875,7 @@ public struct AUnion{
 	}
 
 	/// ditto
-	OptVal!(void[]) initB(AVal src, IdentU[] ctx) const pure {
+	OptVal!(void[]) buildVal(AVal src, IdentU[] ctx) const pure {
 		if (src.type.type == ADataType.Type.Struct &&
 				src.type.structS !is null &&
 				!src.type.structS.isUnique &&
@@ -1887,9 +1892,9 @@ public struct AUnion{
 			}
 		}
 
-		void[][size_t] visIds;
+		void[0][size_t] visIds;
 		foreach (string name; this.names.byKey.filter!(n => this.exists(n, ctx))){
-			visIds[this.names[name]] = (void[]).init;
+			visIds[this.names[name]] = (void[0]).init;
 		}
 		size_t toInit = size_t.max;
 		foreach (size_t id; visIds.byKey){
@@ -1911,16 +1916,18 @@ public struct AUnion{
 	}
 
 	string toString() const pure {
-		return format!"union %s{%(%r,%)}"(ident,
-				types.length.iota.map!(i => types[i].format!"%s[%(%r,%)]%s"(
+		return format!"union %s{%(%r,%)}"(ident.toString,
+				types.length.iota.map!(i => format!"[%-(%s,%)]:%s%s"(
 						names.byKey.filter!(n => names[n] == i)
 						.map!(n => (nameVis[n] == Visibility.Default ? ""
-							: nameVis[n] == Visibility.Pub ? "pub "
-							: nameVis[n] == Visibility.IPub ? "ipub " : "idk ")
+								: nameVis[n] == Visibility.Pub ? "pub "
+								: nameVis[n] == Visibility.IPub ? "ipub " : "idk ")
 							.format!"%s%s"(n)).array,
-							initI == i ? (cast(ubyte[])initD.val).format!"=%s" : ""
+						types[i].toString,
+						initI == i
+							? AVal(types[i],initD.val).toString.format!"=%s"
+							: ""
 						)));
-
 	}
 }
 
@@ -1938,9 +1945,10 @@ public struct AEnum{
 	Visibility vis;
 
 	string toString() const pure {
-		return format!"enum %s:%s{%(%r,%)}"(ident, type,
+		return format!"enum %s:%s{%-(%s,%)}"(ident.toString, type,
 				memId.length.iota
-				.map!(i => format!"%s=%s"(memId[i], cast(ubyte[])memVal[i])));
+				.map!(i => format!"%s=%s"(memId[i], AVal(type, memVal[i]).toString))
+				);
 	}
 }
 
@@ -1956,7 +1964,8 @@ public struct AEnumConst{
 	Visibility vis;
 
 	string toString() const pure {
-		return format!"enum %s:%s=%s;"(ident, type, cast(ubyte[])data);
+		return format!"enum %s:%s=%s"(ident.toString, type,
+				AVal(type, data).toString);
 	}
 }
 
@@ -1981,14 +1990,14 @@ public struct AFn{
 
 	string toString() const pure {
 		return format!
-			"fn %s%s[%s](%(%r%))->%s"(
+			"fn %s%s[%s](%-(%s,%))->%s"(
 					(isAlisFn ? "" : "external "),
-					ident, uid,
+					ident.toString, uid,
 					paramsN.length.iota
-						.map!(i => format!"%s %s=%s"(paramsN[i], paramsT[i],
-								paramsV[i].isVal
-								? (cast(ubyte[])paramsV[i].val).to!string
-								: "noinit")),
+					.map!(i => format!"%s:%s%s"(paramsN[i], paramsT[i].toString,
+							paramsV[i].isVal
+							? AVal(paramsT[i], paramsV[i].val).toString.format!"=%s"
+							: "")),
 					retT);
 	}
 }
@@ -2001,8 +2010,6 @@ public struct AVar{
 	ADataType type;
 	/// initialisation data
 	void[] initD;
-	/// offset
-	size_t offset;
 	/// whether is global or local
 	bool isGlobal = false;
 	/// Visibility outside its parent module
@@ -2011,8 +2018,8 @@ public struct AVar{
 	string uid;
 
 	string toString() const pure {
-		return format!"var %s%s[%s]:%s=%s off=%d"(isGlobal ? "global" : null,
-				ident, uid, type, cast(ubyte[])initD, offset);
+		return format!"var %s%s[%s]:%s=%s"(isGlobal ? "global" : null,
+				ident.toString, uid, type.toString, AVal(type, initD).toString);
 	}
 }
 
@@ -2026,8 +2033,7 @@ public struct AAlias{
 	RExpr expr;
 
 	string toString() const pure {
-		return format!"alias %s%s=%s"(vis == Visibility.Pub ? "pub " : "",
-				ident, "<EXPR>");
+		return format!"alias %s=%s"(ident, expr is null ? null : expr.toString);
 	}
 }
 
@@ -2041,7 +2047,7 @@ public struct AImport{
 	Visibility vis;
 
 	string toString() const pure {
-		return format!"import %s as %s"(modIdent, ident);
+		return format!"import %s as %s"(modIdent, ident.toString);
 	}
 }
 
