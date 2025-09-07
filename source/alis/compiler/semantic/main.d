@@ -27,7 +27,7 @@ void main(){
 	string source = cast(string)read("in.alis");
 	//while (!stdin.eof) source ~= stdin.readln;
 	StopWatch sw = StopWatch(AutoStart.yes);
-	CmpErrVal!Module node = source.tokenize.parse("_");
+	CmpErrVal!Module node = source.tokenize.parse("alis-main");
 	sw.stop;
 	stderr.writefln!"parsed stdin in: %d msecs"(sw.peek.total!"msecs");
 	sw.reset;
@@ -37,7 +37,7 @@ void main(){
 	}
 
 	sw.start;
-	node.val.ident = "_";
+	node.val.ident = "alis-main";
 	SmErrsVal!S1R stabVal = node.val.stabOf;
 	if (stabVal.isErr){
 		stderr.writefln!"Errors:\n%(%s\n%)"(stabVal.err);
