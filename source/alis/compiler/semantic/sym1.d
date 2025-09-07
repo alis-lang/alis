@@ -141,7 +141,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 				initD = (new void[symC.paramsT[i].sizeOf]).OptVal!(void[]);
 			ASymbol* param = new ASymbol(
 					AVar(st.ctx ~ symC.uid.IdentU ~ symC.paramsN[i].IdentU,
-						symC.paramsT[i], initD.val));
+						symC.paramsT[i], initD.val)); // TODO: set uid
 			param.isComplete = true;
 			subSt.add(symC.paramsN[i].IdentU, param, param.ident[0 .. 1]);
 		}
@@ -401,7 +401,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
 		scope(exit) sym.isComplete = true;
-		AVar* symC = &sym.varS;
+		AVar* symC = &sym.varS; // TODO: set uid
 		symC.isGlobal = st.ctx.length <= 1;
 		// TODO: handle @auto
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;

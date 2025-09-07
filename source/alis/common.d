@@ -2021,7 +2021,7 @@ public struct AVar{
 	bool isGlobal = false;
 	/// Visibility outside its parent module
 	Visibility vis;
-	/// unique id. TODO: set this
+	/// unique id
 	string uid;
 
 	string toString() const pure {
