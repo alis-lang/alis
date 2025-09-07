@@ -41,7 +41,8 @@ package size_t callabilityOf(RExpr callee, AValCT[] params){
 /// generates RST for calling something.
 /// works for RAValCTExpr as callee as well
 /// Returns: SmErr[] or RExpr
-package SmErrsVal!RExpr call(RExpr callee, AValCT[] params){
+package SmErrsVal!RExpr call(RExpr callee, AValCT[] params,
+		IdentU[] ctx = [IdentU.init]){
 	RFnExpr fn = cast(RFnExpr)callee;
 	if (fn is null){
 		if (RAValCTExpr val = cast(RAValCTExpr)callee){
@@ -49,7 +50,7 @@ package SmErrsVal!RExpr call(RExpr callee, AValCT[] params){
 				case AValCT.Type.Symbol:
 					ASymbol* sym = val.res.symS;
 					if (sym.type == ASymbol.Type.Fn)
-						return fnCall(&sym.fnS, params);
+						return fnCall(&sym.fnS, params, ctx);
 
 					// if symbol is type, do type conversion
 					ADataType type;
@@ -71,7 +72,7 @@ package SmErrsVal!RExpr call(RExpr callee, AValCT[] params){
 					if (params.length != 1)
 						return SmErrsVal!RExpr([errParamCount(callee.pos,
 									val.res.typeT.toString, 1, params.length)]);
-					OptVal!RExpr res = params[0].toRExpr.to(type);
+					OptVal!RExpr res = params[0].toRExpr.to(type, ctx);
 					if (res.isVal)
 						return SmErrsVal!RExpr(res.val);
 					return SmErrsVal!RExpr([
@@ -85,7 +86,7 @@ package SmErrsVal!RExpr call(RExpr callee, AValCT[] params){
 					if (params.length != 1)
 						return SmErrsVal!RExpr([errParamCount(callee.pos,
 									val.res.typeT.toString, 1, params.length)]);
-					OptVal!RExpr res = params[0].toRExpr.to(val.res.typeT);
+					OptVal!RExpr res = params[0].toRExpr.to(val.res.typeT, ctx);
 					if (res.isVal)
 						return SmErrsVal!RExpr(res.val);
 					return SmErrsVal!RExpr([
@@ -102,7 +103,7 @@ package SmErrsVal!RExpr call(RExpr callee, AValCT[] params){
 	}
 
 	if (fn)
-		return fnCall(fn, params);
+		return fnCall(fn, params, ctx);
 
 	return SmErrsVal!RExpr([errUnsup(callee.pos,
 				typeid(callee).to!string.format!"calling %s")]);
@@ -112,18 +113,20 @@ package SmErrsVal!RExpr call(RExpr callee, AValCT[] params){
 /// works for RAValCTExpr as callee as well
 /// Returns: SmErr[] or RExpr
 pragma(inline, true)
-package SmErrsVal!RExpr fnCall(AFn* fnSym, AValCT[] params){
-	return fnCall(new RFnExpr(fnSym), params);
+package SmErrsVal!RExpr fnCall(AFn* fnSym, AValCT[] params,
+		IdentU[] ctx = [IdentU.init]){
+	return fnCall(new RFnExpr(fnSym), params, ctx);
 }
 
 /// ditto
-package SmErrsVal!RExpr fnCall(RFnExpr callee, AValCT[] params){
+package SmErrsVal!RExpr fnCall(RFnExpr callee, AValCT[] params,
+		IdentU[] ctx = [IdentU.init]){
 	AFn* symC = callee.fn;
 	SmErr[] errs;
 	RExpr[] casted = new RExpr[symC.paramsT.length];
 	assert (params.length <= symC.paramsT.length);
 	foreach (size_t i, AValCT paramVal; params){
-		OptVal!RExpr res = paramVal.toRExpr.to(symC.paramsT[i]);
+		OptVal!RExpr res = paramVal.toRExpr.to(symC.paramsT[i], ctx);
 		if (!res.isVal){
 			errs ~= errIncompatType(callee.pos, symC.paramsT[i].toString,
 					params[i].toString);
@@ -150,7 +153,8 @@ package SmErrsVal!RExpr fnCall(RFnExpr callee, AValCT[] params){
 }
 
 /// ditto
-package SmErrsVal!RExpr fnCall(RExpr expr, AValCT[] params){
+package SmErrsVal!RExpr fnCall(RExpr expr, AValCT[] params,
+		IdentU[] ctx = [IdentU.init]){
 	assert (cast(RFnExpr)expr is null);
 	if (expr.type.type != ADataType.Type.Fn)
 		return SmErrsVal!RExpr([errNotCallable(expr.pos, expr.type.toString)]);
@@ -158,7 +162,7 @@ package SmErrsVal!RExpr fnCall(RExpr expr, AValCT[] params){
 	RExpr[] casted = new RExpr[expr.type.paramT.length];
 	assert (params.length == expr.type.paramT.length);
 	foreach (size_t i, AValCT paramVal; params){
-		OptVal!RExpr res = paramVal.toRExpr.to(expr.type.paramT[i]);
+		OptVal!RExpr res = paramVal.toRExpr.to(expr.type.paramT[i], ctx);
 		if (!res.isVal){
 			errs ~= errIncompatType(expr.pos, expr.type.paramT[i].toString,
 					params[i].toString);

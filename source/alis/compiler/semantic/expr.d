@@ -66,7 +66,7 @@ private bool expT(Location pos, RExpr expr, ref St st){
 /// ditto
 private bool expT(Location pos, ADataType type, ref St st){
 	if (!st.isExpT) return true;
-	if (!type.canCastTo(st.expT)){
+	if (!type.canCastTo(st.expT, st.ctx)){
 		st.errs ~= errIncompatType(pos, st.expT.toString,
 				type.toString);
 		return false;
@@ -156,7 +156,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
-			r = r.to(st.expT).val;
+			r = r.to(st.expT, st.ctx).val;
 		st.res = r;
 	}
 
@@ -188,7 +188,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 				return;
 			}
 			r.type = xtypeRes.val;
-			if (!aType.canCastTo(r.type)){
+			if (!aType.canCastTo(r.type, st.ctx)){
 				st.errs ~= errIncompatType(node.pos, xtypeRes.val.toString,
 						aType.toString);
 				return;
@@ -201,7 +201,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
-			st.res = r.to(st.expT).val;
+			st.res = r.to(st.expT, st.ctx).val;
 		else
 			st.res = r;
 	}
@@ -226,7 +226,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.pos = node.pos;
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
-			st.res = r.to(st.expT).val;
+			st.res = r.to(st.expT, st.ctx).val;
 		else
 			st.res = r;
 	}
@@ -252,7 +252,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		RExpr r = new RAValCTExpr(ADataType.of(&sym.structS).AValCT);
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
-			r = r.to(st.expT).val;
+			r = r.to(st.expT, st.ctx).val;
 		st.res = r;
 	}
 
@@ -282,7 +282,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		RExpr r = new RAValCTExpr(ADataType.of(&sym.unionS).AValCT);
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
-			r = r.to(st.expT).val;
+			r = r.to(st.expT, st.ctx).val;
 		st.res = r;
 	}
 
@@ -374,7 +374,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.pos = node.pos;
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
-			st.res = r.to(st.expT).val;
+			st.res = r.to(st.expT, st.ctx).val;
 		else
 			st.res = r;
 	}
@@ -389,7 +389,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.pos = node.pos;
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
-			st.res = r.to(st.expT).val;
+			st.res = r.to(st.expT, st.ctx).val;
 		else
 			st.res = r;
 	}
@@ -404,7 +404,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.pos = node.pos;
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
-			st.res = r.to(st.expT).val;
+			st.res = r.to(st.expT, st.ctx).val;
 		else
 			st.res = r;
 	}
@@ -419,7 +419,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.pos = node.pos;
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
-			st.res = r.to(st.expT).val;
+			st.res = r.to(st.expT, st.ctx).val;
 		else
 			st.res = r;
 	}
@@ -434,7 +434,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.pos = node.pos;
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
-			st.res = r.to(st.expT).val;
+			st.res = r.to(st.expT, st.ctx).val;
 		else
 			st.res = r;
 	}
@@ -449,7 +449,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.pos = node.pos;
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
-			st.res = r.to(st.expT).val;
+			st.res = r.to(st.expT, st.ctx).val;
 		else
 			st.res = r;
 	}
@@ -474,7 +474,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.pos = node.pos;
 		if (!expT(node.pos, r, st)) return;
 		if (st.isExpT)
-			st.res = r.to(st.expT).val;
+			st.res = r.to(st.expT, st.ctx).val;
 		else
 			st.res = r;
 	}
@@ -661,7 +661,8 @@ private bool expT(Location pos, ADataType type, ref St st){
 
 		RExpr r;
 		if (RPartCallExpr pFnCall = cast(RPartCallExpr)callee){
-			SmErrsVal!RExpr res = pFnCall.callee.call(pFnCall.params ~ params);
+			SmErrsVal!RExpr res = pFnCall.callee.call(pFnCall.params ~ params,
+					st.ctx);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
@@ -686,7 +687,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.res = res.val;
 			return;
 		} else {
-			SmErrsVal!RExpr res = callee.call(params);
+			SmErrsVal!RExpr res = callee.call(params, st.ctx);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
@@ -700,7 +701,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			return;
 		}
 		if (st.isExpT)
-			r = r.to(st.expT).val;
+			r = r.to(st.expT, st.ctx).val;
 		st.res = r;
 	}
 
@@ -727,7 +728,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 						errs = res.err;
 					} else {
 						if (st.isExpT)
-							st.res = res.val.to(st.expT).val;
+							st.res = res.val.to(st.expT, st.ctx).val;
 						else
 							st.res = res.val;
 						if (st.params.length &&
@@ -801,7 +802,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 					st.errs ~= res.err;
 					return;
 				}
-				res = call(res.val, lhs);
+				res = call(res.val, lhs, st.ctx);
 				if (res.isErr){
 					st.errs ~= res.err;
 					return;
@@ -809,7 +810,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 				r = res.val;
 				if (!expT(node.pos, r, st)) return;
 				if (st.isExpT)
-					r = r.to(st.expT).val;
+					r = r.to(st.expT, st.ctx).val;
 				else
 					st.res = res.val;
 				if (st.params.length &&
@@ -905,7 +906,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			r.res = subVal.seq[indI];
 			if (!expT(node.pos, r, st)) return;
 			if (st.isExpT)
-				r = new RAValCTExpr(subVal.seq[indI].to(st.expT).val);
+				r = new RAValCTExpr(subVal.seq[indI].to(st.expT, st.ctx).val);
 			st.res = r;
 			return;
 		}
@@ -1015,12 +1016,12 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.errs ~= errExprValExpected(node.rhs.pos);
 			return;
 		}
-		if (!rhs.type.canCastTo(expectedType)){
+		if (!rhs.type.canCastTo(expectedType, st.ctx)){
 			st.errs ~= errIncompatType(node.pos, expectedType.toString,
 					rhs.type.toString);
 			return;
 		}
-		SmErrsVal!RExpr rhsConverted = rhs.to(expectedType).val;
+		SmErrsVal!RExpr rhsConverted = rhs.to(expectedType, st.ctx).val;
 		if (rhsConverted.isErr){
 			st.errs ~= rhsConverted.err;
 			return;
@@ -1084,12 +1085,12 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.errs ~= errExprValExpected(node.rhs.pos);
 			return;
 		}
-		if (!rhs.type.canCastTo(expectedType)){
+		if (!rhs.type.canCastTo(expectedType, st.ctx)){
 			st.errs ~= errIncompatType(node.pos, expectedType.toString,
 					rhs.type.toString);
 			return;
 		}
-		SmErrsVal!RExpr rhsConverted = rhs.to(expectedType).val;
+		SmErrsVal!RExpr rhsConverted = rhs.to(expectedType, st.ctx).val;
 		if (rhsConverted.isErr){
 			st.errs ~= rhsConverted.err;
 			return;
@@ -1199,7 +1200,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			return;
 		}
 		if (st.isExpT)
-			st.res = expr.to(st.expT).val;
+			st.res = expr.to(st.expT, st.ctx).val;
 		else
 			st.res = expr;
 	}
@@ -1240,7 +1241,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			rhs = res.val;
 		}
 		AValCT val;
-		if (lhs.canCastTo(rhs)){
+		if (lhs.canCastTo(rhs, st.ctx)){
 			val = true.AVal.AValCT;
 		} else {
 			val = false.AVal.AValCT;

@@ -295,8 +295,8 @@ public:
 
 	/// Returns: new RST which converts this RST into `target` type, or nothing
 	/// if cannot be done
-	OptVal!RExpr to(ADataType target){
-		if (!this.type.canCastTo(target))
+	OptVal!RExpr to(ADataType target, IdentU[] ctx = [IdentU.init]){
+		if (!this.type.canCastTo(target, ctx))
 			return OptVal!RExpr();
 		RToExpr r = new RToExpr(this, target);
 		r.pos = this.pos;

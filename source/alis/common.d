@@ -42,14 +42,17 @@ public struct AVal{
 	ADataType type = ADataType.ofNoInit; /// data type
 
 	/// Returns: true if this can be implicitly casted to target type
-	public bool canCastTo(const ADataType target) pure {
+	public bool canCastTo(const ADataType target,
+			IdentU[] ctx = null) pure {
+		if (ctx is null)
+			ctx = [IdentU.init];
 		if (type.type == ADataType.Type.IntX ||
 				type.type == ADataType.Type.UIntX){
 			if (target.type == ADataType.Type.IntX){
 				switch (target.x){
 					static foreach (T; SignedInts){
 						case T.sizeof * 8:
-							return as!T.isVal;
+							return as!T(ctx).isVal;
 					}
 					default: break;
 				}
@@ -58,13 +61,13 @@ public struct AVal{
 				switch (target.x){
 					static foreach (T; UnsignedInts){
 						case T.sizeof * 8:
-							return as!T.isVal;
+							return as!T(ctx).isVal;
 					}
 					default: break;
 				}
 			}
 		}
-		return type.canCastTo(target);
+		return type.canCastTo(target, ctx);
 	}
 
 	/// converts this value into `target` type
@@ -72,7 +75,7 @@ public struct AVal{
 	/// Returns: converted value, or nothing if cannot be done
 	public OptVal!AVal to(const ADataType target,
 			IdentU[] ctx = null) pure {
-		assert (this.canCastTo(target));
+		assert (this.canCastTo(target, ctx));
 		if (ctx is null)
 			ctx = [IdentU.init];
 		AVal ret;
@@ -102,7 +105,7 @@ public struct AVal{
 				void[] outBuf;
 				foreach (size_t i, ADataType t; type.seqT){
 					OptVal!AVal converted = AVal(t,
-							(data.ptr + off)[0 .. t.sizeOf]).to(target.seqT[i]);
+							(data.ptr + off)[0 .. t.sizeOf]).to(target.seqT[i], ctx);
 					if (!converted.isVal)
 						return OptVal!AVal();
 					outBuf ~= converted.val.data;
@@ -118,7 +121,7 @@ public struct AVal{
 						switch (target.x){
 							static foreach (Type; SignedInts){
 								case Type.sizeof * 8:
-									OptVal!Type r = this.as!Type;
+									OptVal!Type r = this.as!Type(ctx);
 									if (r.isVal)
 										return OptVal!AVal(r.val.AVal);
 									return OptVal!AVal();
@@ -130,7 +133,7 @@ public struct AVal{
 						switch (target.x){
 							static foreach (Type; UnsignedInts){
 								case Type.sizeof * 8:
-									OptVal!Type r = this.as!Type;
+									OptVal!Type r = this.as!Type(ctx);
 									if (r.isVal)
 										return OptVal!AVal(r.val.AVal);
 									return OptVal!AVal();
@@ -142,7 +145,7 @@ public struct AVal{
 						switch (target.x){
 							static foreach (Type; Floats){
 								case Type.sizeof * 8:
-									OptVal!Type r = this.as!Type;
+									OptVal!Type r = this.as!Type(ctx);
 									if (r.isVal)
 										return OptVal!AVal(r.val.AVal);
 									return OptVal!AVal();
@@ -151,7 +154,7 @@ public struct AVal{
 								return OptVal!AVal();
 						}
 					case ADataType.Type.Char:
-						OptVal!ubyte r = this.as!ubyte;
+						OptVal!ubyte r = this.as!ubyte(ctx);
 						if (r.isVal)
 							return OptVal!AVal(r.val.AVal);
 						return OptVal!AVal();
@@ -162,7 +165,7 @@ public struct AVal{
 				switch (target.x){
 					static foreach (Type; Floats){
 						case Type.sizeof * 8:
-							OptVal!Type r = this.as!Type;
+							OptVal!Type r = this.as!Type(ctx);
 							if (r.isVal)
 								return OptVal!AVal(r.val.AVal);
 							return OptVal!AVal();
@@ -243,19 +246,20 @@ public struct AVal{
 				return AVal(symC.types[memId], data[0 .. symC.types[memId].sizeOf])
 					.OptVal!AVal;
 			case ADataType.Type.Enum:
-				return AVal(type.enumS.type, data).to(target);
+				return AVal(type.enumS.type, data).to(target, ctx);
 		}
 		return ret.OptVal!AVal;
 	}
 
 	/// decodes this data into a type `T`
 	/// Returns: Optional value of type `T`
-	public OptVal!T as(T...)() pure if (T.length && allSatisfy!(isType, T)){
+	public OptVal!T as(T...)(IdentU[] ctx = [IdentU.init]) pure if (
+			T.length && allSatisfy!(isType, T)){
 		static if (T.length == 1){
 			assert (type.sizeOf == data.length);
 			static if (std.traits.isNumeric!(T[0])){
 				static if (isFloatingPoint!(T[0])){
-					if (!type.canCastTo(ADataType.of!T))
+					if (!type.canCastTo(ADataType.of!T, ctx))
 						return OptVal!T();
 					if (type.type != ADataType.Type.FloatX ||
 							type.x > T[0].sizeof * 8)
@@ -1747,7 +1751,7 @@ public struct AStruct{
 						ADataType srcType = type.types[(*ptr)[1]];
 						size_t off = (*ptr)[0];
 						OptVal!AVal convd = AVal(srcType,
-								src.data[off .. off + srcType.sizeOf]).to(dstType);
+								src.data[off .. off + srcType.sizeOf]).to(dstType, ctx);
 						if (!convd.isVal){
 							skip = true;
 							break;
