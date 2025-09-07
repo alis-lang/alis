@@ -290,7 +290,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			if (memAls is null) continue;
 			nameSet[memAls.name] = (void[0]).init;
 			if (memAls.name in aliasMap){
-				if (memAls.name == "this")
+				if (memAls.name == This)
 					st.errs ~= errMultiInherit(memAls.pos);
 				else
 					st.errs ~= errIdentReuse(memAls.pos, memAls.name);
@@ -313,7 +313,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		}
 
 		string bName = null;
-		if (string* ptr = "this" in aliasMap)
+		if (string* ptr = This in aliasMap)
 			bName = *ptr;
 		AggMemberNamed[] fields = s.members
 			.map!(m => cast(AggMemberNamed)m).filter!(m => m !is null).array;
@@ -325,7 +325,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 				erred = true;
 				continue;
 			}
-			if (field.name == "this"){
+			if (field.name == This){
 				st.errs ~= errFieldThis(field.pos);
 				erred = true;
 				continue;
@@ -504,7 +504,7 @@ private void structDo(Struct s, AStruct* symC, ref St1 st){
 		if (memAls is null) continue;
 		nameSet[memAls.name] = (void[0]).init;
 		if (memAls.name in aliasMap){
-			if (memAls.name == "this")
+			if (memAls.name == This)
 				st.errs ~= errMultiInherit(memAls.pos);
 			else
 				st.errs ~= errIdentReuse(memAls.pos, memAls.name);
@@ -527,7 +527,7 @@ private void structDo(Struct s, AStruct* symC, ref St1 st){
 	}
 
 	string bName = null;
-	if (string* ptr = "this" in aliasMap)
+	if (string* ptr = This in aliasMap)
 		bName = *ptr;
 	AggMemberNamed[] fields = s.members
 		.map!(m => cast(AggMemberNamed)m).filter!(m => m !is null).array;
@@ -539,7 +539,7 @@ private void structDo(Struct s, AStruct* symC, ref St1 st){
 			erred = true;
 			continue;
 		}
-		if (field.name == "this"){
+		if (field.name == This){
 			st.errs ~= errFieldThis(field.pos);
 			erred = true;
 			continue;
@@ -632,7 +632,7 @@ package void unionNamedDo(NamedUnion node, ASymbol* sym, ref St1 st){
 		if (memAls is null) continue;
 		nameSet[memAls.name] = (void[0]).init;
 		if (memAls.name in aliasMap){
-			if (memAls.name == "this")
+			if (memAls.name == This)
 				st.errs ~= errMultiInherit(memAls.pos);
 			else
 				st.errs ~= errIdentReuse(memAls.pos, memAls.name);
@@ -663,7 +663,7 @@ package void unionNamedDo(NamedUnion node, ASymbol* sym, ref St1 st){
 			erred = true;
 			continue;
 		}
-		if (field.name == "this"){
+		if (field.name == This){
 			st.errs ~= errFieldThis(field.pos);
 			erred = true;
 			continue;

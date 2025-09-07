@@ -33,6 +33,9 @@ public enum Visibility : ubyte{
 	Pub = 2,
 }
 
+/// `"this"`
+public enum This = "this";
+
 /// Alis value, with ADataType
 public struct AVal{
 	void[] data; /// the data
@@ -235,7 +238,7 @@ public struct AVal{
 				AUnion* symC = this.type.unionS;
 				immutable size_t memId = data[symC.sizeOfField .. $].as!size_t;
 				if (!symC.hasBase(ctx) ||
-						memId != symC.names["this"])
+						memId != symC.names[This])
 					return OptVal!AVal();
 				return AVal(symC.types[memId], data[0 .. symC.types[memId].sizeOf])
 					.OptVal!AVal;
@@ -1187,7 +1190,7 @@ main_switch:
 				}
 				const AStruct* symC = this.structS;
 				if (symC.hasBase(ctx))
-					return symC.types[symC.names["this"]].castability(target, ctx);
+					return symC.types[symC.names[This]].castability(target, ctx);
 				return OptVal!CastLevel();
 
 			case ADataType.Type.Union:
@@ -1677,7 +1680,7 @@ public struct AStruct{
 	}
 	/// whether the 0th member is aliased to `this`
 	@property bool hasBase(IdentU[] ctx = [IdentU.init]) const pure {
-		return exists("this", ctx);
+		return exists(This, ctx);
 	}
 	/// Returns: size of this struct
 	@property size_t sizeOf() const pure {
@@ -1846,7 +1849,7 @@ public struct AUnion{
 	}
 	/// whether the 0th member is aliased to `this`
 	@property bool hasBase(IdentU[] ctx = [IdentU.init]) const pure {
-		return exists("this", ctx);
+		return exists(This, ctx);
 	}
 	/// if this is unique
 	@property bool isUnique() const pure {
