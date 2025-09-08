@@ -2016,7 +2016,7 @@ public struct AVar{
 	/// data type
 	ADataType type;
 	/// initialisation data
-	void[] initD;
+	OptVal!(void[]) initD;
 	/// whether is global or local
 	bool isGlobal = false;
 	/// Visibility outside its parent module
@@ -2025,8 +2025,9 @@ public struct AVar{
 	string uid;
 
 	string toString() const pure {
-		return format!"var %s%s[%s]:%s=%s"(isGlobal ? "global" : null,
-				ident.toString, uid, type.toString, AVal(type, initD).toString);
+		return format!"var %s%s[%s]:%s%s"(isGlobal ? "global" : null,
+				ident.toString, uid, type.toString,
+				initD.isVal ? AVal(type, initD.val).toString.format!"=%s" : "");
 	}
 }
 

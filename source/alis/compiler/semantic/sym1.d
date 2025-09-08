@@ -134,14 +134,10 @@ private bool isRecDep(ASTNode node, ref St1 st){
 
 		STab subSt = new STab;
 		foreach (size_t i; 0 .. symC.paramsN.length){
-			OptVal!(void[]) initD = symC.paramsV[i];
-			if (!initD.isVal)
-				initD = symC.paramsT[i].buildVal;
-			if (!initD.isVal)
-				initD = (new void[symC.paramsT[i].sizeOf]).OptVal!(void[]);
 			ASymbol* param = new ASymbol(
 					AVar(st.ctx ~ symC.uid.IdentU ~ symC.paramsN[i].IdentU,
-						symC.paramsT[i], initD.val)); // TODO: set uid
+						symC.paramsT[i], symC.paramsV[i]));
+			param.varS.uid = param.ident.toString;
 			param.isComplete = true;
 			subSt.add(symC.paramsN[i].IdentU, param, param.ident[0 .. 1]);
 		}
@@ -401,7 +397,8 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		st.dep[sym] = (void[0]).init;
 		scope(exit) st.dep.remove(sym);
 		scope(exit) sym.isComplete = true;
-		AVar* symC = &sym.varS; // TODO: set uid
+		AVar* symC = &sym.varS;
+		symC.uid = symC.ident.toString;
 		symC.isGlobal = st.ctx.length <= 1;
 		// TODO: handle @auto
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
@@ -423,9 +420,10 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			}
 			if (isAuto){
 				symC.type = val.val.type;
+				symC.initD = val.val.data.OptVal!(void[]);
 			} else
 			if (val.val.canCastTo(symC.type, st.ctx)){
-				symC.initD = val.val.to(symC.type, st.ctx).val.data;
+				symC.initD = val.val.to(symC.type, st.ctx).val.data.OptVal!(void[]);
 			} else {
 				st.errs ~= errIncompatType(node.value.pos, symC.type.toString,
 						val.val.type.toString);
@@ -441,7 +439,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			st.errs ~= errInitFail(node.type.pos, symC.type.toString);
 			return;
 		}
-		symC.initD = initD.val;
+		symC.initD = initD.val.OptVal!(void[]);
 	}
 
 	void aliasIter(AliasDef node, ref St1 st){
