@@ -99,18 +99,20 @@ public struct AValCT{
 	}
 
 	/// Returns: true if this can be implicitly casted to target
-	bool canCastTo(const ADataType target){
+	bool canCastTo(const ADataType target, IdentU[] ctx = null){
+		if (ctx is null)
+			ctx = [IdentU.init];
 		import alis.compiler.semantic.error : SmErrsVal;
 		final switch (type){
 			case Type.Literal:
-				return val.canCastTo(target);
+				return val.canCastTo(target, ctx);
 			case Type.Symbol:
 				OptVal!ADataType t = symS.valType;
-				return t.isVal && t.val.canCastTo(target);
+				return t.isVal && t.val.canCastTo(target, ctx);
 			case Type.Type:
-				return typeT.canCastTo(target);
+				return typeT.canCastTo(target, ctx);
 			case Type.Expr:
-				return expr.type.canCastTo(target);
+				return expr.type.canCastTo(target, ctx);
 			case Type.Seq:
 				debug stderr.writefln!"STUB: Seq.canCastTo -> false";
 				return false;
@@ -120,12 +122,14 @@ public struct AValCT{
 	/// converts this AValCT to a `target` type
 	/// only call this if `this.canCastTo(target)` and `this.isVal`
 	/// Returns: converted AValCT, or nothing in case it cannot be done
-	OptVal!AValCT to(ADataType target) {
-		assert (canCastTo(target));
+	OptVal!AValCT to(ADataType target, IdentU[] ctx = null){
+		if (ctx is null)
+			ctx = [IdentU.init];
+		assert (canCastTo(target, ctx));
 		assert (isVal);
 		final switch (type){
 			case Type.Literal:
-				OptVal!AVal v = val.to(target);
+				OptVal!AVal v = val.to(target, ctx);
 				if (v.isVal)
 					return v.val.AValCT.OptVal!AValCT;
 				goto case;
@@ -134,7 +138,7 @@ public struct AValCT{
 				return OptVal!AValCT();
 			case Type.Expr:
 				import alis.compiler.ast.rst : RToExpr;
-				if (!expr.type.canCastTo(target))
+				if (!expr.type.canCastTo(target, ctx))
 					return OptVal!AValCT();
 				RToExpr r = new RToExpr(expr, target);
 				r.pos = expr.pos;
@@ -142,7 +146,7 @@ public struct AValCT{
 			case Type.Seq:
 				AValCT[] s = new AValCT[seq.length];
 				foreach (size_t i, AValCT val; seq){
-					OptVal!AValCT convd = val.to(target);
+					OptVal!AValCT convd = val.to(target, ctx);
 					if (!convd.isVal)
 						return OptVal!AValCT();
 					s[i] = convd.val;

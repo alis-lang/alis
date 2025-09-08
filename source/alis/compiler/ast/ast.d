@@ -1254,7 +1254,7 @@ public:
 public class ThisExpr : IdentExpr{
 public:
 	this(){
-		this.ident = "this";
+		this.ident = This;
 	}
 }
 

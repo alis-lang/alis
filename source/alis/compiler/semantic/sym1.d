@@ -112,8 +112,8 @@ private bool isRecDep(ASTNode node, ref St1 st){
 				if (isAuto){
 					type = valRes.val.type;
 				} else
-				if (valRes.val.canCastTo(type)){
-					symC.paramsV ~= valRes.val.to(type).val.data.OptVal!(void[]);
+				if (valRes.val.canCastTo(type, st.ctx)){
+					symC.paramsV ~= valRes.val.to(type, st.ctx).val.data.OptVal!(void[]);
 				} else {
 					st.errs ~= errIncompatType(param.val.pos, type.toString,
 							valRes.val.type.toString);
@@ -134,14 +134,10 @@ private bool isRecDep(ASTNode node, ref St1 st){
 
 		STab subSt = new STab;
 		foreach (size_t i; 0 .. symC.paramsN.length){
-			OptVal!(void[]) initD = symC.paramsV[i];
-			if (!initD.isVal)
-				initD = symC.paramsT[i].initB;
-			if (!initD.isVal)
-				initD = (new void[symC.paramsT[i].sizeOf]).OptVal!(void[]);
 			ASymbol* param = new ASymbol(
 					AVar(st.ctx ~ symC.uid.IdentU ~ symC.paramsN[i].IdentU,
-						symC.paramsT[i], initD.val));
+						symC.paramsT[i], symC.paramsV[i]));
+			param.varS.uid = param.ident.toString;
 			param.isComplete = true;
 			subSt.add(symC.paramsN[i].IdentU, param, param.ident[0 .. 1]);
 		}
@@ -190,8 +186,8 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		if (isAuto){
 			symC.type = valRes.val.type;
 		} else
-		if (valRes.val.canCastTo(symC.type)){
-			symC.data = valRes.val.to(symC.type).val.data;
+		if (valRes.val.canCastTo(symC.type, st.ctx)){
+			symC.data = valRes.val.to(symC.type, st.ctx).val.data;
 		} else {
 			st.errs ~= errIncompatType(node.pos, symC.type.toString,
 					valRes.val.type.toString);
@@ -251,20 +247,20 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			}
 		} else {
 			foreach (size_t i, ref ADataType type; types){
-				if (!type.canCastTo(symC.type))
+				if (!type.canCastTo(symC.type, st.ctx))
 					st.errs ~= errIncompatType(node.members[i].pos, symC.type.toString,
 							type.toString);
 			}
 		}
 
 		foreach (size_t i; 0 .. symC.memVal.length){
-			OptVal!AVal valRes = AVal(types[i], symC.memVal[i]).to(symC.type);
+			OptVal!AVal valRes = AVal(types[i], symC.memVal[i]).to(symC.type, st.ctx);
 			if (!valRes.isVal){
 				st.errs ~= errIncompatType(node.members[i].pos,
 						symC.type.toString, types[i].toString);
 				continue;
 			}
-			symC.memVal[i] = valRes.val.to(symC.type).val.data;
+			symC.memVal[i] = valRes.val.to(symC.type, st.ctx).val.data;
 		}
 	}
 
@@ -290,7 +286,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			if (memAls is null) continue;
 			nameSet[memAls.name] = (void[0]).init;
 			if (memAls.name in aliasMap){
-				if (memAls.name == "this")
+				if (memAls.name == This)
 					st.errs ~= errMultiInherit(memAls.pos);
 				else
 					st.errs ~= errIdentReuse(memAls.pos, memAls.name);
@@ -313,7 +309,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		}
 
 		string bName = null;
-		if (string* ptr = "this" in aliasMap)
+		if (string* ptr = This in aliasMap)
 			bName = *ptr;
 		AggMemberNamed[] fields = s.members
 			.map!(m => cast(AggMemberNamed)m).filter!(m => m !is null).array;
@@ -325,7 +321,7 @@ private bool isRecDep(ASTNode node, ref St1 st){
 				erred = true;
 				continue;
 			}
-			if (field.name == "this"){
+			if (field.name == This){
 				st.errs ~= errFieldThis(field.pos);
 				erred = true;
 				continue;
@@ -371,15 +367,15 @@ private bool isRecDep(ASTNode node, ref St1 st){
 				if (isAuto){
 					type = val.type;
 				} else
-				if (val.canCastTo(type)){
-					symC.initD ~= val.to(type).val.data.OptVal!(void[]);
+				if (val.canCastTo(type, st.ctx)){
+					symC.initD ~= val.to(type, st.ctx).val.data.OptVal!(void[]);
 				} else {
 					st.errs ~= errIncompatType(field.pos, type.toString,
 							val.type.toString);
 					continue;
 				}
 			} else {
-				symC.initD ~= type.initB;
+				symC.initD ~= type.buildVal;
 			}
 			foreach (string name; aliasMap.byKey
 					.filter!(n => aliasMap[n] == field.name)){
@@ -402,8 +398,8 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		scope(exit) st.dep.remove(sym);
 		scope(exit) sym.isComplete = true;
 		AVar* symC = &sym.varS;
+		symC.uid = symC.ident.toString;
 		symC.isGlobal = st.ctx.length <= 1;
-		symC.offset = size_t.max;
 		// TODO: handle @auto
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
 		if (!isAuto){
@@ -424,9 +420,10 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			}
 			if (isAuto){
 				symC.type = val.val.type;
+				symC.initD = val.val.data.OptVal!(void[]);
 			} else
-			if (val.val.canCastTo(symC.type)){
-				symC.initD = val.val.to(symC.type).val.data;
+			if (val.val.canCastTo(symC.type, st.ctx)){
+				symC.initD = val.val.to(symC.type, st.ctx).val.data.OptVal!(void[]);
 			} else {
 				st.errs ~= errIncompatType(node.value.pos, symC.type.toString,
 						val.val.type.toString);
@@ -437,12 +434,12 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			st.errs ~= errAutoNoVal(node.pos);
 			return;
 		}
-		OptVal!(void[]) initD = symC.type.initB;
+		OptVal!(void[]) initD = symC.type.buildVal;
 		if (!initD.isVal){
 			st.errs ~= errInitFail(node.type.pos, symC.type.toString);
 			return;
 		}
-		symC.initD = initD.val;
+		symC.initD = initD.val.OptVal!(void[]);
 	}
 
 	void aliasIter(AliasDef node, ref St1 st){
@@ -505,7 +502,7 @@ private void structDo(Struct s, AStruct* symC, ref St1 st){
 		if (memAls is null) continue;
 		nameSet[memAls.name] = (void[0]).init;
 		if (memAls.name in aliasMap){
-			if (memAls.name == "this")
+			if (memAls.name == This)
 				st.errs ~= errMultiInherit(memAls.pos);
 			else
 				st.errs ~= errIdentReuse(memAls.pos, memAls.name);
@@ -528,7 +525,7 @@ private void structDo(Struct s, AStruct* symC, ref St1 st){
 	}
 
 	string bName = null;
-	if (string* ptr = "this" in aliasMap)
+	if (string* ptr = This in aliasMap)
 		bName = *ptr;
 	AggMemberNamed[] fields = s.members
 		.map!(m => cast(AggMemberNamed)m).filter!(m => m !is null).array;
@@ -540,7 +537,7 @@ private void structDo(Struct s, AStruct* symC, ref St1 st){
 			erred = true;
 			continue;
 		}
-		if (field.name == "this"){
+		if (field.name == This){
 			st.errs ~= errFieldThis(field.pos);
 			erred = true;
 			continue;
@@ -587,15 +584,15 @@ private void structDo(Struct s, AStruct* symC, ref St1 st){
 			if (isAuto){
 				type = val.type;
 			} else
-			if (val.canCastTo(type)){
-				symC.initD ~= val.to(type).val.data.OptVal!(void[]);
+			if (val.canCastTo(type, st.ctx)){
+				symC.initD ~= val.to(type, st.ctx).val.data.OptVal!(void[]);
 			} else {
 				st.errs ~= errIncompatType(field.pos, type.toString,
 						val.type.toString);
 				continue;
 			}
 		} else {
-			symC.initD ~= type.initB;
+			symC.initD ~= type.buildVal;
 		}
 		foreach (string name; aliasMap.byKey
 				.filter!(n => aliasMap[n] == field.name)){
@@ -633,7 +630,7 @@ package void unionNamedDo(NamedUnion node, ASymbol* sym, ref St1 st){
 		if (memAls is null) continue;
 		nameSet[memAls.name] = (void[0]).init;
 		if (memAls.name in aliasMap){
-			if (memAls.name == "this")
+			if (memAls.name == This)
 				st.errs ~= errMultiInherit(memAls.pos);
 			else
 				st.errs ~= errIdentReuse(memAls.pos, memAls.name);
@@ -664,7 +661,7 @@ package void unionNamedDo(NamedUnion node, ASymbol* sym, ref St1 st){
 			erred = true;
 			continue;
 		}
-		if (field.name == "this"){
+		if (field.name == This){
 			st.errs ~= errFieldThis(field.pos);
 			erred = true;
 			continue;
@@ -710,8 +707,8 @@ package void unionNamedDo(NamedUnion node, ASymbol* sym, ref St1 st){
 			if (isAuto){
 				type = val.type;
 			}	else
-			if (val.canCastTo(type)){
-				symC.initD = val.to(type).val.data.OptVal!(void[]);
+			if (val.canCastTo(type, st.ctx)){
+				symC.initD = val.to(type, st.ctx).val.data.OptVal!(void[]);
 			} else {
 				st.errs ~= errIncompatType(field.pos, type.toString,
 						val.type.toString);
@@ -762,8 +759,8 @@ package void unionUnnamedDo(UnnamedUnion node, ASymbol* sym, ref St1 st){
 			st.errs ~= valRes.err;
 			continue;
 		}
-		if (valRes.val.canCastTo(typeRes.val)){
-			symC.initD = valRes.val.to(typeRes.val).val.data.OptVal!(void[]);
+		if (valRes.val.canCastTo(typeRes.val, st.ctx)){
+			symC.initD = valRes.val.to(typeRes.val, st.ctx).val.data.OptVal!(void[]);
 			symC.initI = cast(ptrdiff_t)symC.types.length - 1;
 		} else {
 			st.errs ~= errIncompatType(member.pos, typeRes.val.toString,

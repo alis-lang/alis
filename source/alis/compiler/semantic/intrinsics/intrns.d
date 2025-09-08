@@ -1052,7 +1052,7 @@ SmErrsVal!RExpr cmpTranslate(string name, Location, STab,
 			return false;
 		ADataType from = params[0].valType.val;
 		ADataType target = params[1].asType.val;
-		return from.canCastTo(target);
+		return from.canCastTo(target); // TODO: get ctx here
 	}
 	@ExprTranslator
 	SmErrsVal!RExpr toTranslate(string, Location pos, STab,
