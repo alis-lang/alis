@@ -49,7 +49,7 @@ private struct St1{
 }
 
 /// Checks for recursive dependecy before processing an ASTNode
-/// Returns: tre if recursive dependecy will happen after an ASTNode
+/// Returns: true if recursive dependecy will happen after an ASTNode
 private bool isRecDep(ASTNode node, ref St1 st){
 	if (node !in st.sMap || st.sMap[node] !in st.dep)
 		return false;
@@ -825,7 +825,9 @@ package SmErrsVal!S1R symDo(ASymbol* sym, STab stabR,
 	st.stabR = stabR;
 	st.ctx = sym.ident[0 .. $ - 1];
 	st.stab = stabR.findSt(st.ctx, st.ctx);
-	st.sMap = typeof(st.sMap).init; // TODO: is sMap needed in this case?
+	st.sMap = typeof(st.sMap).init;
+	if (sym.ast)
+		st.sMap[sym.ast] = sym;
 	st.dep = dep;
 	st.fns = fns;
 	It.exec(sym.ast, st);
