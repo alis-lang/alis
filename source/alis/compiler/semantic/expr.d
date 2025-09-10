@@ -13,6 +13,7 @@ import alis.common,
 			 alis.compiler.semantic.types,
 			 alis.compiler.semantic.call,
 			 alis.compiler.semantic.intrinsics,
+			 alis.compiler.semantic,
 			 alis.compiler.ast,
 			 alis.compiler.ast.iter,
 			 alis.compiler.ast.rst;
@@ -122,6 +123,13 @@ private bool expT(Location pos, ADataType type, ref St st){
 		if (res is null){
 			st.errs ~= errUndef(node.pos, node.ident);
 			return;
+		}
+		if (!res.isComplete){
+			SmErr[] errs = symDo(res, st.stabR, st.dep, st.fns);
+			if (errs.length){
+				st.errs ~= errs;
+				return;
+			}
 		}
 		// convert res to RExpr
 		RExpr r;
