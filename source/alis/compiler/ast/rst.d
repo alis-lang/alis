@@ -554,7 +554,7 @@ public:
 				(val.type.type == ADataType.Type.Ref &&
 				 val.type.refT.type == ADataType.Type.Union));
 		AUnion* symC;
-		if (val.type.type == ADataType.Type.Struct){
+		if (val.type.type == ADataType.Type.Union){
 			symC = val.type.unionS;
 		} else {
 			symC = val.type.refT.unionS;
