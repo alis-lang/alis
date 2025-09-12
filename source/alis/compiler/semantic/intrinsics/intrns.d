@@ -680,7 +680,7 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		}
 		ADataType type = params[0].valType.val;
 		assert (type.type == ADataType.Type.Struct ||
-				type.type == ADataType.Type.Enum);
+				type.type == ADataType.Type.Union);
 		RExpr r;
 		RExpr lhsExpr = params[0].toRExpr;
 		if (type.type == ADataType.Type.Struct){
