@@ -1303,74 +1303,7 @@ Some of these operators cannot be used in usual expressions:
 
 ## Syntactic Sugar Operators
 
-Some operators are only syntactic sugar:
-
-### Postfix Question Mark `A ?`
-
-`x = A ? <rest of the expression>;`
-
-will translate to:
-
-```
-x = auto {
-	var auto _temp = A;
-	if _temp.opIsErr
-		return /*build error from _temp.err*/;
-	return _temp <rest of the expression>;
-};
-```
-
-For contents of `/*build error from _temp.err*/`, see
-[Error Handling](#error-handling).
-
-### Postfix Double Question Mark `A ??`
-
-`x = A ?? "A bad" <rest of the expression>;`
-
-will translate to:
-
-```
-x = auto {
-	var auto _temp = A;
-	if _temp.opIsErr
-		return "A bad";
-	return _temp <rest of the expression>;
-}
-```
-
-### Postfix Exclamation Mark `A !`
-
-`x = A ! <rest of the expression>;`
-
-will translate to:
-
-```
-x = auto {
-	var auto _temp = A;
-	if _temp.opIsErr
-		return_from_function /*build error from _temp.err*/;
-	return _temp <rest of the expression>;
-}
-```
-
-Note that `return_from_function` is not a real keyword, its usage here is only
-to signify that it does not return a value to be written into `x`, but rather
-it returns from whatever function this expression is evaluated in.
-
-### Postfix Double Exclamation Mark `A !!`
-
-`x = A !! "A bad" <rest of the expression>;`
-
-will translate to:
-
-```
-x = auto {
-	var auto _temp = A;
-	if _temp.opIsErr
-		return_from_function "A bad";
-	return _temp <rest of the expression>;
-}
-```
+[Error Handling](#error-handling) operators are included in this list.
 
 ### Boolean And `A && B`
 
