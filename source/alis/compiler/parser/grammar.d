@@ -108,7 +108,7 @@ CmpErrVal!AttrList parseAttrList(ref TokRange toks){
 	while (P.expectPop!(TT.OpTag)(toks)){
 		CmpErrVal!Expression expr = P.parseExpr!(DEF_P, Expression)(toks);
 		if (expr.isErr)
-			return CmpErrVal!AttrList(expr.err);
+			return CmpErrVal!AttrList(expr.err.errAttrListExpr);
 		ret.attrs ~= expr.val;
 	}
 	return CmpErrVal!AttrList(ret);
