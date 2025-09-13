@@ -1351,7 +1351,6 @@ private bool expT(Location pos, ADataType type, ref St st){
 				rhs.to(ADataType.ofBool, st.ctx).val);
 		ret.pos = node.pos;
 		st.res = ret;
-
 	}
 
 	void opNotPostIter(OpNotPost node, ref St st){
