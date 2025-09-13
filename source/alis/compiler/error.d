@@ -92,7 +92,7 @@ public CmpErr errrUnionMixed(Tok tok){
 
 public CmpErr errAttrListExpr(CmpErr err){
 	return CmpErr(
-			err.line, err.col,
+			err.pos.line, err.pos.col,
 			"Invalid Expression Found in Attribute List: " ~ err.msg,
 			CmpErr.Type.AttrListExpr);
 }

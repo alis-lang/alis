@@ -1907,81 +1907,31 @@ CmpErrVal!OpBitXorBin parseOpBitXorBin(ref TokRange toks, Expression prev){
 /// parses tokens for OpAndBin
 /// Returns: OpAndBin or error
 @GFn @Bin!"&&"
-CmpErrVal!BlockExpr parseOpAndBin(ref TokRange toks, Expression prev){
+CmpErrVal!OpAndBin parseOpAndBin(ref TokRange toks, Expression prev){
 	toks.popFront;
 	OpAndBin expr = new OpAndBin;
 	expr.pos = Location(toks.front.line, toks.front.col);
 	CmpErrVal!Expression rhs = P.parseExpr!(PrecedOfBin!"&&", Expression)(toks);
 	if (rhs.isErr)
-		return CmpErrVal!BlockExpr(rhs.err);
+		return CmpErrVal!OpAndBin(rhs.err);
 	expr.lhs = prev;
 	expr.rhs = rhs.val;
-
-	// translate to:
-	// bool{if lhs { if rhs return true; } return false;}
-	BlockExpr next = new BlockExpr;
-	BoolExpr boolType = new BoolExpr;
-	Block block = new Block;
-	If ifA = new If,
-		 ifB = new If;
-	Return retTrue = new Return,
-				 retFalse = new Return;
-	BoolLiteralExpr boolTrue = new BoolLiteralExpr,
-									boolFalse = new BoolLiteralExpr;
-	next.pos = block.pos = boolType.pos = ifA.pos = ifB.pos = retTrue.pos =
-		retFalse.pos = boolTrue.pos = boolFalse.pos = expr.pos;
-	next.type = boolType;
-	next.block = block;
-	block.statements = [ifA, retFalse];
-	ifA.condition = expr.lhs;
-	ifA.onTrue = ifB;
-	ifB.condition = expr.rhs;
-	ifB.onTrue = retTrue;
-	retTrue.val = boolTrue;
-	retFalse.val = boolFalse;
-	boolTrue.val = true;
-	boolFalse.val = false;
-	return CmpErrVal!BlockExpr(next);
+	return CmpErrVal!OpAndBin(expr);
 }
 
 /// parses tokens for OpOrBin
 /// Returns: OpOrBin or error
 @GFn @Bin!"||"
-CmpErrVal!BlockExpr parseOpOrBin(ref TokRange toks, Expression prev){
+CmpErrVal!OpOrBin parseOpOrBin(ref TokRange toks, Expression prev){
 	toks.popFront;
 	OpOrBin expr = new OpOrBin;
 	expr.pos = Location(toks.front.line, toks.front.col);
 	CmpErrVal!Expression rhs = P.parseExpr!(PrecedOfBin!"||", Expression)(toks);
 	if (rhs.isErr)
-		return CmpErrVal!BlockExpr(rhs.err);
+		return CmpErrVal!OpOrBin(rhs.err);
 	expr.lhs = prev;
 	expr.rhs = rhs.val;
-
-	// translate to:
-	// bool{if lhs return true; if rhs return true; return false;}
-	BlockExpr next = new BlockExpr;
-	BoolExpr boolType = new BoolExpr;
-	Block block = new Block;
-	If ifA = new If,
-		 ifB = new If;
-	Return retTrue = new Return,
-				 retFalse = new Return;
-	BoolLiteralExpr boolTrue = new BoolLiteralExpr,
-									boolFalse = new BoolLiteralExpr;
-	next.pos = block.pos = boolType.pos = ifA.pos = ifB.pos = retTrue.pos =
-		retFalse.pos = boolTrue.pos = boolFalse.pos = expr.pos;
-	next.type = boolType;
-	next.block = block;
-	block.statements = [ifA, ifB, retFalse];
-	ifA.condition = expr.lhs;
-	ifA.onTrue = retTrue;
-	ifB.condition = expr.rhs;
-	ifB.onTrue = retTrue;
-	retTrue.val = boolTrue;
-	retFalse.val = boolFalse;
-	boolTrue.val = true;
-	boolFalse.val = false;
-	return CmpErrVal!BlockExpr(next);
+	return CmpErrVal!OpOrBin(expr);
 }
 
 /// parses tokens for OpAssignBin
