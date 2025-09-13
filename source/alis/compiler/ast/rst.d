@@ -963,6 +963,60 @@ public:
 	}
 }
 
+/// boolean and
+public class RAndExpr : RExpr{
+public:
+	RExpr lhs;
+	RExpr rhs;
+
+	this (RExpr lhs, RExpr rhs){
+		this.lhs = lhs;
+		this.rhs = rhs;
+		assert (lhs.type == ADataType.ofBool);
+		assert (rhs.type == ADataType.ofBool);
+		this.type = ADataType.ofBool;
+	}
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["lhs"] = lhs.jsonOf;
+		ret["rhs"] = rhs.jsonOf;
+		ret["_name"] = "RAndExpr";
+		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"$and(%s, %s)->%s"(lhs, rhs, type);
+	}
+}
+
+/// boolean or
+public class ROrExpr : RExpr{
+public:
+	RExpr lhs;
+	RExpr rhs;
+
+	this (RExpr lhs, RExpr rhs){
+		this.lhs = lhs;
+		this.rhs = rhs;
+		assert (lhs.type == ADataType.ofBool);
+		assert (rhs.type == ADataType.ofBool);
+		this.type = ADataType.ofBool;
+	}
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["lhs"] = lhs.jsonOf;
+		ret["rhs"] = rhs.jsonOf;
+		ret["_name"] = "ROrExpr";
+		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"$or(%s, %s)->%s"(lhs, rhs, type);
+	}
+}
+
 /// addition
 public class RAddExpr : RExpr{
 public:

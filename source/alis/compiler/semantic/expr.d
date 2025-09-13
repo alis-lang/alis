@@ -1281,6 +1281,79 @@ private bool expT(Location pos, ADataType type, ref St st){
 		opCallExprIter(call, st);
 	}
 
+	void opAndBin(OpAndBin node, ref St st){
+		RExpr lhs; {
+			SmErrsVal!RExpr res = resolve(node.lhs, st.stabR, st.ctx,
+					st.dep, st.fns);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			lhs = res.val;
+		}
+		RExpr rhs; {
+			SmErrsVal!RExpr res = resolve(node.rhs, st.stabR, st.ctx,
+					st.dep, st.fns);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			rhs = res.val;
+		}
+		if (!lhs.type.canCastTo(ADataType.ofBool, st.ctx)){
+			st.errs ~= errIncompatType(node.lhs.pos, ADataType.ofBool.toString,
+					lhs.type.toString);
+			return;
+		}
+		if (!rhs.type.canCastTo(ADataType.ofBool, st.ctx)){
+			st.errs ~= errIncompatType(node.rhs.pos, ADataType.ofBool.toString,
+					rhs.type.toString);
+			return;
+		}
+		RAndExpr ret = new RAndExpr(
+				lhs.to(ADataType.ofBool, st.ctx).val,
+				rhs.to(ADataType.ofBool, st.ctx).val);
+		ret.pos = node.pos;
+		st.res = ret;
+	}
+
+	void opOrBin(OpOrBin node, ref St st){
+		RExpr lhs; {
+			SmErrsVal!RExpr res = resolve(node.lhs, st.stabR, st.ctx,
+					st.dep, st.fns);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			lhs = res.val;
+		}
+		RExpr rhs; {
+			SmErrsVal!RExpr res = resolve(node.rhs, st.stabR, st.ctx,
+					st.dep, st.fns);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			rhs = res.val;
+		}
+		if (!lhs.type.canCastTo(ADataType.ofBool, st.ctx)){
+			st.errs ~= errIncompatType(node.lhs.pos, ADataType.ofBool.toString,
+					lhs.type.toString);
+			return;
+		}
+		if (!rhs.type.canCastTo(ADataType.ofBool, st.ctx)){
+			st.errs ~= errIncompatType(node.rhs.pos, ADataType.ofBool.toString,
+					rhs.type.toString);
+			return;
+		}
+		ROrExpr ret = new ROrExpr(
+				lhs.to(ADataType.ofBool, st.ctx).val,
+				rhs.to(ADataType.ofBool, st.ctx).val);
+		ret.pos = node.pos;
+		st.res = ret;
+
+	}
+
 	void opNotPostIter(OpNotPost node, ref St st){
 		st.errs ~= errUnsup(node.pos, "error handling"); // TODO: implement
 	}
