@@ -1434,14 +1434,11 @@ union OptionalInt{
 
 ## postfix `?` operator
 
-The `a ?` operator can be used to short circuit any expression in case
-it is erroneous. It short circuits upto:
+The `a ?` operator checks if a value is `.isVal`, if so, it is unwrapped as
+`_.val`, if not, the original unwrapped value is short-circuited upto:
 
-- expression
+- entire expression
 - either side of `=`, i.e: the `=` will **not** be short circuited
-- expression wrapped in `(..)`. This only applies to expressions, parenthesis
-    for function calls, for example, **will** be short circuited.
-- expression wrapped in `[]`
 
 ```
 var auto i = foo? + bar?;
@@ -1449,14 +1446,14 @@ var auto i = foo? + bar?;
 
 `foo? + bar?` is evaluated as:
 
-1. `foo` evaluated, result stored as `V0`
+1. `foo` evaluated, result referred to as `V0`
 2. `V0.isVal.$is(false)` ? if so, return `V0`
-3. `bar` evaluated, result stored as `V1`
+3. `bar` evaluated, result referred to as `V1`
 4. `V1.isVal.$is(false)` ? if so, return `V1`
 5. `V0.val + V1.val` evaluated and returned
 
-Note that `V0` and `V1` are not actually created, these names are used here
-only to illustrate.
+Note that `V0` and `V1` identifiers are not actually created, these names are
+used here only to illustrate.
 
 The return data type of the expression `foo? + bar?` will be:
 
