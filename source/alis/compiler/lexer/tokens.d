@@ -155,7 +155,6 @@ enum TokType{
 	@Match(`->`)
 	@Match(`,`)
 	@Match(`.`)
-	@Match(`!!`)
 	@Match(`??`)
 	@Match(`*`)
 	@Match(`/`)
@@ -200,7 +199,6 @@ enum TokType{
 	@Match(`~`)															OpPre,
 
 	// postfix operators
-	@Match(`!`)
 	@Match(`++`)
 	@Match(`--`)
 	@Match(`?`)
@@ -224,7 +222,6 @@ enum TokType{
 	@Match(`->`)														OpArrow,
 	@Match(`,`)															OpComma,
 	@Match(`.`)															OpDot,
-	@Match(`!!`)														OpNotNot,
 	@Match(`??`)														OpQQ,
 	@Match(`*`)															OpMul,
 	@Match(`/`)															OpDiv,

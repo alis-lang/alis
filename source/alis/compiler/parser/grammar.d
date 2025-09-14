@@ -1411,16 +1411,6 @@ CmpErrVal!OpRefPost parseOpRefPost(ref TokRange toks, Expression prev){
 	return CmpErrVal!OpRefPost(ret);
 }
 
-/// parses tokens for OpNotPost
-/// Returns: OpNotPost or error
-@GFn @Post!"!"
-CmpErrVal!OpNotPost parseOpNotPost(ref TokRange toks, Expression prev){
-	toks.popFront;
-	OpNotPost ret = new OpNotPost;
-	ret.operand = prev;
-	return CmpErrVal!OpNotPost(ret);
-}
-
 /// parses tokens for OpIncPost
 /// Returns: OpIncPost or error
 @GFn @Post!"++"
@@ -1608,20 +1598,6 @@ CmpErrVal!OpDotBin parseOpDotBin(ref TokRange toks, Expression prev){
 	ret.lhs = prev;
 	ret.rhs = rhs.val;
 	return CmpErrVal!OpDotBin(ret);
-}
-
-/// parses tokens for OpNotNotBin
-/// Returns: OpNotNotBin or error
-@GFn @Bin!"!!"
-CmpErrVal!OpNotNotBin parseOpNotNotBin(ref TokRange toks, Expression prev){
-	toks.popFront;
-	OpNotNotBin ret = new OpNotNotBin;
-	CmpErrVal!Expression rhs = P.parseExpr!(PrecedOfBin!"!!", Expression)(toks);
-	if (rhs.isErr)
-		return CmpErrVal!OpNotNotBin(rhs.err);
-	ret.lhs = prev;
-	ret.rhs = rhs.val;
-	return CmpErrVal!OpNotNotBin(ret);
 }
 
 /// parses tokens for OpQQBin

@@ -14,7 +14,7 @@ private static immutable OpsP = [
 	[`A ( B`], // )
 	["( A"], // )
 	[`# A`, `const A`],
-	[`A !`, `A ?`, `A ?? B`, `A !! B`, `A ++`, `A --`],
+	[`A ?`, `A ?? B`, `A ++`, `A --`],
 	[`A @`, `A ...`],
 	[`~ A`, `is A`, `!is A`, `! A`],
 	[`A * B`, `A / B`, `A % B`],

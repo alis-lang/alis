@@ -1353,15 +1353,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		st.res = ret;
 	}
 
-	void opNotPostIter(OpNotPost node, ref St st){
-		st.errs ~= errUnsup(node.pos, "error handling"); // TODO: implement
-	}
-
 	void opQPostIter(OpQPost node, ref St st){
-		st.errs ~= errUnsup(node.pos, "error handling"); // TODO: implement
-	}
-
-	void opNotNotBinIter(OpNotNotBin node, ref St st){
 		st.errs ~= errUnsup(node.pos, "error handling"); // TODO: implement
 	}
 
