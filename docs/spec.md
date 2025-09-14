@@ -782,56 +782,6 @@ var Foo b = {i = 5};
 
 ---
 
-# Destructor `opFree`
-
-Anytime a variable changes its value, or ceases to exist (at scope exit), if
-`opFree` can be called on it, it is called. `opFree` must only accept a
-reference to a constant type.
-
-Struct Example:
-```
-struct Bar {int i;}
-struct Foo {Bar bar;};
-fn opFree(@const Foo f){
-	"Foo being destroyed".writeln;
-}
-fn opFree(@const Bar b){
-	"Bar being destroyed".writeln;
-}
-pub fn main () -> void {
-	var Foo f; // nothing printed
-	f.bar = {i = 5}; // "Bar being destroyed"
-	f.bar.i = 6; // nothing printed
-	f = {bar = {i = 10}}; // "Foo being destroyed" and "Bar being destroyed"
-} // "Foo being destroyed" and "Bar being destroyed"
-```
-
-Union Example:
-```
-struct Foo {int f;}
-struct Bar {int b;}
-fn opFree(@const Foo f){
-	"Foo being destroyed".writeln;
-}
-fn opFree(@const Bar b){
-	"Bar being destroyed".writeln;
-}
-union Baz {
-	Foo;
-	Bar;
-}
-fn opFree(@const Baz b){
-	"Baz being destroyed".writeln;
-}
-pub fn main () -> void {
-	var Baz b = {f = 6}.Foo; // nothing printed
-	b = {f = 7}.Foo; // "Foo being destroyed"
-	b = {b = 8}.Bar; // "Foo being destroyed"
-} // "Baz being destroyed" and "Bar being destroyed"
-```
-
----
-
 # Enums
 
 Enum can be used to group together constants of the same base data type.
