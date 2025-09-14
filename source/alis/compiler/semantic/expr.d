@@ -1034,10 +1034,6 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.errs ~= rhsConverted.err;
 			return;
 		}
-		if (!lhs.type.isPrimitive && lhs.type.type != ADataType.Type.Ref){
-			// TODO: opFree
-			debug stderr.writefln!"TODO: implement opFree calling (%s)"(lhs.type);
-		}
 		RAssignExpr r = new RAssignExpr();
 		r.refExpr = lhs;
 		r.valExpr = rhsConverted.val;
