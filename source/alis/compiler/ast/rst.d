@@ -1321,3 +1321,35 @@ public:
 		return format!"$to(%s, %s)->%s"(val, target, type);
 	}
 }
+
+/// Error short circuit operator
+public class RUnwrapExpr : RExpr{
+public:
+	/// LHS expression to unwrap
+	RExpr lhs;
+	/// `_.isVal`
+	RExpr isVal;
+	/// `_.val`
+	RExpr val;
+
+	this (RExpr lhs, RExpr isVal, RExpr val){
+		this.lhs = lhs;
+		this.isVal = isVal;
+		this.val = val;
+		assert (isVal.type == ADataType.ofBool);
+		this.type = val.type;
+	}
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["lhs"] = lhs.jsonOf;
+		ret["isVal"] = isVal.jsonOf;
+		ret["val"] = val.jsonOf;
+		ret["_name"] = "RUnwrapExpr";
+		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"$errq(%s, %s, %s)->%s"(lhs, isVal, val, type);
+	}
+}
