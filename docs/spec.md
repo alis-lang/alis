@@ -782,56 +782,6 @@ var Foo b = {i = 5};
 
 ---
 
-# Destructor `opFree`
-
-Anytime a variable changes its value, or ceases to exist (at scope exit), if
-`opFree` can be called on it, it is called. `opFree` must only accept a
-reference to a constant type.
-
-Struct Example:
-```
-struct Bar {int i;}
-struct Foo {Bar bar;};
-fn opFree(@const Foo f){
-	"Foo being destroyed".writeln;
-}
-fn opFree(@const Bar b){
-	"Bar being destroyed".writeln;
-}
-pub fn main () -> void {
-	var Foo f; // nothing printed
-	f.bar = {i = 5}; // "Bar being destroyed"
-	f.bar.i = 6; // nothing printed
-	f = {bar = {i = 10}}; // "Foo being destroyed" and "Bar being destroyed"
-} // "Foo being destroyed" and "Bar being destroyed"
-```
-
-Union Example:
-```
-struct Foo {int f;}
-struct Bar {int b;}
-fn opFree(@const Foo f){
-	"Foo being destroyed".writeln;
-}
-fn opFree(@const Bar b){
-	"Bar being destroyed".writeln;
-}
-union Baz {
-	Foo;
-	Bar;
-}
-fn opFree(@const Baz b){
-	"Baz being destroyed".writeln;
-}
-pub fn main () -> void {
-	var Baz b = {f = 6}.Foo; // nothing printed
-	b = {f = 7}.Foo; // "Foo being destroyed"
-	b = {b = 8}.Bar; // "Foo being destroyed"
-} // "Baz being destroyed" and "Bar being destroyed"
-```
-
----
-
 # Enums
 
 Enum can be used to group together constants of the same base data type.
@@ -1281,7 +1231,7 @@ Operators are read in this order (higher precedence to lower), comma separated:
 - `@ A`
 - `A ( B`
 - `# A` only used for attributes
-- `A !`, `A ?`, `A ?? B`, `A !! B`, `A ++`, `A --`
+- `A ?`, `A ?? B`, `A ++`, `A --`
 - `A @`, `A ...`
 - `~ A`, `is A`, `!is A`, `! A`
 - `A * B`, `A / B`, `A % B`
@@ -1303,112 +1253,12 @@ Some of these operators cannot be used in usual expressions:
 
 ## Syntactic Sugar Operators
 
-Some operators are only syntactic sugar:
-
-### Postfix Question Mark `A ?`
-
-`x = A ? <rest of the expression>;`
-
-will translate to:
-
-```
-x = auto {
-	var auto _temp = A;
-	if _temp.opIsErr
-		return /*build error from _temp.err*/;
-	return _temp <rest of the expression>;
-};
-```
-
-For contents of `/*build error from _temp.err*/`, see
-[Error Handling](#error-handling).
-
-### Postfix Double Question Mark `A ??`
-
-`x = A ?? "A bad" <rest of the expression>;`
-
-will translate to:
-
-```
-x = auto {
-	var auto _temp = A;
-	if _temp.opIsErr
-		return "A bad";
-	return _temp <rest of the expression>;
-}
-```
-
-### Postfix Exclamation Mark `A !`
-
-`x = A ! <rest of the expression>;`
-
-will translate to:
-
-```
-x = auto {
-	var auto _temp = A;
-	if _temp.opIsErr
-		return_from_function /*build error from _temp.err*/;
-	return _temp <rest of the expression>;
-}
-```
-
-Note that `return_from_function` is not a real keyword, its usage here is only
-to signify that it does not return a value to be written into `x`, but rather
-it returns from whatever function this expression is evaluated in.
-
-### Postfix Double Exclamation Mark `A !!`
-
-`x = A !! "A bad" <rest of the expression>;`
-
-will translate to:
-
-```
-x = auto {
-	var auto _temp = A;
-	if _temp.opIsErr
-		return_from_function "A bad";
-	return _temp <rest of the expression>;
-}
-```
-
-### Boolean And `A && B`
-
-`A && B`
-
-will translate to:
-
-```
-auto {
-	if A {
-		if B {
-			return true;
-		}
-	}
-	return false;
-}
-```
-
-### Boolean Or `A || B`
-
-`A || B`
-
-will translate to:
-
-```
-auto {
-	if A
-		return true;
-	if B
-		return true;
-	return false;
-}
-```
-
 ### Compound Assignment Operators
 
 All variations of the assignment operator that combine an arithmetic operator
 `op` with `=` to make `op=` are translated from `A op= B;` into `A = A op B;`
+
+The `@=` reference assingment operator is not a compound assignment operator.
 
 ## Operator Overloading
 
@@ -1498,72 +1348,72 @@ template opBin $(string op : "+", alias a : Length, alias b : Length){
 
 ---
 
-# Error Handling {#error-handling}
+# Error Handling
 
-There are no exceptions or any concept of "exceptional control flow". Erorrs
-are normal. Functions are to return errors as values.
+Alis offers some Error Handling Operators to aid in using Errors-as-Values.
 
 ## Erroneous Values
 
-Erroneous Values are constructed under the hood as:
+`X.isVal` is used to determine if a value is erroneous. It can be implemented
+in many ways:
 
 ```
-// in case of error
-auto{
-	$if ($debug){
-		// in case of no defined error value
-		return {err = {stackTrace = $stackTrace}};
-		// in case of defined error value
-		return {err = {err = ERR_VALUE, stackTrace = $stackTrace}};
-	}
-	else{
-		// in case of no defined error value
-		return {err = {}};
-		// in case of defined error value
-		return {err = ERR_VALUE};
-	}
-};
-
-// in case of no error
-auto{
- return {val = VALUE};
-};
+union OptionalInt{ int; struct{}; }
+// as function:
+fn isVal(OptionalInt o) -> $unionIs(o.int);
+// as alias template
+alias isVal $(alias V : OptionalVal) = $unionIs(V.int);
+// or as a member:
+struct OptionalIntStruct{ int val; bool isVal = false; }
 ```
 
-Whether a value is erroneous or not is detected through `opIsErr`:
+`X.val` is used to unwrap a possible erroneous value into a value. This can be
+implemented in many ways:
 
 ```
-union Optional $($type T){
-	pub void err;
-	pub T val;
+// as a function
+fn val(OptionalInt o) -> o.int;
+// as an alias
+alias val $(alias V : OptionalInt) -> V.int;
+// or simply name it in the union
+union OptionalInt{
+	int val;
+	struct{} _;
 }
-
-/// true if error
-alias opIsErr $(alias val : Optional(T), $type T) = is val.err;
 ```
 
 ## postfix `?` operator
 
-The `a?` operator can be used to short circuit any expression to instead return
-an error:
+The `a ?` operator checks if a value is `.isVal`, if so, it is unwrapped as
+`_.val`, if not, the original unwrapped value is short-circuited upto:
+
+- entire expression
+- either side of `=`, i.e: the `=` will **not** be short circuited
 
 ```
 var auto i = foo? + bar?;
 ```
 
-In above expression, `foo` is evaluated, if the result is an error, the entire
-expression on LHS of `=` evaluates to that error. If there is no error, `bar`
-is evaluated. If it evaluates to an error, the expression evaluates to that
-error. If neither evaluate to an error, `foo + bar` is evaluated.
+`foo? + bar?` is evaluated as:
 
-The data type of the `foo? + bar?` expression is:
+1. `foo` evaluated, result referred to as `V0`
+2. `V0.isVal.$is(false)` ? if so, return `V0`
+3. `bar` evaluated, result referred to as `V1`
+4. `V1.isVal.$is(false)` ? if so, return `V1`
+5. `V0.val + V1.val` evaluated and returned
+
+Note that `V0` and `V1` identifiers are not actually created, these names are
+used here only to illustrate.
+
+The return data type of the expression `foo? + bar?` will be:
 
 ```
 union {
 	union {
-		errorTypeFromFoo; errorTypeFromBar;
+		foo.$type; bar.$type;
 	} err;
-	valueTypeFromSummation val;
+	$type(foo.val + bar.val) val;
+	alias this = val;
 }
 ```
 
@@ -1575,50 +1425,40 @@ The union is built with 2 members:
 
 ## binary `??` operator
 
-Works similar to the postfix `?` operator. Rather than an empty error value,
-it specifies an error value to be used:
+In case LHS is erroneous, this can be used to do one of the following:
+
+- rewrite the error before returning it
+- `return`
+- `break`
+- `continue`
+
+For example:
 
 ```
-a?? "A is bad" + b?? "B bad" + c?? 5 + d?;
+fn sumIntStr(string a, string b) -> (a.int? + b.int?) ?? 0;
+sumIntStr("5", "6").writeln; // 11
+sumIntStr("5", "six").writeln; // 0
+sumIntStr("five", "6").writeln; // 0
 ```
 
-The above expression will have the return type:
+The `?` operators here are used to short circuit upto the `()`, where `??`
+rewrites the value to `0`.
+
+Similarly, `??` can be used as follows as well:
+
+- `LHS ?? return Y`
+- `LHS ?? break`
+- `LHS ?? continue`
+
+In RHS of the `??` operator, the `_` identifier can be used to refer to the
+erroneous value:
 
 ```
-union {
-	union {
-		string; // for error from a?? and b??
-		int; // for error from c??
-		void; // for error from d?
-	} err;
-	int val; // assuming all return int in error-free path
+fn logAndReturn $($type T)(T val) -> T {
+	val.to(string).writeln;
+	return val;
 }
-```
-
-## postfix `!` operator
-
-Works similar to the `?` postfix operator, but rather than short-circuiting
-the current expression, it immediately returns the error from the current
-function:
-
-```
-fn foo() -> auto{
-	var auto x = bar!;
-	writeln("No error");
-	return x;
-}
-```
-
-## binary `!!` operator
-
-works similarly to the postfix `!` operator, but returns a custom error value:
-
-```
-fn foo() -> auto{
-	var auto x = bar!! "no bar";
-	writeln("No error");
-	return x;
-}
+fn toInt(string s) -> s.int ?? { isVal = false, err = _ };
 ```
 
 ---

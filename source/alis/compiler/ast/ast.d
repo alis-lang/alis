@@ -1954,20 +1954,6 @@ public:
 
 // Operators / Errors ---------------------------------------------------------
 
-/// OpNot postfix operator
-public class OpNotPost : OpPostExpr{
-public:
-	this(){
-		this.op = "!";
-	}
-
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		ret["_name"] = "OpNotPost";
-		return ret;
-	}
-}
-
 /// OpQ postfix operator
 public class OpQPost : OpPostExpr{
 public:
@@ -1978,20 +1964,6 @@ public:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "OpQPost";
-		return ret;
-	}
-}
-
-/// OpNotNot binary operator
-public class OpNotNotBin : OpBinExpr{
-public:
-	this(){
-		this.op = "!!";
-	}
-
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		ret["_name"] = "OpNotNotBin";
 		return ret;
 	}
 }
