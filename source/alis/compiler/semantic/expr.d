@@ -176,7 +176,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		// TODO: handle @auto
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
 		foreach (Statement stmnt; node.block.statements){
-			SmErrsVal!RStatement stmntRes = resolveStmnt(stmnt, st.stabR, st.ctx,
+			SmErrsVal!(RStatement[]) stmntRes = resolveStmnt(stmnt, st.stabR, st.ctx,
 					st.dep, st.fns);
 			if (stmntRes.isErr){
 				st.errs ~= stmntRes.err;
