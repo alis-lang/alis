@@ -33,8 +33,10 @@ private struct St{
 	IdentU[] ctx;
 	/// symbols dependent on current call
 	void[0][ASymbol*] dep;
-	/// resulting expression
-	RStatement res;
+	/// resulting expression(s)
+	RStatement[] res;
+	/// Return data types
+	ADataType[] rTypes;
 	/// `RFn` for each `AFn.uid`
 	RFn[string] fns;
 }
@@ -42,10 +44,6 @@ private struct St{
 private alias It = ItL!(mixin(__MODULE__), 0);
 
 @ItFn @ITL(0){
-	void cCNodeIter(CCNode node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
-	}
-
 	void staticIfIter(StaticIf node, ref St st){
 		st.errs ~= errUnsup(node); // TODO: implement
 	}
@@ -98,7 +96,7 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 /// - `ctx` - Context where the `expr` occurs
 /// Returns: RStatement or SmErr[]
 pragma(inline, true)
-package SmErrsVal!RStatement resolveStmnt(Statement stmnt, STab stabR,
+package SmErrsVal!(RStatement[]) resolveStmnt(Statement stmnt, STab stabR,
 		IdentU[] ctx, void[0][ASymbol*] dep, RFn[string] fns){
 	assert (fns);
 	St st;
@@ -109,8 +107,8 @@ package SmErrsVal!RStatement resolveStmnt(Statement stmnt, STab stabR,
 	st.fns = fns;
 	It.exec(stmnt, st);
 	if (st.errs.length)
-		return SmErrsVal!RStatement(st.errs);
+		return SmErrsVal!(RStatement[])(st.errs);
 	if (st.res is null)
-		return SmErrsVal!RStatement([errUnxp(stmnt.pos, "resolve stmnt -> null")]);
-	return SmErrsVal!RStatement(st.res);
+		return SmErrsVal!(RStatement[])([errUnxp(stmnt.pos, "resolve stmnt -> null")]);
+	return SmErrsVal!(RStatement[])(st.res);
 }
