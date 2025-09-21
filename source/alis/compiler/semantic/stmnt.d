@@ -35,6 +35,8 @@ private struct St{
 	void[0][ASymbol*] dep;
 	/// resulting expression(s)
 	RStatement[] res;
+	/// Return data types
+	ADataType[] rTypes;
 	/// `RFn` for each `AFn.uid`
 	RFn[string] fns;
 }
@@ -42,10 +44,6 @@ private struct St{
 private alias It = ItL!(mixin(__MODULE__), 0);
 
 @ItFn @ITL(0){
-	void cCNodeIter(CCNode node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
-	}
-
 	void staticIfIter(StaticIf node, ref St st){
 		st.errs ~= errUnsup(node); // TODO: implement
 	}
