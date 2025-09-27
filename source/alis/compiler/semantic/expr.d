@@ -175,33 +175,28 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.block.pos = node.block.pos;
 		// TODO: handle @auto
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
+		ADataType xType; {
+			if (!isAuto){
+				SmErrsVal!ADataType res = eval4Type(node.type, st.stabR, st.ctx,
+						st.dep, st.fns);
+				if (res.err){
+					st.errs ~= res.err;
+					return;
+				}
+				xType = res.val;
+			}
+		}
+
 		foreach (Statement stmnt; node.block.statements){
 			SmErrsVal!(RStatement[]) stmntRes = resolveStmnt(stmnt, st.stabR, st.ctx,
-					st.dep, st.fns);
+					st.dep, st.fns, isAuto ? &xType : null);
 			if (stmntRes.isErr){
 				st.errs ~= stmntRes.err;
 				continue;
 			}
 			r.block.statements ~= stmntRes.val;
 		}
-		// TODO: figure out return type for RBlockExpr
-		ADataType aType;
-		if (isAuto){
-		} else {
-			// TODO check if can be casted
-			SmErrsVal!ADataType xtypeRes = eval4Type(node.type, st.stabR, st.ctx,
-					st.dep, st.fns);
-			if (xtypeRes.err){
-				st.errs ~= xtypeRes.err;
-				return;
-			}
-			r.type = xtypeRes.val;
-			if (!aType.canCastTo(r.type, st.ctx)){
-				st.errs ~= errIncompatType(node.pos, xtypeRes.val.toString,
-						aType.toString);
-				return;
-			}
-		}
+		r.type = xType;
 		if (st.params.length && r.type.callabilityOf(st.params) == size_t.max){
 			st.errs ~= errCallableIncompat(node.pos, r.type.toString,
 					st.params.map!(p => p.toString));
