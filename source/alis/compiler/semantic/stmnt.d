@@ -9,6 +9,7 @@ import alis.common,
 			 alis.compiler.semantic.error,
 			 alis.compiler.semantic.sym0,
 			 alis.compiler.semantic.eval,
+			 alis.compiler.semantic.expr,
 			 alis.compiler.ast,
 			 alis.compiler.ast.iter,
 			 alis.compiler.ast.rst;
@@ -51,7 +52,7 @@ private struct LList(T){
 	Node* head;
 	Node* tail;
 
-	void add(T val) pure {
+	void push(T val) pure {
 		if (head is null){
 			head = new Node(val, null);
 			tail = head;
@@ -93,17 +94,64 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void blockIter(Block node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
+		IdentU subCtx = format!"$_%d_%d_$"(
+				node.pos.line, node.pos.col).IdentU;
+		IdentU[] ctx = st.ctx ~ subCtx;
+		st.stab.add(subCtx, new STab, []);
 		RBlock r = new RBlock;
 		r.pos = node.pos;
+		foreach (Statement stmnt; node.statements){
+			SmErrsVal!(RStatement[]) res = resolveStmnt(stmnt, st.stabR, ctx,
+					st.dep, st.fns, st.rTypePtr, st.rNodes);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			r.statements ~= res.val;
+		}
+		st.res ~= r;
 	}
 
 	void returnIter(Return node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
+		RReturn ret = new RReturn;
+		ret.pos = node.pos;
+		SmErrsVal!RExpr valRes = resolve(node.val, st.stabR, st.ctx,
+				st.dep, st.fns);
+		if (valRes.isErr){
+			st.errs ~= valRes.err;
+			return;
+		}
+		ret.val = valRes.val;
+		if (st.rNodes !is null)
+			st.rNodes.push(ret);
+		st.res ~= ret;
 	}
 
 	void ifIter(If node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
+		size_t ec = st.errs.length;
+		RIf ret = new RIf;
+		ret.pos = node.pos;
+		SmErrsVal!RExpr cnd = resolve(node.condition, st.stabR, st.ctx,
+				st.dep, st.fns);
+		SmErrsVal!(RStatement[]) onTrue = resolveStmnt(node.onTrue, st.stabR,
+				st.ctx, st.dep, st.fns, st.rTypePtr, st.rNodes);
+		ret.condition = cnd.val;
+		ret.onTrue = onTrue.val;
+		if (node.onFalse){
+			SmErrsVal!(RStatement[]) onFalse = resolveStmnt(node.onFalse, st.stabR,
+					st.ctx, st.dep, st.fns, st.rTypePtr, st.rNodes);
+			if (onFalse.isErr){
+				st.errs ~= onFalse.err;
+			} else {
+				ret.onFalse = onFalse.val;
+			}
+		}
+		if (cnd.isErr)
+			st.errs ~= cnd.err;
+		if (onTrue.isErr)
+			st.errs ~= onTrue.err;
+		if (st.errs.length != ec) return;
+		st.res ~= ret;
 	}
 
 	void forIter(For node, ref St st){
@@ -111,7 +159,19 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void whileIter(While node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
+		immutable size_t ec = st.errs.length;
+		RWhile ret = new RWhile;
+		ret.pos = node.pos;
+		SmErrsVal!RExpr cnd = resolve(node.condition, st.stabR, st.ctx,
+				st.dep, st.fns);
+		SmErrsVal!(RStatement[]) body = resolveStmnt(node.body, st.stabR,
+				st.ctx, st.dep, st.fns, st.rTypePtr, st.rNodes);
+		if (cnd.isErr)
+			st.errs ~= cnd.err;
+		if (body.isErr)
+			st.errs ~= body.err;
+		if (st.errs.length != ec) return;
+		st.res ~= ret;
 	}
 
 	void doWhileIter(DoWhile node, ref St st){
@@ -140,6 +200,26 @@ package SmErrsVal!(RStatement[]) resolveStmnt(Statement stmnt, STab stabR,
 	st.stab = stabR.findSt(ctx, ctx);
 	st.fns = fns;
 	st.rTypePtr = rTypePtr;
+	It.exec(stmnt, st);
+	if (st.errs.length)
+		return SmErrsVal!(RStatement[])(st.errs);
+	if (st.res is null)
+		return SmErrsVal!(RStatement[])([errUnxp(stmnt.pos, "resolve stmnt -> null")]);
+	return SmErrsVal!(RStatement[])(st.res);
+}
+
+/// ditto
+private SmErrsVal!(RStatement[]) resolveStmnt(Statement stmnt, STab stabR,
+		IdentU[] ctx, void[0][ASymbol*] dep, RFn[string] fns,
+		ADataType* rTypePtr, LList!RReturn* rNodes){
+	St st;
+	st.dep = dep;
+	st.ctx = ctx.dup;
+	st.stabR = stabR;
+	st.stab = stabR.findSt(ctx, ctx);
+	st.fns = fns;
+	st.rTypePtr = rTypePtr;
+	st.rNodes = rNodes;
 	It.exec(stmnt, st);
 	if (st.errs.length)
 		return SmErrsVal!(RStatement[])(st.errs);
