@@ -156,16 +156,16 @@ public:
 	/// condition
 	RExpr condition;
 	/// on true statement
-	RStatement onTrue;
+	RStatement[] onTrue;
 	/// on false statement (else), can be null
-	RStatement onFalse;
+	RStatement[] onFalse;
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["condition"] = condition.jsonOf;
-		ret["onTrue"] = onTrue.jsonOf;
+		ret["onTrue"] = onTrue.map!(s => s.jsonOf).array;
 		if (onFalse)
-			ret["onFalse"] = onFalse.jsonOf;
+			ret["onFalse"] = onFalse.map!(s => s.jsonOf).array;
 		ret["_name"] = "RIf";
 		return ret;
 	}
