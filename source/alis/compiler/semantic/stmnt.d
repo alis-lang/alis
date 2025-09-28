@@ -35,10 +35,42 @@ private struct St{
 	void[0][ASymbol*] dep;
 	/// resulting expression(s)
 	RStatement[] res;
-	/// Return data types
-	ADataType[] rTypes;
+	/// expected return type. can be null if auto expected
+	ADataType* rTypePtr;
+	/// resolved `return` nodes
+	LList!RReturn* rNodes;
 	/// `RFn` for each `AFn.uid`
 	RFn[string] fns;
+}
+
+private struct LList(T){
+	private struct Node{
+		T val;
+		Node* next;
+	}
+	Node* head;
+	Node* tail;
+
+	void add(T val) pure {
+		if (head is null){
+			head = new Node(val, null);
+			tail = head;
+			return;
+		}
+		tail.next = new Node(val, null);
+	}
+
+	@property T front() pure {
+		assert (head !is null);
+		return head.val;
+	}
+	@property bool empty() const pure {
+		return head !is null;
+	}
+	void popFront() pure {
+		assert (head !is null);
+		head = head.next;
+	}
 }
 
 private alias It = ItL!(mixin(__MODULE__), 0);
@@ -62,6 +94,8 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 
 	void blockIter(Block node, ref St st){
 		st.errs ~= errUnsup(node); // TODO: implement
+		RBlock r = new RBlock;
+		r.pos = node.pos;
 	}
 
 	void returnIter(Return node, ref St st){
@@ -97,7 +131,7 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 /// Returns: RStatement or SmErr[]
 pragma(inline, true)
 package SmErrsVal!(RStatement[]) resolveStmnt(Statement stmnt, STab stabR,
-		IdentU[] ctx, void[0][ASymbol*] dep, RFn[string] fns){
+		IdentU[] ctx, void[0][ASymbol*] dep, RFn[string] fns, ADataType* rTypePtr){
 	assert (fns);
 	St st;
 	st.dep = dep;
@@ -105,6 +139,7 @@ package SmErrsVal!(RStatement[]) resolveStmnt(Statement stmnt, STab stabR,
 	st.stabR = stabR;
 	st.stab = stabR.findSt(ctx, ctx);
 	st.fns = fns;
+	st.rTypePtr = rTypePtr;
 	It.exec(stmnt, st);
 	if (st.errs.length)
 		return SmErrsVal!(RStatement[])(st.errs);
