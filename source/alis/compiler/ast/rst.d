@@ -117,6 +117,8 @@ public class RReturn : RStatement{
 public:
 	/// return value, can be null
 	RExpr val;
+	/// context
+	IdentU[] ctx;
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
