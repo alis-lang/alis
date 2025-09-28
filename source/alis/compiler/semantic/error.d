@@ -56,6 +56,7 @@ public struct SmErr{
 		MemberNoExist, /// Member not existing
 		Err, /// error through the $err intrinsic
 		InitFail, /// Cannot initialize a value
+		NoReturn, /// Missing return
 	}
 
 	/// where error happen
@@ -328,4 +329,11 @@ package SmErr errInitFail(Location pos, string type, string subType){
 			format!"initialization error: cannot initialize type `%s` in `%s`"(
 				subType, type),
 			SmErr.Type.InitFail);
+}
+
+/// Missing return
+package SmErr errNoReturn(Location pos, string expected){
+	return SmErr(pos,
+			expected.format!"missing return: expected return type `%s`",
+			SmErr.Type.NoReturn);
 }
