@@ -115,6 +115,7 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	void returnIter(Return node, ref St st){
 		RReturn ret = new RReturn;
 		ret.pos = node.pos;
+		ret.ctx = st.ctx;
 		SmErrsVal!RExpr valRes = resolve(node.val, st.stabR, st.ctx,
 				st.dep, st.fns);
 		if (valRes.isErr){
@@ -201,6 +202,7 @@ package SmErrsVal!(RStatement[]) resolveStmnt(Statement stmnt, STab stabR,
 	st.fns = fns;
 	st.rTypePtr = rTypePtr;
 	It.exec(stmnt, st);
+	st.returnTypeBuild(stmnt.pos);
 	if (st.errs.length)
 		return SmErrsVal!(RStatement[])(st.errs);
 	if (st.res is null)
@@ -226,4 +228,24 @@ private SmErrsVal!(RStatement[]) resolveStmnt(Statement stmnt, STab stabR,
 	if (st.res is null)
 		return SmErrsVal!(RStatement[])([errUnxp(stmnt.pos, "resolve stmnt -> null")]);
 	return SmErrsVal!(RStatement[])(st.res);
+}
+
+/// Builds return type for when expected return type is auto
+private void returnTypeBuild(ref St st, Location pos){
+	if (st.rTypePtr !is null){
+		if (st.rNodes.empty){
+			st.errs ~= errNoReturn(pos, st.rTypePtr.toString);
+			return;
+		}
+		foreach (RReturn ret; *(st.rNodes)){
+			if (!ret.val.type.canCastTo(*(st.rTypePtr), ret.ctx)){
+				st.errs ~= errIncompatType(ret.pos, st.rTypePtr.toString,
+						ret.val.type.toString);
+				continue;
+			}
+			ret.val = ret.val.to(*(st.rTypePtr), ret.ctx).val;
+		}
+		return;
+	}
+	// TODO: build a union return type
 }
