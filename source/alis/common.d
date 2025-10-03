@@ -1823,7 +1823,7 @@ public struct AStruct{
 
 /// Alis union
 public struct AUnion{
-	/// identifier, `_` if anonymous, which also implies not unique
+	/// identifier
 	IdentU[] ident;
 	/// types of members
 	ADataType[] types;
@@ -1832,7 +1832,7 @@ public struct AUnion{
 	/// name's visibility. can be null, if unnamed
 	Visibility[string] nameVis;
 	/// initialisation type's index, or `size_t.max` if none
-	size_t initI;
+	size_t initI = size_t.max;
 	/// initialisation data
 	OptVal!(void[]) initD;
 	/// Visibility outside its parent module
@@ -1897,6 +1897,26 @@ public struct AUnion{
 				*(cast(size_t*)(ret.ptr + sizeOfField)) = id;
 				return ret.OptVal!(void[]);
 			}
+		}
+
+		if (names is null || names.length == 0){
+			size_t tInd = size_t.max;
+			foreach (size_t i, const(ADataType) type; types){
+				if (src.canCastTo(type, ctx)){
+					if (tInd != size_t.max)
+						return OptVal!(void[])();
+					tInd = i;
+				}
+			}
+			if (tInd == size_t.max)
+				return OptVal!(void[])();
+			OptVal!AVal convd = src.to(types[tInd], ctx);
+			if (!convd.isVal)
+				return OptVal!(void[])();
+			void[] ret = new void[sizeOf];
+			ret[0 .. types[tInd].sizeOf] = convd.val.data;
+			*(cast(size_t*)(ret.ptr + sizeOfField)) = tInd;
+			return ret.OptVal!(void[]);
 		}
 
 		void[0][size_t] visIds;
