@@ -10,6 +10,7 @@ import alis.common,
 			 alis.compiler.semantic.sym0,
 			 alis.compiler.semantic.eval,
 			 alis.compiler.semantic.expr,
+			 alis.compiler.semantic.types,
 			 alis.compiler.ast,
 			 alis.compiler.ast.iter,
 			 alis.compiler.ast.rst;
@@ -40,6 +41,8 @@ private struct St{
 	ADataType* rTypePtr;
 	/// resolved `return` nodes
 	LList!RReturn* rNodes;
+	/// whether return type is auto
+	bool isAuto;
 	/// `RFn` for each `AFn.uid`
 	RFn[string] fns;
 }
@@ -51,6 +54,11 @@ private struct LList(T){
 	}
 	Node* head;
 	Node* tail;
+
+	this(LList!T from){
+		head = from.head;
+		tail = from.tail;
+	}
 
 	void push(T val) pure {
 		if (head is null){
@@ -66,7 +74,7 @@ private struct LList(T){
 		return head.val;
 	}
 	@property bool empty() const pure {
-		return head !is null;
+		return head is null;
 	}
 	void popFront() pure {
 		assert (head !is null);
@@ -94,15 +102,14 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void blockIter(Block node, ref St st){
-		IdentU subCtx = format!"$_%d_%d_$"(
-				node.pos.line, node.pos.col).IdentU;
+		IdentU subCtx = format!"$_%d_%d_$"(node.pos.line, node.pos.col).IdentU;
 		IdentU[] ctx = st.ctx ~ subCtx;
 		st.stab.add(subCtx, new STab, []);
 		RBlock r = new RBlock;
 		r.pos = node.pos;
 		foreach (Statement stmnt; node.statements){
 			SmErrsVal!(RStatement[]) res = resolveStmnt(stmnt, st.stabR, ctx,
-					st.dep, st.fns, st.rTypePtr, st.rNodes);
+					st.dep, st.fns, st.rTypePtr, st.isAuto, st.rNodes);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
@@ -123,8 +130,7 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 			return;
 		}
 		ret.val = valRes.val;
-		if (st.rNodes !is null)
-			st.rNodes.push(ret);
+		st.rNodes.push(ret);
 		st.res ~= ret;
 	}
 
@@ -135,12 +141,12 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 		SmErrsVal!RExpr cnd = resolve(node.condition, st.stabR, st.ctx,
 				st.dep, st.fns);
 		SmErrsVal!(RStatement[]) onTrue = resolveStmnt(node.onTrue, st.stabR,
-				st.ctx, st.dep, st.fns, st.rTypePtr, st.rNodes);
+				st.ctx, st.dep, st.fns, st.rTypePtr, st.isAuto, st.rNodes);
 		ret.condition = cnd.val;
 		ret.onTrue = onTrue.val;
 		if (node.onFalse){
 			SmErrsVal!(RStatement[]) onFalse = resolveStmnt(node.onFalse, st.stabR,
-					st.ctx, st.dep, st.fns, st.rTypePtr, st.rNodes);
+					st.ctx, st.dep, st.fns, st.rTypePtr, st.isAuto, st.rNodes);
 			if (onFalse.isErr){
 				st.errs ~= onFalse.err;
 			} else {
@@ -166,7 +172,7 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 		SmErrsVal!RExpr cnd = resolve(node.condition, st.stabR, st.ctx,
 				st.dep, st.fns);
 		SmErrsVal!(RStatement[]) body = resolveStmnt(node.body, st.stabR,
-				st.ctx, st.dep, st.fns, st.rTypePtr, st.rNodes);
+				st.ctx, st.dep, st.fns, st.rTypePtr, st.isAuto, st.rNodes);
 		if (cnd.isErr)
 			st.errs ~= cnd.err;
 		if (body.isErr)
@@ -192,7 +198,8 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 /// Returns: RStatement or SmErr[]
 pragma(inline, true)
 package SmErrsVal!(RStatement[]) resolveStmnt(Statement stmnt, STab stabR,
-		IdentU[] ctx, void[0][ASymbol*] dep, RFn[string] fns, ADataType* rTypePtr){
+		IdentU[] ctx, void[0][ASymbol*] dep, RFn[string] fns,
+		ADataType* rTypePtr, bool isAuto){
 	assert (fns);
 	St st;
 	st.dep = dep;
@@ -201,19 +208,23 @@ package SmErrsVal!(RStatement[]) resolveStmnt(Statement stmnt, STab stabR,
 	st.stab = stabR.findSt(ctx, ctx);
 	st.fns = fns;
 	st.rTypePtr = rTypePtr;
+	st.rNodes = new LList!RReturn;
+	st.isAuto = isAuto;
 	It.exec(stmnt, st);
 	st.returnTypeBuild(stmnt.pos);
 	if (st.errs.length)
 		return SmErrsVal!(RStatement[])(st.errs);
 	if (st.res is null)
-		return SmErrsVal!(RStatement[])([errUnxp(stmnt.pos, "resolve stmnt -> null")]);
+		return SmErrsVal!(RStatement[])([
+				errUnxp(stmnt.pos, "resolve stmnt -> null")]);
 	return SmErrsVal!(RStatement[])(st.res);
 }
 
 /// ditto
 private SmErrsVal!(RStatement[]) resolveStmnt(Statement stmnt, STab stabR,
 		IdentU[] ctx, void[0][ASymbol*] dep, RFn[string] fns,
-		ADataType* rTypePtr, LList!RReturn* rNodes){
+		ADataType* rTypePtr, bool isAuto, LList!RReturn* rNodes){
+	assert (rTypePtr !is null);
 	St st;
 	st.dep = dep;
 	st.ctx = ctx.dup;
@@ -222,17 +233,19 @@ private SmErrsVal!(RStatement[]) resolveStmnt(Statement stmnt, STab stabR,
 	st.fns = fns;
 	st.rTypePtr = rTypePtr;
 	st.rNodes = rNodes;
+	st.isAuto = isAuto;
 	It.exec(stmnt, st);
 	if (st.errs.length)
 		return SmErrsVal!(RStatement[])(st.errs);
 	if (st.res is null)
-		return SmErrsVal!(RStatement[])([errUnxp(stmnt.pos, "resolve stmnt -> null")]);
+		return SmErrsVal!(RStatement[])([
+				errUnxp(stmnt.pos, "resolve stmnt -> null")]);
 	return SmErrsVal!(RStatement[])(st.res);
 }
 
 /// Builds return type for when expected return type is auto
 private void returnTypeBuild(ref St st, Location pos){
-	if (st.rTypePtr !is null){
+	if (!st.isAuto){
 		if (st.rNodes.empty){
 			st.errs ~= errNoReturn(pos, st.rTypePtr.toString);
 			return;
@@ -247,5 +260,28 @@ private void returnTypeBuild(ref St st, Location pos){
 		}
 		return;
 	}
+	if (st.rNodes.empty){
+		*st.rTypePtr = ADataType.init;
+		return;
+	}
+
+	// maybe all the types are cast-able to one?
+	ADataType* cType = LList!RReturn(*st.rNodes)
+		.map!(n => n.val.type).array.commonType(st.ctx);
+	if (cType != null){
+		debug stderr.writefln!"st.rNodes: %x, empty: %s"(st.rNodes, st.rNodes && st.rNodes.empty);
+		foreach (RReturn ret; *(st.rNodes)){
+			if (!ret.val.type.canCastTo(*(cType), ret.ctx)){
+				st.errs ~= errIncompatType(ret.pos, cType.toString,
+						ret.val.type.toString);
+				continue;
+			}
+			ret.val = ret.val.to(*(cType), ret.ctx).val;
+		}
+		*st.rTypePtr = *cType;
+		return;
+	}
+
+	// sadly nothing worked. just build a union type
 	// TODO: build a union return type
 }
