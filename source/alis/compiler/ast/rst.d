@@ -694,6 +694,21 @@ public:
 	override string toString() const pure {
 		return format!"$lit(%s)->%s"(val, type);
 	}
+
+	override OptVal!RExpr to(ADataType target, IdentU[] ctx = [IdentU.init]){
+		OptVal!AVal r = val.to(target, ctx);
+		if (!r.isVal)
+			return OptVal!RExpr();
+		RLiteralExpr ret = new RLiteralExpr(r.val);
+		ret.pos = pos;
+		return ret.OptVal!RExpr;
+	}
+
+	/// Returns: true if this can be casted into a target data type
+	override bool canCastTo(const ADataType target,
+			IdentU[] ctx = [IdentU.init]){
+		return val.canCastTo(target, ctx);
+	}
 }
 
 /// array length get expressino
