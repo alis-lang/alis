@@ -171,8 +171,6 @@ private bool expT(Location pos, ADataType type, ref St st){
 	void blockExprIter(BlockExpr node, ref St st){
 		RBlockExpr r = new RBlockExpr;
 		r.pos = node.pos;
-		r.block = new RBlock;
-		r.block.pos = node.block.pos;
 		// TODO: handle @auto
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
 		ADataType xType; {
