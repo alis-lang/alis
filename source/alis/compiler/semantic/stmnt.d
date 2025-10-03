@@ -269,7 +269,6 @@ private void returnTypeBuild(ref St st, Location pos){
 	ADataType* cType = LList!RReturn(*st.rNodes)
 		.map!(n => n.val.type).array.commonType(st.ctx);
 	if (cType != null){
-		debug stderr.writefln!"st.rNodes: %x, empty: %s"(st.rNodes, st.rNodes && st.rNodes.empty);
 		foreach (RReturn ret; *(st.rNodes)){
 			if (!ret.val.type.canCastTo(*(cType), ret.ctx)){
 				st.errs ~= errIncompatType(ret.pos, cType.toString,
@@ -283,5 +282,20 @@ private void returnTypeBuild(ref St st, Location pos){
 	}
 
 	// sadly nothing worked. just build a union type
-	// TODO: build a union return type
+	ASymbol* sym = new ASymbol(AUnion());
+	string name = format!"union$_%d_%d_$"(pos.line, pos.col);
+	st.stab.add(name.IdentU, sym, st.ctx);
+	AUnion* u = &sym.unionS;
+	u.vis = Visibility.Pub;
+	u.ident = st.ctx ~ name.IdentU;
+	foreach (RReturn ret; LList!RReturn(*st.rNodes)){
+		if (!u.types.canFind(ret.val.type))
+			u.types ~= ret.val.type;
+	}
+	*st.rTypePtr = ADataType.of(u);
+	foreach (RReturn ret; *st.rNodes){
+		if (!ret.val.type.canCastTo(*(st.rTypePtr), st.ctx))
+			assert (false, "w a t");
+		ret.val = ret.val.to(*(st.rTypePtr), st.ctx).val;
+	}
 }
