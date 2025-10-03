@@ -1031,17 +1031,11 @@ public struct ADataType{
 			IdentU[] ctx = [IdentU.init]) const pure {
 		switch (target.type){
 			case ADataType.Type.Struct:
-				OptVal!(void[]) bytes = target.structS.buildVal(
-						AVal(this, new void[sizeOf]), // HACK: hacky stuff
-						ctx);
-				if (bytes.isVal)
+				if (target.structS.canBuildVal(this, ctx))
 					return CastLevel.Simple.OptVal!CastLevel;
 				break;
 			case ADataType.Type.Union:
-				OptVal!(void[]) bytes = target.unionS.buildVal(
-						AVal(this, new void[sizeOf]), // HACK: hacky stuff
-						ctx);
-				if (bytes.isVal)
+				if (target.unionS.canBuildVal(this, ctx))
 					return CastLevel.Simple.OptVal!CastLevel;
 				break;
 			default:
@@ -1714,8 +1708,7 @@ public struct AStruct{
 	}
 
 	/// ditto
-	public OptVal!(void[]) buildVal(AVal src,
-			IdentU[] ctx = [IdentU.init]) const pure {
+	public OptVal!(void[]) buildVal(AVal src, IdentU[] ctx) const pure {
 		if (src.type.type == ADataType.Type.Struct &&
 				src.type.structS !is null &&
 				!src.type.structS.isUnique){
@@ -1803,6 +1796,55 @@ public struct AStruct{
 			offset += size;
 		}
 		return OptVal!(void[])(ret);
+	}
+
+	/// Returns: true if this can be initialized from some data type
+	public bool canBuildVal(const ADataType srcType, IdentU[] ctx) const pure {
+		if (srcType.type == ADataType.Type.Struct &&
+				srcType.structS !is null &&
+				!srcType.structS.isUnique){
+			const(AStruct)* type = srcType.structS;
+			bool skip = false;
+			size_t[size_t] idMap; // index in dst -> [index in src]
+			foreach (string name; type.names.byKey
+					.filter!(n => type.exists(n, ctx))){
+				if (!this.exists(name, ctx) ||
+						this.names[name] in idMap ||
+						!type.types[type.names[name]].canCastTo(
+							this.types[this.names[name]], ctx)){
+					skip = true;
+					break;
+				}
+				idMap[this.names[name]] = type.names[name];
+			}
+			if (!skip){
+				foreach (size_t i; 0 .. this.types.length){
+					const ADataType dstType = this.types[i];
+					if (size_t* ptr = i in idMap){
+						size_t off = *ptr;
+						const ADataType sType = type.types[off];
+						if (!sType.canCastTo(dstType, ctx))
+							return false;
+					}
+					if (!initD[i].isVal)
+						return false;
+				}
+				return false;
+			}
+		}
+
+		void[0][size_t] visIds;
+		foreach (string name; this.names.byKey.filter!(n => this.exists(n, ctx))){
+			visIds[this.names[name]] = (void[0]).init;
+		}
+		size_t toInit = size_t.max;
+		foreach (size_t id; visIds.byKey){
+			if (!srcType.canCastTo(this.types[id], ctx)) continue;
+			if (toInit != size_t.max)
+				return false;
+			toInit = id;
+		}
+		return toInit != size_t.max;
 	}
 
 	string toString() const pure {
@@ -1940,6 +1982,48 @@ public struct AUnion{
 		ret[0 .. dstType.sizeOf] = convd.val.data;
 		*(cast(size_t*)(ret.ptr + sizeOfField)) = toInit;
 		return ret.OptVal!(void[]);
+	}
+
+	/// Returns: true if this can be initialized from some data type
+	bool canBuildVal(const ADataType srcType, IdentU[] ctx) const pure {
+		if (srcType.type == ADataType.Type.Struct &&
+				srcType.structS !is null &&
+				!srcType.structS.isUnique &&
+				srcType.structS.names.length == 1 &&
+				exists(srcType.structS.names.byKey.takeOne[0], ctx)){
+			size_t id = this.names[srcType.structS.names.byKey.takeOne[0]];
+			if (srcType.canCastTo(types[id], ctx))
+				return true;
+		}
+
+		if (names is null || names.length == 0){
+			size_t tInd = size_t.max;
+			foreach (size_t i, const(ADataType) type; types){
+				if (srcType.canCastTo(type, ctx)){
+					if (tInd != size_t.max)
+						return false;
+					tInd = i;
+				}
+			}
+			if (tInd == size_t.max)
+				return false;
+			return srcType.canCastTo(types[tInd], ctx);
+		}
+
+		void[0][size_t] visIds;
+		foreach (string name; this.names.byKey.filter!(n => this.exists(n, ctx))){
+			visIds[this.names[name]] = (void[0]).init;
+		}
+		size_t toInit = size_t.max;
+		foreach (size_t id; visIds.byKey){
+			if (!srcType.canCastTo(this.types[id], ctx)) continue;
+			if (toInit != size_t.max)
+				return false;
+			toInit = id;
+		}
+		if (toInit == size_t.max)
+			return false;
+		return srcType.canCastTo(types[toInit], ctx);
 	}
 
 	string toString() const pure {
