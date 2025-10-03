@@ -182,7 +182,20 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	}
 
 	void doWhileIter(DoWhile node, ref St st){
-		st.errs ~= errUnsup(node); // TODO: implement
+		immutable size_t ec = st.errs.length;
+		RDoWhile ret = new RDoWhile;
+		ret.pos = node.pos;
+		SmErrsVal!RExpr cnd = resolve(node.condition, st.stabR, st.ctx,
+				st.dep, st.fns);
+		SmErrsVal!(RStatement[]) body = resolveStmnt(node.body, st.stabR,
+				st.ctx, st.dep, st.fns, st.rTypePtr, st.isAuto, st.rNodes);
+		if (cnd.isErr)
+			st.errs ~= cnd.err;
+		if (body.isErr)
+			st.errs ~= body.err;
+		if (st.errs.length != ec) return;
+		st.res ~= ret;
+
 	}
 
 	void switchIter(Switch node, ref St st){
