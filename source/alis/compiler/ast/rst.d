@@ -293,6 +293,11 @@ public:
 		r.pos = this.pos;
 		return r.OptVal!RExpr;
 	}
+
+	/// Returns: true if this can be casted into a target data type
+	bool canCastTo(const ADataType target, IdentU[] ctx = [IdentU.init]){
+		return this.type.canCastTo(target, ctx);
+	}
 }
 
 /// No-op
