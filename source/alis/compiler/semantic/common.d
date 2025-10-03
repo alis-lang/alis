@@ -112,7 +112,7 @@ public struct AValCT{
 			case Type.Type:
 				return typeT.canCastTo(target, ctx);
 			case Type.Expr:
-				return expr.type.canCastTo(target, ctx);
+				return expr.canCastTo(target, ctx);
 			case Type.Seq:
 				debug stderr.writefln!"STUB: Seq.canCastTo -> false";
 				return false;
@@ -137,12 +137,10 @@ public struct AValCT{
 			case Type.Type:
 				return OptVal!AValCT();
 			case Type.Expr:
-				import alis.compiler.ast.rst : RToExpr;
-				if (!expr.type.canCastTo(target, ctx))
-					return OptVal!AValCT();
-				RToExpr r = new RToExpr(expr, target);
-				r.pos = expr.pos;
-				return r.AValCT.OptVal!AValCT;
+				 OptVal!RExpr r = expr.to(target, ctx);
+				 if (r.isVal)
+					 return AValCT(r.val).OptVal!AValCT;
+				 return OptVal!AValCT();
 			case Type.Seq:
 				AValCT[] s = new AValCT[seq.length];
 				foreach (size_t i, AValCT val; seq){
