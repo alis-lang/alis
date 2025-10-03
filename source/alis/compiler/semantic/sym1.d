@@ -240,11 +240,12 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		}
 
 		if (isAuto){
-			symC.type = commonType(types);
-			if (symC.type == ADataType.ofNoInit){
+			ADataType* cType = types.commonType(st.ctx);
+			if (cType is null){
 				st.errs ~= errIncompatType(node);
-				//return;
+				return;
 			}
+			symC.type = *cType;
 		} else {
 			foreach (size_t i, ref ADataType type; types){
 				if (!type.canCastTo(symC.type, st.ctx))

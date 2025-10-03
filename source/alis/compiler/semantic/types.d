@@ -13,21 +13,21 @@ import alis.common,
 debug import std.stdio;
 
 /// finds a single Data Type among many, which all can cast to.
-/// Returns: found data type, or `ADataType.ofNoInit` if none
-package ADataType commonType(ADataType[] types){
+/// Returns: pointer to the common type, or null if none
+package ADataType* commonType(ADataType[] types, IdentU[] ctx){
 	if (types.length == 0)
-		return ADataType.ofNoInit;
+		return null;
 	foreach (size_t i; 0 .. types.length){
 		bool isCommonType = true;
 		foreach (size_t j; 0 .. types.length){
 			if (i == j) continue;
-			if (!types[j].canCastTo(types[i])){
+			if (!types[j].canCastTo(types[i], ctx)){
 				isCommonType = false;
 				break;
 			}
 		}
 		if (isCommonType)
-			return types[i];
+			return &types[i];
 	}
-	return ADataType.ofNoInit;
+	return null;
 }

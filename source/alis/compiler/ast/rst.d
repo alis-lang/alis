@@ -99,27 +99,16 @@ public class RBlock : RStatement{
 public:
 	/// statements
 	RStatement[] statements;
-	/// locals (parameters and variables) types
-	ADataType[] localsT;
-	/// locals names
-	string[] localsN;
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["statements"] = statements.map!(a => a.jsonOf).array;
 		ret["_name"] = "RBlock";
-		ret["locals"] = localsT.length.iota
-			.map!(i => JSONValue(
-						["name": localsN[i], "type": localsT[i].toString]
-						))
-			.array;
 		return ret;
 	}
 
 	override string toString() const pure {
-		return format!"block(%s, {%s})"(localsT.length.iota.map!(
-					i => format!"%s->%s"(localsN[i], localsT[i])),
-				statements.map!(s => s.toString).join("; "));
+		return format!"block{%s}"(statements.map!(s => s.toString).join("; "));
 	}
 }
 
@@ -128,6 +117,8 @@ public class RReturn : RStatement{
 public:
 	/// return value, can be null
 	RExpr val;
+	/// context
+	IdentU[] ctx;
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
@@ -167,16 +158,16 @@ public:
 	/// condition
 	RExpr condition;
 	/// on true statement
-	RStatement onTrue;
+	RStatement[] onTrue;
 	/// on false statement (else), can be null
-	RStatement onFalse;
+	RStatement[] onFalse;
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["condition"] = condition.jsonOf;
-		ret["onTrue"] = onTrue.jsonOf;
+		ret["onTrue"] = onTrue.map!(s => s.jsonOf).array;
 		if (onFalse)
-			ret["onFalse"] = onFalse.jsonOf;
+			ret["onFalse"] = onFalse.map!(s => s.jsonOf).array;
 		ret["_name"] = "RIf";
 		return ret;
 	}
