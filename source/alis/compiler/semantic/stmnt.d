@@ -283,6 +283,7 @@ private void returnTypeBuild(ref St st, Location pos){
 
 	// sadly nothing worked. just build a union type
 	ASymbol* sym = new ASymbol(AUnion());
+	sym.isComplete = true;
 	string name = format!"union$_%d_%d_$"(pos.line, pos.col);
 	st.stab.add(name.IdentU, sym, st.ctx);
 	AUnion* u = &sym.unionS;
