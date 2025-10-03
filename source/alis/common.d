@@ -1176,26 +1176,18 @@ main_switch:
 				return CastLevel.None.OptVal!CastLevel;
 
 			case ADataType.Type.Struct:
-				if (target.type == ADataType.Type.Struct){
-					if (this.structS == target.structS)
-						return CastLevel.None.OptVal!CastLevel;
-					if (!this.structS.isUnique){
-						if (target.structS.buildVal(AVal(target,
-									new void[target.sizeOf]), // HACK: hacky stuff
-								ctx).isVal)
-							return CastLevel.Simple.OptVal!CastLevel;
-					}
-				}
+				if (target.type == ADataType.Type.Struct &&
+						this.structS == target.structS)
+					return CastLevel.None.OptVal!CastLevel;
 				const AStruct* symC = this.structS;
 				if (symC.hasBase(ctx))
 					return symC.types[symC.names[This]].castability(target, ctx);
 				return OptVal!CastLevel();
 
 			case ADataType.Type.Union:
-				if (target.type == ADataType.Type.Union){
-					if (this.unionS == target.unionS)
-						return CastLevel.None.OptVal!CastLevel;
-				}
+				if (target.type == ADataType.Type.Union &&
+						this.unionS == target.unionS)
+					return CastLevel.None.OptVal!CastLevel;
 				return OptVal!CastLevel();
 
 			case ADataType.Type.Enum:
