@@ -225,6 +225,15 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 	void switchIter(Switch node, ref St st){
 		st.errs ~= errUnsup(node); // TODO: implement
 	}
+
+	void exprIter(Expression node, ref St st){
+		SmErrsVal!RExpr res = resolve(node, st.stabR, st.ctx, st.dep, st.fns);
+		if (res.isErr){
+			st.errs ~= res.err;
+			return;
+		}
+		st.res ~= res.val;
+	}
 }
 
 /// Resolves Statement to RStatement
