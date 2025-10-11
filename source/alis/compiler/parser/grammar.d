@@ -1945,7 +1945,6 @@ CmpErrVal!OpAssignBin parseOpAssignAddBin(ref TokRange toks,
 	if (rhsRes.isErr)
 		return CmpErrVal!OpAssignBin(rhsRes.err);
 	Expression rhsVal = (rhsRes.val);
-	debug stderr.writeln(rhsVal);
 	OpAssignBin ret = new OpAssignBin;
 	OpBinExpr valExpr;
 	final switch (op){
