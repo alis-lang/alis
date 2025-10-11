@@ -8,6 +8,7 @@ import alis.common,
 			 alis.compiler.semantic.common,
 			 alis.compiler.semantic.error,
 			 alis.compiler.semantic.sym0,
+			 alis.compiler.semantic.sym1,
 			 alis.compiler.semantic.eval,
 			 alis.compiler.semantic.expr,
 			 alis.compiler.semantic.types,
@@ -99,6 +100,29 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 
 	void mixinInitStmntIter(MixinInitStmnt node, ref St st){
 		st.errs ~= errUnsup(node); // TODO: implement
+	}
+
+	void defIter(DefNode node, ref St st){
+		S0R stab0; {
+			SmErrsVal!S0R res = stab0Of(node, st.stab, st.ctx);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			stab0 = res.val;
+		}
+		S1R stab1; {
+			SmErrsVal!S1R res = stab1Of(node, st.stabR, stab0.sMap, null, st.ctx);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			stab1 = res.val;
+		}
+		foreach (string k, RFn v; stab1.fns){
+			assert (k !in st.fns);
+			st.fns[k] = v;
+		}
 	}
 
 	void blockIter(Block node, ref St st){
@@ -250,9 +274,6 @@ private SmErrsVal!(RStatement[]) resolveStmnt(Statement stmnt, STab stabR,
 	It.exec(stmnt, st);
 	if (st.errs.length)
 		return SmErrsVal!(RStatement[])(st.errs);
-	if (st.res is null)
-		return SmErrsVal!(RStatement[])([
-				errUnxp(stmnt.pos, "resolve stmnt -> null")]);
 	return SmErrsVal!(RStatement[])(st.res);
 }
 
