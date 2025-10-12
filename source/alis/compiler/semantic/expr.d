@@ -246,7 +246,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		immutable string name = format!"struct$_%d_%d_$"(
 				node.pos.line, node.pos.col);
-		ASymbol *sym = new ASymbol(AStruct(st.ctx ~ name.IdentU));
+		ASymbol* sym = new ASymbol(AStruct(st.ctx ~ name.IdentU));
 		st.stab.add(name.IdentU, sym, st.ctx);
 		sym.structS.vis = Visibility.Default;
 		SmErr[] errs = structDo(node.val, &sym.structS, st.stabR, st.ctx,
@@ -271,7 +271,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		immutable string name = format!"union$_%d_%d_$"(
 				node.pos.line, node.pos.col);
-		ASymbol *sym = new ASymbol(AUnion(st.ctx ~ name.IdentU));
+		ASymbol* sym = new ASymbol(AUnion(st.ctx ~ name.IdentU));
 		st.stab.add(name.IdentU, sym, st.ctx);
 		sym.structS.vis = Visibility.Default;
 		SmErr[] errs;
@@ -295,8 +295,8 @@ private bool expT(Location pos, ADataType type, ref St st){
 
 	void fnAnonExprIter(FnAnonExpr node, ref St st){
 		immutable string name = format!"fn$_%d_%d_$"(node.pos.line, node.pos.col);
-		ASymbol *sym = new ASymbol(AFn(st.ctx ~ name.IdentU));
-		AFn *symC = &sym.fnS;
+		ASymbol* sym = new ASymbol(AFn(st.ctx ~ name.IdentU));
+		AFn* symC = &sym.fnS;
 		symC.vis = Visibility.Default;
 		symC.uid = st.ctx.toString ~ name;
 		symC.isAlisFn = true;
