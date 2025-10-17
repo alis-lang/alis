@@ -1,5 +1,0 @@
-	pshN 4
-	pshN 8
-	pshN 4
-	pshN 8
-

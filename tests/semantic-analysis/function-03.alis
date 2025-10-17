@@ -1,5 +1,0 @@
-// Expected Result: (Error) Function with incorrect type returned
-
-fn NAME PARAM_LIST -> int{
-	return {int i;};
-}

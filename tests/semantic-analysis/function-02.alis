@@ -1,5 +1,0 @@
-// Expected Result: (Error) Function with Return-Type but void returned
-
-fn NAME PARAM_LIST -> RETURN_TYPE{
-	return;
-}
