@@ -1,7 +1,11 @@
 #!/bin/bash
-touch ast.json
-echo "@startjson" >> ast.json
-./alis-parser | tee -a ast.json
-echo "@endjson" >> ast.json
-plantuml -tsvg ast.json
-rm ast.json
+set -e
+tmp="$(mktemp /tmp/astXXXXXX.json)"
+{
+	echo "@startjson"
+	cat
+	echo "@endjson"
+} > "$tmp"
+plantuml -tsvg "$tmp"
+mv "${tmp%.json}.svg" ast.svg
+rm -f "$tmp"
