@@ -999,7 +999,7 @@ public struct ADataType{
 		NoInit, /// `$noinit`
 	}
 	/// whether it is a const
-	bool isConst = false; // TODO: const should only apply to refT
+	bool isConst = false;
 	/// type
 	Type type = Type.Struct;
 	union{
