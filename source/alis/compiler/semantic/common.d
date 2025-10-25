@@ -259,7 +259,9 @@ public struct AValCT{
 			case Type.Type:
 				return typeT.OptVal!ADataType;
 			case Type.Expr:
-				return expr.type.OptVal!ADataType;
+				if (expr.hasType)
+					return expr.type.OptVal!ADataType;
+				return OptVal!ADataType();
 			case Type.Seq:
 				assert (false, "AValCT.Type.Seq in AValCT.asType");
 		}

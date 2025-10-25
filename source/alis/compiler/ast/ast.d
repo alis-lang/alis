@@ -291,6 +291,8 @@ public:
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
+		if (name)
+			ret["name"] = name;
 		if (type)
 			ret["type"] = type.jsonOf;
 		if (val)
