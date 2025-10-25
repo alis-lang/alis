@@ -357,7 +357,7 @@ RExpr toRExpr()(auto ref AValCT val){
 		case AValCT.Type.Expr:
 			return val.expr;
 		case AValCT.Type.Seq:
-			assert (false, "RExpr.of(AValCT) received AValCT.Type.Seq");
+			assert (false, "cannot toRExpr AValCT of Type.Seq");
 	}
 }
 

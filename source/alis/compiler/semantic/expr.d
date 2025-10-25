@@ -976,14 +976,64 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 	}
 
 	void opRefPreIter(OpRefPre node, ref St st){
+		if (FnAnonExpr fnExpr = cast(FnAnonExpr)node.operand){
+			ADataType retType; {
+				SmErrsVal!ADataType res = eval4Type(fnExpr.body, st.stab, st.ctx,
+						st.dep, st.fns);
+				if (res.isErr){
+					st.errs ~= res.err;
+					return;
+				}
+				retType = res.val;
+			}
+			ADataType[] paramTypes;
+			if (fnExpr.params){
+				foreach (FParam param; fnExpr.params.params){
+					if (param.type is null){
+						st.errs ~= errExprTypeExpected(param.pos);
+						continue;
+					}
+					SmErrsVal!ADataType res = eval4Type(param.type, st.stab, st.ctx,
+							st.dep, st.fns);
+					if (res.isErr){
+						st.errs ~= res.err;
+						continue;
+					}
+					paramTypes ~= res.val;
+				}
+				if (paramTypes.length != fnExpr.params.params.length)
+					return;
+			}
+			RAValCTExpr res = new RAValCTExpr(
+					ADataType.ofFn(retType, paramTypes).AValCT);
+			res.pos = node.pos;
+			resultSet(node.pos, res, st);
+			return;
+		}
+
 		RExpr expr; {
 			SmErrsVal!RExpr res = resolve(node.operand, st.stabR, st.ctx,
 					st.dep, st.fns);
-			if (res.err){
+			if (res.isErr){
 				st.errs ~= res.err;
 				return;
 			}
 			expr = res.val;
+		}
+		if (RAValCTExpr valExpr = cast(RAValCTExpr)expr){
+			if (!valExpr.res.isVal){
+				st.errs ~= errRefNonRefable(node.pos, valExpr.res.toString);
+				return;
+			}
+			OptVal!ADataType typeRes = valExpr.res.asType;
+			if (!typeRes.isVal){
+				st.errs ~= errRefNonRefable(node.pos, valExpr.res.toString);
+				return;
+			}
+			RAValCTExpr res = new RAValCTExpr(ADataType.ofRef(typeRes.val).AValCT);
+			res.pos = node.pos;
+			resultSet(node.pos, res, st);
+			return;
 		}
 		if (expr.type.type != ADataType.Type.Ref){
 			st.errs ~= errNotRef(node.pos);

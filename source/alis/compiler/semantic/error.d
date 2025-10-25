@@ -57,6 +57,7 @@ public struct SmErr{
 		Err, /// error through the $err intrinsic
 		InitFail, /// Cannot initialize a value
 		NoReturn, /// Missing return
+		RefNonRefable, /// Trying to reference a non-referenceable
 	}
 
 	/// where error happen
@@ -336,4 +337,11 @@ package SmErr errNoReturn(Location pos, string expected){
 	return SmErr(pos,
 			expected.format!"missing return: expected return type `%s`",
 			SmErr.Type.NoReturn);
+}
+
+/// Trying to reference a non-referenceable
+package SmErr errRefNonRefable(Location pos, string val){
+	return SmErr(pos,
+			format!"cannot reference value `%s"(val),
+			SmErr.Type.RefNonRefable);
 }
