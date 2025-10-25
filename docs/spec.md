@@ -137,19 +137,13 @@ sum(5, 5);
 (5, 5).sum;
 ```
 
-The one case where `()` is necessary for function call is when the function
-itself is of the desired type:
+The one case where `()` is necessary for function call is when using the prefix
+`@` operator:
 
 ```
-fn foo(@fn()->void f) -> void{...}
-var @fn()->void fref;
-fref @= bar; // bar will not be called
-foo(bar); // bar will nott be called
+writeln(@bar); // bar not called
+writeln(bar); // bar called
 ```
-
-This works by checking if an expression's type is compatible with the desired
-type, if not, is the expression a function whose return type is compatible with
-the return type.
 
 ---
 
@@ -346,15 +340,15 @@ there are no nulls.
 ```
 var int i = 0;
 var @int r; // error, not initialised
-var @int r @= i;
+var @int r = @i;
 r = 2;
 i.writeln; // 2
-r.writeln; // 2
+r@.writeln; // 2
 
 var int j = 0;
-r @= j; // reassign is fine
-r = 1;
-r.writeln; // 1
+r = @j; // reassign is fine
+r@ = 1;
+r@.writeln; // 1
 j.writeln; // 1
 i.writeln; // 2
 ```
@@ -368,9 +362,7 @@ The `auto` keyword can be used to infer types:
 
 ```
 var auto x = something;
-var auto y @= something; 
 ```
-// TODO: `var .. .. @= x;` needs to be implemented starting at parser.
 
 ## `$array(X)`
 
@@ -958,16 +950,16 @@ fn[const Sub] foo() -> writeln("Foo on Sub");
 fn main() -> void{
 	var Base b;
 	var Sub s;
-	var @Base ptr @= b;
-	ptr->printName; // prints "Base"
-	ptr->name.writeln; // prints "Base"
-	ptr->foo; // prints "Foo on Base"
+	var @Base ptr = @b;
+	ptr@->printName; // prints "Base"
+	ptr@->name.writeln; // prints "Base"
+	ptr@->foo; // prints "Foo on Base"
 
-	ptr @= s;
+	ptr = @s;
 
-	ptr->printName; // prints "Sub"
-	ptr->name.writeln; // prints "Sub"
-	ptr->foo; // prints "Foo on Sub"
+	ptr@->printName; // prints "Sub"
+	ptr@->name.writeln; // prints "Sub"
+	ptr@->foo; // prints "Foo on Sub"
 }
 ```
 
@@ -1242,7 +1234,7 @@ Operators are read in this order (higher precedence to lower), comma separated:
 	`A !is B`
 - `A && B`, `A || B`
 - `A = B`, `A += B`, `A -= B`, `A *= B`, `A /= B`, `A %= B`, `A &= B`,
-	`A |= B`, `A ^= B`, `A @= B`
+	`A |= B`, `A ^= B`
 - `A , B` (A comma B)
 
 Some of these operators cannot be used in usual expressions:
@@ -1257,8 +1249,6 @@ Some of these operators cannot be used in usual expressions:
 
 All variations of the assignment operator that combine an arithmetic operator
 `op` with `=` to make `op=` are translated from `A op= B;` into `A = A op B;`
-
-The `@=` reference assingment operator is not a compound assignment operator.
 
 ## Operator Overloading
 
