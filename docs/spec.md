@@ -285,7 +285,7 @@ Others:
 - `bool` - a `true` or `false`
 - `string` - the same as a `$slice(const char)`
 - `auto` - makes use of compiler's type inference to auto-detect a type.
-- `@X` - reference to any of the above (behaves the same as `X` alone would)
+- `@X` - reference to any of the above
 - `@fn ARG_TYPES -> RETURN_TYPE` - reference to a function
 - `const X` - a constant of type X. Value cannot change after creation
 - `$array(X)` - array of type X
