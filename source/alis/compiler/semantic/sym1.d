@@ -46,6 +46,8 @@ private struct St1{
 	RExpr[string] testExprs;
 	/// `RFn` for each `AFn.uid`
 	RFn[string] fns;
+	/// initialization expression
+	RExpr[ASymbol*] initers;
 }
 
 /// Checks for recursive dependecy before processing an ASTNode
@@ -400,7 +402,6 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		scope(exit) sym.isComplete = true;
 		AVar* symC = &sym.varS;
 		symC.uid = symC.ident.toString;
-		symC.isGlobal = st.ctx.length <= 1;
 		// TODO: handle @auto
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
 		if (!isAuto){
@@ -413,10 +414,30 @@ private bool isRecDep(ASTNode node, ref St1 st){
 			symC.type = typeVal.val;
 		}
 		if (node.value){
-			SmErrsVal!AVal val = eval4Val(node.value, st.stabR, st.ctx, st.dep,
-					st.fns); // TODO: handle value being dynamic
+			SmErrsVal!RExpr res = resolve(node.value, st.stabR, st.ctx,
+					st.dep, st.fns);
+			if (res.isErr){
+				st.errs ~= res.err;
+				return;
+			}
+			SmErrsVal!AVal val = eval4Val(res.val, st.stabR, st.ctx);
 			if (val.isErr){
-				st.errs ~= val.err;
+				if (!res.val.hasType){
+					st.errs ~= errExprValExpected(node.value.pos);
+					return;
+				}
+				RExpr valExpr = res.val;
+				ADataType type = valExpr.type;
+				if (isAuto){
+					symC.type = type;
+				} else
+				if (val.val.canCastTo(symC.type, st.ctx)){
+					valExpr = valExpr.to(symC.type, st.ctx).val;
+				} else {
+					st.errs ~= errIncompatType(node.value.pos, symC.type.toString,
+							val.val.type.toString);
+				}
+				st.initers[sym] = valExpr;
 				return;
 			}
 			if (isAuto){
@@ -796,6 +817,8 @@ package struct S1R{
 	RFn[string] fns;
 	/// RExpr for each `AUTest.uid`
 	RExpr[string] tests;
+	/// RExpr to initialize a `ASymbol`
+	RExpr[ASymbol*] initers;
 }
 
 /// Builds Level 1 Symbol Table
@@ -812,7 +835,7 @@ package SmErrsVal!S1R stab1Of(ASTNode node, STab stabR, ASymbol*[ASTNode] sMap,
 	It.exec(node, st);
 	if (st.errs)
 		return SmErrsVal!S1R(st.errs);
-	S1R ret = S1R(st.stab, st.fns, st.testExprs);
+	S1R ret = S1R(st.stab, st.fns, st.testExprs, st.initers);
 	return SmErrsVal!S1R(ret);
 }
 
@@ -834,5 +857,5 @@ package SmErrsVal!S1R symDo(ASymbol* sym, STab stabR,
 	It.exec(sym.ast, st);
 	if (st.errs)
 		return SmErrsVal!S1R(st.errs);
-	return SmErrsVal!S1R(S1R(st.stab, st.fns, st.testExprs));
+	return SmErrsVal!S1R(S1R(st.stab, st.fns, st.testExprs, st.initers));
 }
