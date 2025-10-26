@@ -166,7 +166,6 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		scope(exit) sym.isComplete = true;
 		AEnumConst* symC = &sym.enumCS;
 
-		// TODO: handle @auto
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
 		if (!isAuto){
 			SmErrsVal!ADataType typeRes = eval4Type(node.type, st.stabR, st.ctx,
@@ -208,7 +207,6 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		scope(exit) sym.isComplete = true;
 		AEnum* symC = &sym.enumS;
 
-		// TODO: handle @auto
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
 		if (!isAuto){
 			SmErrsVal!ADataType typeRes = eval4Type(node.type, st.stabR, st.ctx,
@@ -402,7 +400,6 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		scope(exit) sym.isComplete = true;
 		AVar* symC = &sym.varS;
 		symC.uid = symC.ident.toString;
-		// TODO: handle @auto
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
 		if (!isAuto){
 			SmErrsVal!ADataType typeVal = eval4Type(node.type, st.stabR, st.ctx,
@@ -577,7 +574,6 @@ private void structDo(Struct s, AStruct* symC, ref St1 st){
 	}
 
 	foreach (AggMemberNamed field; fields){
-		// TODO: handle @auto
 		immutable bool isAuto = cast(AutoExpr)field.type !is null;
 		ADataType type;
 		if (isAuto){
@@ -696,7 +692,6 @@ package void unionNamedDo(NamedUnion node, ASymbol* sym, ref St1 st){
 	symC.initI = size_t.max;
 	foreach (size_t i, AggMemberNamed field; node.members
 			.map!(m => cast(AggMemberNamed)m).filter!(m => m !is null).enumerate){
-		// TODO: handle @auto
 		immutable bool isAuto = cast(AutoExpr)field.type !is null;
 		ADataType type;
 		if (isAuto){

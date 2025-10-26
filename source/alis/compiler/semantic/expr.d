@@ -208,7 +208,6 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 	void blockExprIter(BlockExpr node, ref St st){
 		RBlockExpr r = new RBlockExpr;
 		r.pos = node.pos;
-		// TODO: handle @auto
 		immutable bool isAuto = cast(AutoExpr)node.type !is null;
 		ADataType xType; {
 			if (!isAuto){
@@ -311,7 +310,6 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 				continue;
 			}
 			nameSet[param.name] = (void[0]).init;
-			// TODO: handle @auto
 			immutable bool isAuto =
 				cast(AutoExpr)param.type !is null || param.type is null;
 			ADataType type;
