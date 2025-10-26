@@ -24,16 +24,6 @@ package size_t callabilityOf(ASymbol* sym, AValCT[] params){
 }
 
 /// ditto
-package size_t callabilityOf(ADataType type, AValCT[] params){
-	return size_t.max; // TODO: kinda sad tbh, nothing is callable :(
-}
-
-/// ditto
-package size_t callabilityOf(AValCT val, AValCT[] params){
-	return size_t.max; // TODO: kinda sad tbh, nothing is callable :(
-}
-
-/// ditto
 package size_t callabilityOf(RExpr callee, AValCT[] params){
 	return size_t.max; // TODO: kinda sad tbh, nothing is callable :(
 }
