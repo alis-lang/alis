@@ -70,7 +70,8 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 			st.errs ~= errExprValExpected(pos);
 			return false;
 		}
-		if (expr.type.type != ADataType.Type.Ref){
+		if (expr.type.type != ADataType.Type.Ref &&
+				expr.type.type != ADataType.Type.Fn){
 			st.errs ~= errNotRef(pos);
 			return false;
 		}
