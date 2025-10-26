@@ -328,10 +328,9 @@ public:
 
 	this(AVar var, bool isConst = false){
 		this.var = var;
-		ADataType t = var.type;
+		this.type = var.type;
 		if (isConst)
-			t = t.constOf;
-		this.type = ADataType.ofRef(t);
+			this.type = this.type.constOf;
 	}
 
 	override JSONValue jsonOf() const pure {
@@ -343,6 +342,32 @@ public:
 
 	override string toString() const pure {
 		return var.format!"$varGet(%s)->%s"(type);
+	}
+}
+
+/// Resolved Var Get expression
+public class RVarRefExpr : RExpr{
+public:
+	/// var
+	AVar var;
+
+	this(AVar var, bool isConst = false){
+		this.var = var;
+		this.type = var.type;
+		if (isConst)
+			this.type = this.type.constOf;
+		this.type = ADataType.ofRef(this.type);
+	}
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["_name"] = "RVarRefExpr";
+		ret["var"] = var.toString;
+		return ret;
+	}
+
+	override string toString() const pure {
+		return var.format!"$varRef(%s)->%s"(type);
 	}
 }
 
@@ -494,10 +519,10 @@ public:
 	}
 }
 
-/// Resolved Struct Member Get Expression (from struct ref)
+/// Resolved Struct Member Get Expression (from struct value)
 public class RStructMemberGetExpr : RExpr{
 public:
-	/// struct value. this can be a Struct, or a Ref to Struct
+	/// struct value
 	RExpr val;
 	/// member id
 	size_t memId;
@@ -505,21 +530,12 @@ public:
 	this(RExpr val, size_t memId, bool isConst = false){
 		this.val = val;
 		this.memId = memId;
-		assert (val.type.type == ADataType.Type.Struct ||
-				(val.type.type == ADataType.Type.Ref &&
-				 val.type.refT.type == ADataType.Type.Struct));
-		AStruct* symC;
-		if (val.type.type == ADataType.Type.Struct){
-			symC = val.type.structS;
-		} else {
-			symC = val.type.refT.structS;
-		}
+		assert (val.type.type == ADataType.Type.Struct);
+		AStruct* symC = val.type.structS;
 		ADataType memT = symC.types[memId];
-		if (isConst)
+		if ((isConst || val.type.isConst) && !memT.isConst)
 			memT = memT.constOf;
-		if (val.type.type == ADataType.Type.Ref)
-			memT = ADataType.ofRef(memT);
-		this.type = memT;
+		this.type = ADataType.ofRef(memT);
 	}
 
 	override JSONValue jsonOf() const pure {
@@ -535,10 +551,44 @@ public:
 	}
 }
 
-/// Resolved Union Member Get Expression
+/// Resolved Struct Member Get Expression (from struct ref)
+public class RStructRefMemberGetExpr : RExpr{
+public:
+	/// struct value (ref)
+	RExpr val;
+	/// member id
+	size_t memId;
+
+	this(RExpr val, size_t memId, bool isConst = false){
+		this.val = val;
+		this.memId = memId;
+		assert (val.type.type == ADataType.Type.Ref &&
+				val.type.refT !is null &&
+				val.type.refT.type == ADataType.Type.Struct);
+		AStruct* symC = val.type.refT.structS;
+		ADataType memT = symC.types[memId];
+		if ((isConst || val.type.refT.isConst) && !memT.isConst)
+			memT = memT.constOf;
+		this.type = ADataType.ofRef(memT);
+	}
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["_name"] = "RStructRefMemberGetExpr";
+		ret["val"] = val.jsonOf;
+		ret["memId"] = memId;
+		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"$structRefGet(%s, %s)->%s"(val, memId, type);
+	}
+}
+
+/// Resolved Union Member Get Expression (from union val)
 public class RUnionMemberGetExpr : RExpr{
 public:
-	/// value. this can be a Union, or a Ref to a Union
+	/// value
 	RExpr val;
 	/// member id
 	size_t memId;
@@ -546,21 +596,12 @@ public:
 	this (RExpr val, size_t memId, bool isConst){
 		this.val = val;
 		this.memId = memId;
-		assert (val.type.type == ADataType.Type.Union ||
-				(val.type.type == ADataType.Type.Ref &&
-				 val.type.refT.type == ADataType.Type.Union));
-		AUnion* symC;
-		if (val.type.type == ADataType.Type.Union){
-			symC = val.type.unionS;
-		} else {
-			symC = val.type.refT.unionS;
-		}
+		assert (val.type.type == ADataType.Type.Union);
+		AUnion* symC = val.type.unionS;
 		ADataType memT = symC.types[memId];
-		if (isConst)
+		if ((isConst || val.type.isConst) && !memT.isConst)
 			memT = memT.constOf;
-		if (val.type.type == ADataType.Type.Ref)
-			memT = ADataType.ofRef(memT);
-		this.type = memT;
+		this.type = ADataType.ofRef(memT);
 	}
 
 	override JSONValue jsonOf() const pure {
@@ -573,6 +614,40 @@ public:
 
 	override string toString() const pure {
 		return format!"$unionGet(%s, %s)->%s"(val, memId, type);
+	}
+}
+
+/// Resolved Union Member Get Expression (from union ref)
+public class RUnionRefMemberGetExpr : RExpr{
+public:
+	/// value
+	RExpr val;
+	/// member id
+	size_t memId;
+
+	this (RExpr val, size_t memId, bool isConst){
+		this.val = val;
+		this.memId = memId;
+		assert (val.type.type == ADataType.Type.Ref &&
+				val.type.refT !is null &&
+				val.type.refT.type == ADataType.Type.Union);
+		AUnion* symC = val.type.unionS;
+		ADataType memT = symC.types[memId];
+		if ((isConst || val.type.refT.isConst) && !memT.isConst)
+			memT = memT.constOf;
+		this.type = ADataType.ofRef(memT);
+	}
+
+	override JSONValue jsonOf() const pure {
+		JSONValue ret = super.jsonOf;
+		ret["_name"] = "RUnionRefMemberGetExpr";
+		ret["val"] = val.jsonOf;
+		ret["memId"] = memId;
+		return ret;
+	}
+
+	override string toString() const pure {
+		return format!"$unionRefGet(%s, %s)->%s"(val, memId, type);
 	}
 }
 

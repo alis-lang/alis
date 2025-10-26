@@ -43,35 +43,58 @@ private struct St{
 	void[0][ASymbol*] dep;
 	/// resulting expression
 	RExpr res;
-	/// parameter types if resuslting expression is expected to be callable
+	/// parameter types if resulting expression is expected to be callable
 	AValCT[] params;
-	/// if there is any expected type
-	bool isExpT = false;
-	/// expected type, if `isExpT`
-	ADataType expT;
+	/// expected type
+	OptVal!ADataType expT;
+	/// if resulting expression is expected to be a ref
+	bool isRefExpt = false;
 	/// `RFn` for each `AFn.uid`
 	RFn[string] fns;
 }
 
 private alias It = ItL!(mixin(__MODULE__), 0);
 
-/// Verifies if return type of expression matches expected type, adding
-/// appropriate errors
+/// Verifies if return type of expression can be casted to expected type,
+/// adding appropriate errors, if not, and modifying the expression to do
+/// conversion if needed.
+///
 /// Returns: true if error-free, false if error added
 pragma(inline, true)
-private bool expT(Location pos, RExpr expr, ref St st){
-	if (!st.isExpT) return true;
-	return expT(pos, expr.type, st);
-}
-
-/// ditto
-private bool expT(Location pos, ADataType type, ref St st){
-	if (!st.isExpT) return true;
-	if (!type.canCastTo(st.expT, st.ctx)){
-		st.errs ~= errIncompatType(pos, st.expT.toString,
-				type.toString);
+private bool resultSet(Location pos, RExpr expr, ref St st){
+	assert((st.expT.isVal * 1)
+			+ ((st.params.length > 0) * 1)
+			+ (st.isRefExpt * 1) <= 1);
+	if (st.isRefExpt){
+		if (!expr.hasType){
+			st.errs ~= errExprValExpected(pos);
+			return false;
+		}
+		if (expr.type.type != ADataType.Type.Ref &&
+				expr.type.type != ADataType.Type.Fn){
+			st.errs ~= errNotRef(pos);
+			return false;
+		}
+	}
+	if (!st.expT.isVal){
+		if (st.params.length &&
+				expr.callabilityOf(st.params) == size_t.max){
+			st.errs ~= errCallableIncompat(pos, expr.toString,
+					st.params.map!(p => p.toString));
+			return false;
+		}
+		st.res = expr;
+		return true;
+	}
+	if (!expr.hasType){
+		st.errs ~= errExprValExpected(pos);
 		return false;
 	}
+	if (!expr.type.canCastTo(st.expT.val, st.ctx)){
+		st.errs ~= errIncompatType(pos, st.expT.val.toString, expr.type.toString);
+		return false;
+	}
+	st.res = expr.to(st.expT.val, st.ctx).val;
 	return true;
 }
 
@@ -138,20 +161,37 @@ private bool expT(Location pos, ADataType type, ref St st){
 			case ASymbol.Type.Union:
 			case ASymbol.Type.Enum:
 				r = new RAValCTExpr(res.AValCT);
+				r.pos = node.pos;
 				break;
 			case ASymbol.Type.EnumConst:
 				r = new REnumConstGetExpr(AVal(res.enumCS.type, res.enumCS.data),
 						&res.enumCS);
+				r.pos = node.pos;
 				break;
 			case ASymbol.Type.Fn:
 				r = new RFnExpr(&res.fnS);
+				r.pos = node.pos;
+				if (st.isRefExpt)
+					break;
+				if (res.callabilityOf([]) != size_t.max){
+					r = fnCall(cast(RFnExpr)r, [], st.ctx).val;
+				}
 				break;
 			case ASymbol.Type.Var:
-				r = new RVarExpr(res.varS,
-						st.ctx.length &&
-						res.varS.ident.length &&
-						st.ctx[0] != res.varS.ident[0] &&
-						res.varS.vis == Visibility.IPub);
+				if (st.isRefExpt){
+					r = new RVarRefExpr(res.varS,
+							st.ctx.length &&
+							res.varS.ident.length &&
+							st.ctx[0] != res.varS.ident[0] &&
+							res.varS.vis == Visibility.IPub);
+				} else {
+					r = new RVarExpr(res.varS,
+							st.ctx.length &&
+							res.varS.ident.length &&
+							st.ctx[0] != res.varS.ident[0] &&
+							res.varS.vis == Visibility.IPub);
+				}
+				r.pos = node.pos;
 				break;
 			case ASymbol.Type.Alias:
 			case ASymbol.Type.Import:
@@ -162,10 +202,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 				st.errs ~= errUnsup(node.pos, res.type.to!string);
 				return;
 		}
-		if (!expT(node.pos, r, st)) return;
-		if (st.isExpT)
-			r = r.to(st.expT, st.ctx).val;
-		st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void blockExprIter(BlockExpr node, ref St st){
@@ -201,24 +238,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 			}
 		}
 		r.type = xType;
-		if (st.params.length && r.type.callabilityOf(st.params) == size_t.max){
-			st.errs ~= errCallableIncompat(node.pos, r.type.toString,
-					st.params.map!(p => p.toString));
-			return;
-		}
-		if (!expT(node.pos, r, st)) return;
-		if (st.isExpT)
-			st.res = r.to(st.expT, st.ctx).val;
-		else
-			st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void commaExprIter(CommaExpr node, ref St st){
-		if (st.params.length){
-			st.errs ~= errCallableIncompat(node.pos, "expression list",
-					st.params.map!(p => p.toString));
-			return;
-		}
 		RExpr[] exprs;
 		foreach (Expression expr; node.exprs){
 			SmErrsVal!RExpr exprRes = resolve(expr, st.stabR, st.ctx, st.dep,
@@ -231,22 +254,13 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RCommaExpr r = new RCommaExpr(exprs);
 		r.pos = node.pos;
-		if (!expT(node.pos, r, st)) return;
-		if (st.isExpT)
-			st.res = r.to(st.expT, st.ctx).val;
-		else
-			st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void structAnonIter(StructAnon node, ref St st){
-		if (st.params.length){
-			st.errs ~= errCallableIncompat(node.pos, "struct",
-					st.params.map!(p => p.toString));
-			return;
-		}
 		immutable string name = format!"struct$_%d_%d_$"(
 				node.pos.line, node.pos.col);
-		ASymbol *sym = new ASymbol(AStruct(st.ctx ~ name.IdentU));
+		ASymbol* sym = new ASymbol(AStruct(st.ctx ~ name.IdentU));
 		st.stab.add(name.IdentU, sym, st.ctx);
 		sym.structS.vis = Visibility.Default;
 		SmErr[] errs = structDo(node.val, &sym.structS, st.stabR, st.ctx,
@@ -257,21 +271,13 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		sym.isComplete = true;
 		RExpr r = new RAValCTExpr(ADataType.of(&sym.structS).AValCT);
-		if (!expT(node.pos, r, st)) return;
-		if (st.isExpT)
-			r = r.to(st.expT, st.ctx).val;
-		st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void unionAnonIter(UnionAnon node, ref St st){
-		if (st.params.length){
-			st.errs ~= errCallableIncompat(node.pos, "union",
-					st.params.map!(p => p.toString));
-			return;
-		}
 		immutable string name = format!"union$_%d_%d_$"(
 				node.pos.line, node.pos.col);
-		ASymbol *sym = new ASymbol(AUnion(st.ctx ~ name.IdentU));
+		ASymbol* sym = new ASymbol(AUnion(st.ctx ~ name.IdentU));
 		st.stab.add(name.IdentU, sym, st.ctx);
 		sym.structS.vis = Visibility.Default;
 		SmErr[] errs;
@@ -287,16 +293,13 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		sym.isComplete = true;
 		RExpr r = new RAValCTExpr(ADataType.of(&sym.unionS).AValCT);
-		if (!expT(node.pos, r, st)) return;
-		if (st.isExpT)
-			r = r.to(st.expT, st.ctx).val;
-		st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void fnAnonExprIter(FnAnonExpr node, ref St st){
 		immutable string name = format!"fn$_%d_%d_$"(node.pos.line, node.pos.col);
-		ASymbol *sym = new ASymbol(AFn(st.ctx ~ name.IdentU));
-		AFn *symC = &sym.fnS;
+		ASymbol* sym = new ASymbol(AFn(st.ctx ~ name.IdentU));
+		AFn* symC = &sym.fnS;
 		symC.vis = Visibility.Default;
 		symC.uid = st.ctx.toString ~ name;
 		symC.isAlisFn = true;
@@ -340,23 +343,11 @@ private bool expT(Location pos, ADataType type, ref St st){
 		symC.uid = fnNameEncode(symC.ident.toString, symC.paramsT);
 		st.fns[symC.uid] = r;
 		st.stab.add(name.IdentU, sym, st.ctx);
-
-		if (st.params.length && sym.callabilityOf(st.params) == size_t.max){
-			st.errs ~= errCallableIncompat(node.pos, sym.ident.toString,
-					st.params.map!(p => p.toString));
-			return;
-		}
 		RExpr res = new RFnExpr(symC);
-		if (!expT(node.pos, res, st)) return;
-		st.res = res;
+		resultSet(node.pos, res, st);
 	}
 
 	void structLiteralExprIter(StructLiteralExpr node, ref St st){
-		if (st.params.length){
-			st.errs ~= errCallableIncompat(node.pos, "struct literal",
-					st.params.map!(p => p.toString));
-			return;
-		}
 		void[0][string] nameSet;
 		string[] names;
 		RExpr[] vals;
@@ -379,94 +370,40 @@ private bool expT(Location pos, ADataType type, ref St st){
 				format!"struct$_%d_%d_$"(node.pos.line, node.pos.col).IdentU);
 		// TODO: add its type to stab
 		r.pos = node.pos;
-		if (!expT(node.pos, r, st)) return;
-		if (st.isExpT)
-			st.res = r.to(st.expT, st.ctx).val;
-		else
-			st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void boolLiteralExprIter(BoolLiteralExpr node, ref St st){
-		if (st.params.length){
-			st.errs ~= errCallableIncompat(node.pos, "bool literal",
-					st.params.map!(p => p.toString));
-			return;
-		}
 		RLiteralExpr r = new RLiteralExpr(node.val.AVal);
 		r.pos = node.pos;
-		if (!expT(node.pos, r, st)) return;
-		if (st.isExpT)
-			st.res = r.to(st.expT, st.ctx).val;
-		else
-			st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void literalIntExprIter(LiteralIntExpr node, ref St st){
-		if (st.params.length){
-			st.errs ~= errCallableIncompat(node.pos, "int literal",
-					st.params.map!(p => p.toString));
-			return;
-		}
 		RLiteralExpr r = new RLiteralExpr(node.val.AVal);
 		r.pos = node.pos;
-		if (!expT(node.pos, r, st)) return;
-		if (st.isExpT)
-			st.res = r.to(st.expT, st.ctx).val;
-		else
-			st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void literalFloatExprIter(LiteralFloatExpr node, ref St st){
-		if (st.params.length){
-			st.errs ~= errCallableIncompat(node.pos, "float literal",
-					st.params.map!(p => p.toString));
-			return;
-		}
 		RLiteralExpr r = new RLiteralExpr(node.val.AVal);
 		r.pos = node.pos;
-		if (!expT(node.pos, r, st)) return;
-		if (st.isExpT)
-			st.res = r.to(st.expT, st.ctx).val;
-		else
-			st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void literalStringExprIter(LiteralStringExpr node, ref St st){
-		if (st.params.length){
-			st.errs ~= errCallableIncompat(node.pos, "string literal",
-					st.params.map!(p => p.toString));
-			return;
-		}
 		RLiteralExpr r = new RLiteralExpr((cast(string)node.val.dup).AVal);
 		r.pos = node.pos;
-		if (!expT(node.pos, r, st)) return;
-		if (st.isExpT)
-			st.res = r.to(st.expT, st.ctx).val;
-		else
-			st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void literalCharExprIter(LiteralCharExpr node, ref St st){
-		if (st.params.length){
-			st.errs ~= errCallableIncompat(node.pos, "char literal",
-					st.params.map!(p => p.toString));
-			return;
-		}
 		RLiteralExpr r = new RLiteralExpr(node.val.AVal);
 		r.pos = node.pos;
-		if (!expT(node.pos, r, st)) return;
-		if (st.isExpT)
-			st.res = r.to(st.expT, st.ctx).val;
-		else
-			st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void literalArrayExprIter(LiteralArrayExpr node, ref St st){
-		if (st.params.length){
-			st.errs ~= errCallableIncompat(node.pos, "array literal",
-					st.params.map!(p => p.toString));
-			return;
-		}
 		RExpr[] elements;
 		foreach (Expression elem; node.elements){
 			SmErrsVal!RExpr exprRes = resolve(elem, st.stabR, st.ctx, st.dep,
@@ -479,11 +416,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RArrayLiteralExpr r = new RArrayLiteralExpr(elements);
 		r.pos = node.pos;
-		if (!expT(node.pos, r, st)) return;
-		if (st.isExpT)
-			st.res = r.to(st.expT, st.ctx).val;
-		else
-			st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void autoExprIter(AutoExpr node, ref St st){
@@ -495,81 +428,45 @@ private bool expT(Location pos, ADataType type, ref St st){
 	}
 
 	void intExprIter(IntExpr node, ref St st){
-		if (st.params.length > 1){
-			st.errs ~= errCallableIncompat(node.pos, node.ident,
-					st.params.map!(p => p.toString));
-			return;
-		}
 		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
 		r.res = ADataType.ofInt.AValCT;
-		if (!expT(node.pos, r, st)) return;
-		st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void uIntExprIter(UIntExpr node, ref St st){
-		if (st.params.length > 1){
-			st.errs ~= errCallableIncompat(node.pos, node.ident,
-					st.params.map!(p => p.toString));
-			return;
-		}
 		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
 		r.res = ADataType.ofUInt.AValCT;
-		if (!expT(node.pos, r, st)) return;
-		st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void floatExprIter(FloatExpr node, ref St st){
-		if (st.params.length > 1){
-			st.errs ~= errCallableIncompat(node.pos, node.ident,
-					st.params.map!(p => p.toString));
-			return;
-		}
 		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
 		r.res = ADataType.ofFloat.AValCT;
-		if (!expT(node.pos, r, st)) return;
-		st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void charExprIter(CharExpr node, ref St st){
-		if (st.params.length > 1){
-			st.errs ~= errCallableIncompat(node.pos, node.ident,
-					st.params.map!(p => p.toString));
-			return;
-		}
 		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
 		r.res = ADataType.ofChar.AValCT;
-		if (!expT(node.pos, r, st)) return;
-		st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void stringExprIter(StringExpr node, ref St st){
-		if (st.params.length > 1){
-			st.errs ~= errCallableIncompat(node.pos, node.ident,
-					st.params.map!(p => p.toString));
-			return;
-		}
 		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
 		r.res = ADataType.ofString.AValCT;
-		if (!expT(node.pos, r, st)) return;
-		st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void boolExprIter(BoolExpr node, ref St st){
-		if (st.params.length > 1){
-			st.errs ~= errCallableIncompat(node.pos, node.ident,
-					st.params.map!(p => p.toString));
-			return;
-		}
 		RAValCTExpr r = new RAValCTExpr;
 		r.pos = node.pos;
 		r.res = ADataType.ofBool.AValCT;
-		if (!expT(node.pos, r, st)) return;
-		st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void opPostExprOverridableIter(OpPostExprOverridable node, ref St st){
@@ -634,7 +531,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			st.errs ~= res.err;
 			return;
 		}
-		st.res = res.val;
+		resultSet(node.pos, res.val, st);
 	}
 
 	void opCallExprIter(OpCallExpr node, ref St st){
@@ -701,15 +598,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 			}
 			r = res.val;
 		}
-		if (!expT(node.pos, r, st)) return;
-		if (st.params.length && r.callabilityOf(st.params) == size_t.max){
-			st.errs ~= errCallableIncompat(node.pos, r.toString,
-					st.params.map!(p => p.toString));
-			return;
-		}
-		if (st.isExpT)
-			r = r.to(st.expT, st.ctx).val;
-		st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void opDotBinIter(OpDotBin node, ref St st){
@@ -734,16 +623,12 @@ private bool expT(Location pos, ADataType type, ref St st){
 					if (res.isErr){
 						errs = res.err;
 					} else {
-						if (st.isExpT)
-							st.res = res.val.to(st.expT, st.ctx).val;
-						else
-							st.res = res.val;
-						if (st.params.length &&
-								st.res.callabilityOf(st.params) == size_t.max){
-							st.errs ~= errCallableIncompat(node.pos, st.res.toString,
-									st.params.map!(p => p.toString));
-							return;
+						RExpr r = res.val;
+						if (r.hasType && !st.isRefExpt && r.type.type == ADataType.Type.Ref){
+							r = new RDerefExpr(r);
+							r.pos = (cast(RDerefExpr)r).val.pos;
 						}
+						resultSet(node.pos, r, st);
 						return;
 					}
 				}
@@ -759,7 +644,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 				r.pos = intr.pos;
 				r.name = intr.name;
 				r.params = lhs;
-				if (st.isExpT){
+				if (st.expT.isVal){
 					debug stderr.writeln("st.isExpT in partial intrinsic call!");
 					assert (false,
 							"cannot expect data type from partial intrinsic call");
@@ -782,13 +667,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 					}
 					r = res.val;
 				}
-				if (st.params.length && r.callabilityOf(st.params) == size_t.max){
-					st.errs ~= errCallableIncompat(node.pos, r.toString,
-							st.params.map!(p => p.toString));
-					return;
-				}
-				if (!expT(node.pos, r, st)) return;
-				st.res = r;
+				resultSet(node.pos, r, st);
 				return;
 			}
 			st.errs ~= errCallableIncompat(intr.pos, intr.name.format!"$%s",
@@ -815,17 +694,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 					return;
 				}
 				r = res.val;
-				if (!expT(node.pos, r, st)) return;
-				if (st.isExpT)
-					r = r.to(st.expT, st.ctx).val;
-				else
-					st.res = res.val;
-				if (st.params.length &&
-						st.res.callabilityOf(st.params) == size_t.max){
-					st.errs ~= errCallableIncompat(node.pos, st.res.toString,
-							st.params.map!(p => p.toString));
-					return;
-				}
+				resultSet(node.pos, r, st);
 				return;
 			}
 			// partial
@@ -837,7 +706,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		pCall.callee = r;
 		pCall.params = lhs;
 		st.res = pCall;
-		if (st.isExpT){
+		if (st.expT.isVal){
 			debug stderr.writeln("st.isExpT in partial call!");
 			assert (false,
 					"cannot expect data type from partial call");
@@ -902,19 +771,10 @@ private bool expT(Location pos, ADataType type, ref St st){
 				st.errs ~= errBounds(node.indexes[0].pos, subVal.seq.length, indI);
 				return;
 			}
-			if (st.params.length &&
-					subVal.seq[indI].callabilityOf(st.params) == size_t.max){
-				st.errs ~= errCallableIncompat(node.pos, subVal.seq[indI].toString,
-						st.params.map!(p => p.toString));
-				return;
-			}
 			RAValCTExpr r = new RAValCTExpr;
 			r.pos = node.pos;
 			r.res = subVal.seq[indI];
-			if (!expT(node.pos, r, st)) return;
-			if (st.isExpT)
-				r = new RAValCTExpr(subVal.seq[indI].to(st.expT, st.ctx).val);
-			st.res = r;
+			resultSet(node.pos, r, st);
 			return;
 		}
 
@@ -938,12 +798,6 @@ private bool expT(Location pos, ADataType type, ref St st){
 					sub.type.type == ADataType.Type.Slice) &&
 				node.indexes.length == 1 &&
 				paramsT[0].canCastTo(ADataType.ofUInt)){
-			if (st.params.length &&
-					(*sub.type.refT).callabilityOf(st.params) == size_t.max){
-				st.errs ~= errCallableIncompat(node.pos, sub.type.refT.toString,
-						st.params.map!(p => p.toString));
-				return;
-			}
 			SmErrsVal!AValCT paramVal = eval(params[0], st.stabR, st.ctx);
 			if (paramVal.isErr){
 				st.errs ~= paramVal.err;
@@ -961,7 +815,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 				st.errs ~= res.err;
 				return;
 			}
-			st.res = res.val;
+			resultSet(node.pos, res.val, st);
 			return;
 		}
 
@@ -976,16 +830,8 @@ private bool expT(Location pos, ADataType type, ref St st){
 	}
 
 	void opAssignBinIter(OpAssignBin node, ref St st){
-		if (st.params.length){
-			st.errs ~= errNotCallable(node.pos, "assignment operation");
-			return;
-		}
-		if (st.isExpT){
-			st.errs ~= errIncompatType(node.pos, st.expT.toString, "struct{}");
-			return;
-		}
 		RExpr lhs; {
-			SmErrsVal!RExpr res = resolve(node.lhs, st.stabR, st.ctx,
+			SmErrsVal!RExpr res = resolve4Ref(node.lhs, st.stabR, st.ctx,
 					st.dep, st.fns);
 			if (res.isErr){
 				st.errs ~= res.err;
@@ -1037,72 +883,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		r.refExpr = lhs;
 		r.valExpr = rhsConverted.val;
 		r.pos = node.pos;
-		st.res = r;
-	}
-
-	void opAssignRefBinIter(OpAssignRefBin node, ref St st){
-		if (st.params.length){
-			st.errs ~= errNotCallable(node.pos, "ref assignment operation");
-			return;
-		}
-		if (st.isExpT){
-			st.errs ~= errIncompatType(node.pos, st.expT.toString, "struct{}");
-			return;
-		}
-		RExpr lhs; {
-			SmErrsVal!RExpr res = resolve(node.lhs, st.stabR, st.ctx,
-					st.dep, st.fns);
-			if (res.isErr){
-				st.errs ~= res.err;
-				return;
-			}
-			lhs = res.val;
-		}
-		if (!lhs.hasType){
-			st.errs ~= errExprValExpected(node.lhs.pos);
-			return;
-		}
-		if (lhs.type.type != ADataType.Type.Ref){
-			st.errs ~= errNotRef(node.lhs.pos);
-			return;
-		}
-		ADataType expectedType = *(lhs.type.refT);
-		if (expectedType.isConst){
-			st.errs ~= errAssignConst(node.pos, expectedType.toString);
-			return;
-		}
-		if (expectedType.type != ADataType.Type.Ref){
-			st.errs ~= errAssignRefNotRef(node.pos);
-			return;
-		}
-		RExpr rhs; {
-			SmErrsVal!RExpr res = resolve(node.rhs, st.stabR, st.ctx,
-					st.dep, st.fns);
-			if (res.isErr){
-				st.errs ~= res.err;
-				return;
-			}
-			rhs = res.val;
-		}
-		if (!rhs.hasType){
-			st.errs ~= errExprValExpected(node.rhs.pos);
-			return;
-		}
-		if (!rhs.type.canCastTo(expectedType, st.ctx)){
-			st.errs ~= errIncompatType(node.pos, expectedType.toString,
-					rhs.type.toString);
-			return;
-		}
-		SmErrsVal!RExpr rhsConverted = rhs.to(expectedType, st.ctx).val;
-		if (rhsConverted.isErr){
-			st.errs ~= rhsConverted.err;
-			return;
-		}
-		RAssignExpr r = new RAssignExpr();
-		r.refExpr = lhs;
-		r.valExpr = rhsConverted.val;
-		r.pos = node.pos;
-		st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void opRefPostIter(OpRefPost node, ref St st){
@@ -1115,13 +896,17 @@ private bool expT(Location pos, ADataType type, ref St st){
 			}
 			sub = res.val;
 		}
+		if (!sub.hasType){
+			st.errs ~= errExprValExpected(node.operand.pos);
+			return;
+		}
 		if (sub.type.type != ADataType.Type.Ref){
 			st.errs ~= errDerefNoRef(node.pos, sub.type.toString);
 			return;
 		}
 		RDerefExpr r = new RDerefExpr(sub);
 		r.pos = node.pos;
-		st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void opDotsPostIter(OpDotsPost node, ref St st){
@@ -1158,10 +943,6 @@ private bool expT(Location pos, ADataType type, ref St st){
 	}
 
 	void opConstPreIter(OpConstPre node, ref St st){
-		if (st.params.length){
-			st.errs ~= errNotCallable(node.pos, "const prefix");
-			return;
-		}
 		ADataType type; {
 			SmErrsVal!ADataType typeRes = eval4Type(node.operand, st.stabR, st.ctx,
 					st.dep, st.fns);
@@ -1177,35 +958,95 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RAValCTExpr r = new RAValCTExpr(type.constOf.AValCT);
 		r.pos = node.pos;
-		st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void opRefPreIter(OpRefPre node, ref St st){
-		RExpr expr; {
-			SmErrsVal!RExpr res = resolve(node.operand, st.stabR, st.ctx,
-					st.dep, st.fns);
-			if (res.err){
+		if (FnAnonExpr fnExpr = cast(FnAnonExpr)node.operand){
+			ADataType retType; {
+				SmErrsVal!ADataType res = eval4Type(fnExpr.body, st.stab, st.ctx,
+						st.dep, st.fns);
+				if (res.isErr){
+					st.errs ~= res.err;
+					return;
+				}
+				retType = res.val;
+			}
+			ADataType[] paramTypes;
+			if (fnExpr.params){
+				foreach (FParam param; fnExpr.params.params){
+					if (param.type is null){
+						st.errs ~= errExprTypeExpected(param.pos);
+						continue;
+					}
+					SmErrsVal!ADataType res = eval4Type(param.type, st.stab, st.ctx,
+							st.dep, st.fns);
+					if (res.isErr){
+						st.errs ~= res.err;
+						continue;
+					}
+					paramTypes ~= res.val;
+				}
+				if (paramTypes.length != fnExpr.params.params.length)
+					return;
+			}
+			RAValCTExpr res = new RAValCTExpr(
+					ADataType.ofFn(retType, paramTypes).AValCT);
+			res.pos = node.pos;
+			if (st.isRefExpt){
+				st.errs ~= errRefNonRefable(node.pos, res.res.toString);
+				return;
+			}
+			resultSet(node.pos, res, st);
+			return;
+		}
+
+		SmErrsVal!RExpr res = resolve4Ref(node.operand, st.stabR, st.ctx,
+				st.dep, st.fns);
+		SmErr[] errs;
+		if (res.isErr){
+			errs ~= res.err;
+			res = resolve(node.operand, st.stabR, st.ctx, st.dep, st.fns);
+			if (res.isErr){
+				st.errs ~= errs;
 				st.errs ~= res.err;
 				return;
 			}
-			expr = res.val;
+			if (RAValCTExpr valExpr = cast(RAValCTExpr)(res.val)){
+				if (!valExpr.res.isVal){
+					st.errs ~= errRefNonRefable(node.pos, valExpr.res.toString);
+					return;
+				}
+				OptVal!ADataType typeRes = valExpr.res.asType;
+				if (!typeRes.isVal){
+					st.errs ~= errRefNonRefable(node.pos, valExpr.res.toString);
+					return;
+				}
+				RAValCTExpr type = new RAValCTExpr(ADataType.ofRef(typeRes.val).AValCT);
+				type.pos = node.pos;
+				if (st.isRefExpt){
+					st.errs ~= errRefNonRefable(node.pos, type.toString);
+					return;
+				}
+				resultSet(node.pos, type, st);
+				return;
+			}
 		}
-		if (expr.type.type != ADataType.Type.Ref){
+		RExpr expr = res.val;
+		if (!expr.hasType){
+			st.errs ~= errExprValExpected(node.operand.pos);
+			return;
+		}
+		if (expr.type.type != ADataType.Type.Ref &&
+				expr.type.type != ADataType.Type.Fn){
 			st.errs ~= errNotRef(node.pos);
 			return;
 		}
-		// TODO: what should opRefPre do????
-		//expr.xRef = true;
-		st.res = expr;
-		if (st.params.length && expr.callabilityOf(st.params) == size_t.max){
-			st.errs ~= errCallableIncompat(node.pos, expr.type.toString,
-					st.params.map!(p => p.toString));
+		if (st.isRefExpt){
+			st.errs ~= errRefNonRefable(node.pos, expr.toString);
 			return;
 		}
-		if (st.isExpT)
-			st.res = expr.to(st.expT, st.ctx).val;
-		else
-			st.res = expr;
+		resultSet(node.pos, expr, st);
 	}
 
 	void opTagPreIter(OpTagPre node, ref St st){
@@ -1221,10 +1062,6 @@ private bool expT(Location pos, ADataType type, ref St st){
 	}
 
 	void opColonBinIter(OpColonBin node, ref St st){
-		if (st.params.length){
-			st.errs ~= errNotCallable(node.pos, "type-cast check operation");
-			return;
-		}
 		ADataType lhs; {
 			SmErrsVal!ADataType res = eval4Type(node.lhs, st.stabR, st.ctx,
 					st.dep, st.fns);
@@ -1251,7 +1088,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 		}
 		RAValCTExpr r = new RAValCTExpr(val);
 		r.pos = node.pos;
-		st.res = r;
+		resultSet(node.pos, r, st);
 	}
 
 	void opIsBinIter(OpIsBin node, ref St st){
@@ -1309,7 +1146,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 				lhs.to(ADataType.ofBool, st.ctx).val,
 				rhs.to(ADataType.ofBool, st.ctx).val);
 		ret.pos = node.pos;
-		st.res = ret;
+		resultSet(node.pos, ret, st);
 	}
 
 	void opOrBin(OpOrBin node, ref St st){
@@ -1345,7 +1182,7 @@ private bool expT(Location pos, ADataType type, ref St st){
 				lhs.to(ADataType.ofBool, st.ctx).val,
 				rhs.to(ADataType.ofBool, st.ctx).val);
 		ret.pos = node.pos;
-		st.res = ret;
+		resultSet(node.pos, ret, st);
 	}
 
 	void opQPostIter(OpQPost node, ref St st){
@@ -1400,8 +1237,7 @@ package SmErrsVal!RExpr resolve(Expression expr, STab stabR, IdentU[] ctx,
 	st.stabR = stabR;
 	st.stab = stabR.findSt(ctx, ctx);
 	st.fns = fns;
-	st.isExpT = true;
-	st.expT = expT;
+	st.expT = expT.OptVal!ADataType;
 	It.exec(expr, st);
 	if (st.errs.length)
 		return SmErrsVal!RExpr(st.errs);
@@ -1426,6 +1262,31 @@ package SmErrsVal!RExpr resolve(Expression expr, STab stabR, IdentU[] ctx,
 	st.stabR = stabR;
 	st.stab = stabR.findSt(ctx, ctx);
 	st.fns = fns;
+	It.exec(expr, st);
+	if (st.errs.length)
+		return SmErrsVal!RExpr(st.errs);
+	if (st.res is null)
+		return SmErrsVal!RExpr([errUnxp(expr.pos, "resolve expr -> null")]);
+	return SmErrsVal!RExpr(st.res);
+}
+
+/// Resolves Expression to RExpr, to a reference
+/// Params:
+/// - `expr` - The expression to resolve
+/// - `stab` - The root level Symbol Table
+/// - `ctx` - Context where the `expr` occurs
+/// Returns: RExpr or SmErr[]
+pragma(inline, true)
+package SmErrsVal!RExpr resolve4Ref(Expression expr, STab stabR, IdentU[] ctx,
+		void[0][ASymbol*] dep, RFn[string] fns){
+	assert (fns);
+	St st;
+	st.dep = dep;
+	st.ctx = ctx.dup;
+	st.stabR = stabR;
+	st.stab = stabR.findSt(ctx, ctx);
+	st.fns = fns;
+	st.isRefExpt = true;
 	It.exec(expr, st);
 	if (st.errs.length)
 		return SmErrsVal!RExpr(st.errs);

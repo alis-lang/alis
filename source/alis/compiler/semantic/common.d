@@ -259,7 +259,9 @@ public struct AValCT{
 			case Type.Type:
 				return typeT.OptVal!ADataType;
 			case Type.Expr:
-				return expr.type.OptVal!ADataType;
+				if (expr.hasType)
+					return expr.type.OptVal!ADataType;
+				return OptVal!ADataType();
 			case Type.Seq:
 				assert (false, "AValCT.Type.Seq in AValCT.asType");
 		}
@@ -355,7 +357,7 @@ RExpr toRExpr()(auto ref AValCT val){
 		case AValCT.Type.Expr:
 			return val.expr;
 		case AValCT.Type.Seq:
-			assert (false, "RExpr.of(AValCT) received AValCT.Type.Seq");
+			assert (false, "cannot toRExpr AValCT of Type.Seq");
 	}
 }
 

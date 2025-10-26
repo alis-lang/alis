@@ -1981,21 +1981,6 @@ CmpErrVal!OpAssignBin parseOpAssignAddBin(ref TokRange toks,
 	return CmpErrVal!OpAssignBin(ret);
 }
 
-
-/// parses tokens for OpAssignRefBin
-/// Returns: OpAssignRefBin or error
-@GFn @Bin!"@="
-CmpErrVal!OpAssignRefBin parseOpAssignRefBin(ref TokRange toks, Expression prev){
-	toks.popFront;
-	OpAssignRefBin ret = new OpAssignRefBin;
-	CmpErrVal!Expression rhs = P.parseExpr!(PrecedOfBin!"@=", Expression)(toks);
-	if (rhs.isErr)
-		return CmpErrVal!OpAssignRefBin(rhs.err);
-	ret.lhs = prev;
-	ret.rhs = rhs.val;
-	return CmpErrVal!OpAssignRefBin(ret);
-}
-
 /// parses tokens for a OpCallExpr
 /// Returns: OpCallExpr or error
 @GFn

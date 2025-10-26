@@ -291,6 +291,8 @@ public:
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
+		if (name)
+			ret["name"] = name;
 		if (type)
 			ret["type"] = type.jsonOf;
 		if (val)
@@ -1438,20 +1440,6 @@ public:
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
 		ret["_name"] = "OpAssignBin";
-		return ret;
-	}
-}
-
-/// OpAssignRef binary operator
-public class OpAssignRefBin : OpBinExpr{
-public:
-	this(){
-		this.op = "@=";
-	}
-
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		ret["_name"] = "OpAssignRefBin";
 		return ret;
 	}
 }

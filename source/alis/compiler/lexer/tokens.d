@@ -185,8 +185,7 @@ enum TokType{
 	@Match(`%=`)
 	@Match(`&=`)
 	@Match(`|=`)
-	@Match(`^=`)
-	@Match(`@=`)														OpBin,
+	@Match(`^=`)														OpBin,
 
 	// prefix operators
 	@Match(`(`)
@@ -253,7 +252,6 @@ enum TokType{
 	@Match(`&=`)														OpAssignAnd,
 	@Match(`|=`)														OpAssignOr,
 	@Match(`^=`)														OpAssignXor,
-	@Match(`@=`)														OpAssignRef,
 
 	// prefix operators
 	@Match(`!`)															OpNot,

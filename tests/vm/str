@@ -1,3 +1,0 @@
-start:
-printS "Hello\t"
-printS "World\n"

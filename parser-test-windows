@@ -1,7 +1,0 @@
-#!/bin/bash
-rm ast.svg &> /dev/null
-for f in $PWD/tests/parser/*.alis; do
-	echo "Testing $f"
-	cat "$f" | ./render-windows
-	mv "ast.svg" "tests/parser/render/$(basename $f).svg"
-done

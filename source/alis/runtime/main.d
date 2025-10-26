@@ -428,7 +428,7 @@ version (vm){
 	void popN(ref Stack _state, int n){
 		_state.seek -= n;
 	}
-	
+
 	void seek(ref Stack _state) {
 		_state.push!size_t(_state.top!size_t);
 	}
@@ -521,7 +521,7 @@ version (vm){
 	}
 
 	void incR(ref Stack _state){
-		int *ptr = cast(int*)(_state.stack.ptr + _state.pop!int);
+		int* ptr = cast(int*)(_state.stack.ptr + _state.pop!int);
 		*ptr = *ptr + 1;
 	}
 
@@ -592,7 +592,7 @@ version (vm){
 			subF4, subF8,
 			mulF4, mulF8,
 			divF4, divF8,
-			cmpI1, cmpI2, cmpI4, cmpI8, cmpF4, cmpF8, 
+			cmpI1, cmpI2, cmpI4, cmpI8, cmpF4, cmpF8,
 			notBI1, notBI2, notBI4, notBI8,
 			andBI1, andBI2, andBI4, andBI8,
 			orBI1, orBI2, orBI4, orBI8,
@@ -603,12 +603,12 @@ version (vm){
 			pshF4, pshF8,
 			popN,
 			seek,
-			off, pshO, popO, off0, getR, putR, 
+			off, pshO, popO, off0, getR, putR,
 			incAI1, incAI2, incAI4, incAI8, incAF4, incAF8,
 			incR,
 			get,
-			putI1, putI2, putI4, putI8, putF4, putF8, 
-			jmp, jmpC, call, ret, dbg, 
+			putI1, putI2, putI4, putI8, putF4, putF8,
+			jmp, jmpC, call, ret, dbg,
 			printI1, printI2, printI4, printI8, printF4, printF8,
 			printS
 			);

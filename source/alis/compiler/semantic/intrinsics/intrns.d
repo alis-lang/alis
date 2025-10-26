@@ -654,6 +654,11 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		if (params[0].type == AValCT.Type.Symbol)
 			return params[0].symS.type == ASymbol.type.Enum;
 		ADataType type = params[0].valType.val;
+		if (type.type == ADataType.Type.Ref){
+			if (type.refT is null)
+				return false;
+			type = *(type.refT);
+		}
 		return type.type == ADataType.Type.Struct ||
 			type.type == ADataType.Type.Union;
 	}
@@ -678,11 +683,39 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 			r.pos = pos;
 			return SmErrsVal!RExpr(r);
 		}
-		ADataType type = params[0].valType.val;
-		assert (type.type == ADataType.Type.Struct ||
-				type.type == ADataType.Type.Union);
-		RExpr r;
+
 		RExpr lhsExpr = params[0].toRExpr;
+		ADataType type = lhsExpr.type;
+		RExpr r;
+		assert (type.type == ADataType.Type.Struct ||
+				type.type == ADataType.Type.Union ||
+				(type.type == ADataType.Type.Ref && type.refT !is null &&
+				 (type.refT.type == ADataType.Type.Struct ||
+					type.refT.type == ADataType.Type.Union)));
+		if (type.type == ADataType.Type.Ref){
+			type = *(type.refT);
+			if (type.type == ADataType.Type.Struct){
+				AStruct* structS = type.structS;
+				if (type.type == ADataType.Type.Struct)
+					r = new RStructRefMemberGetExpr(lhsExpr,
+							structS.names[name],
+							type.isConst || (
+								structS.ident.length && ctx.length &&
+								ctx[0] != structS.ident[0] &&
+								structS.nameVis[name] == Visibility.IPub)
+							);
+			} else
+			if (type.type == ADataType.Type.Union){
+				AUnion* unionS = type.unionS;
+				r = new RUnionRefMemberGetExpr(lhsExpr,
+						unionS.names[name],
+						type.isConst || (
+							unionS.ident.length && ctx.length &&
+							ctx[0] != unionS.ident[0] &&
+							unionS.nameVis[name] == Visibility.IPub)
+						);
+			}
+		} else
 		if (type.type == ADataType.Type.Struct){
 			AStruct* structS = type.structS;
 			if (structS !is null && structS.exists(name, ctx))

@@ -49,7 +49,6 @@ public struct SmErr{
 		AssignConst, /// assigning to const
 		AssignRef, /// assigning to ref using =
 		NotRef, /// Expected ref, is not ref
-		AssignRefNotRef, /// `@=` used with non-ref LHS
 		DerefNoRef, /// trying to deref something that is not a ref
 		ConstConst, /// trying to const a const
 		IntrUnk, /// unknown intrinsic
@@ -57,6 +56,7 @@ public struct SmErr{
 		Err, /// error through the $err intrinsic
 		InitFail, /// Cannot initialize a value
 		NoReturn, /// Missing return
+		RefNonRefable, /// Trying to reference a non-referenceable
 	}
 
 	/// where error happen
@@ -279,13 +279,6 @@ package SmErr errNotRef(Location pos){
 	return SmErr(pos, "reference expected", SmErr.Type.NotRef);
 }
 
-/// `@=` used with non-ref LHS
-package SmErr errAssignRefNotRef(Location pos){
-	return SmErr(pos,
-			"ref-assign to non-ref: cannot use `@= to assign to non-ref",
-			SmErr.Type.AssignRefNotRef);
-}
-
 /// trying to deref something that is not a ref
 package SmErr errDerefNoRef(Location pos, string type){
 	return SmErr(pos,
@@ -336,4 +329,11 @@ package SmErr errNoReturn(Location pos, string expected){
 	return SmErr(pos,
 			expected.format!"missing return: expected return type `%s`",
 			SmErr.Type.NoReturn);
+}
+
+/// Trying to reference a non-referenceable
+package SmErr errRefNonRefable(Location pos, string val){
+	return SmErr(pos,
+			format!"cannot reference value `%s"(val),
+			SmErr.Type.RefNonRefable);
 }
