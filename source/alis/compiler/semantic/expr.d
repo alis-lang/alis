@@ -831,7 +831,7 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 
 	void opAssignBinIter(OpAssignBin node, ref St st){
 		RExpr lhs; {
-			SmErrsVal!RExpr res = resolve(node.lhs, st.stabR, st.ctx,
+			SmErrsVal!RExpr res = resolve4Ref(node.lhs, st.stabR, st.ctx,
 					st.dep, st.fns);
 			if (res.isErr){
 				st.errs ~= res.err;
@@ -895,6 +895,10 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 				return;
 			}
 			sub = res.val;
+		}
+		if (!sub.hasType){
+			st.errs ~= errExprValExpected(node.operand.pos);
+			return;
 		}
 		if (sub.type.type != ADataType.Type.Ref){
 			st.errs ~= errDerefNoRef(node.pos, sub.type.toString);
@@ -989,40 +993,59 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 			RAValCTExpr res = new RAValCTExpr(
 					ADataType.ofFn(retType, paramTypes).AValCT);
 			res.pos = node.pos;
+			if (st.isRefExpt){
+				st.errs ~= errRefNonRefable(node.pos, res.res.toString);
+				return;
+			}
 			resultSet(node.pos, res, st);
 			return;
 		}
 
-		RExpr expr; {
-			SmErrsVal!RExpr res = resolve(node.operand, st.stabR, st.ctx,
-					st.dep, st.fns);
+		SmErrsVal!RExpr res = resolve4Ref(node.operand, st.stabR, st.ctx,
+				st.dep, st.fns);
+		SmErr[] errs;
+		if (res.isErr){
+			errs ~= res.err;
+			res = resolve(node.operand, st.stabR, st.ctx, st.dep, st.fns);
 			if (res.isErr){
+				st.errs ~= errs;
 				st.errs ~= res.err;
 				return;
 			}
-			expr = res.val;
+			if (RAValCTExpr valExpr = cast(RAValCTExpr)(res.val)){
+				if (!valExpr.res.isVal){
+					st.errs ~= errRefNonRefable(node.pos, valExpr.res.toString);
+					return;
+				}
+				OptVal!ADataType typeRes = valExpr.res.asType;
+				if (!typeRes.isVal){
+					st.errs ~= errRefNonRefable(node.pos, valExpr.res.toString);
+					return;
+				}
+				RAValCTExpr type = new RAValCTExpr(ADataType.ofRef(typeRes.val).AValCT);
+				type.pos = node.pos;
+				if (st.isRefExpt){
+					st.errs ~= errRefNonRefable(node.pos, type.toString);
+					return;
+				}
+				resultSet(node.pos, type, st);
+				return;
+			}
 		}
-		if (RAValCTExpr valExpr = cast(RAValCTExpr)expr){
-			if (!valExpr.res.isVal){
-				st.errs ~= errRefNonRefable(node.pos, valExpr.res.toString);
-				return;
-			}
-			OptVal!ADataType typeRes = valExpr.res.asType;
-			if (!typeRes.isVal){
-				st.errs ~= errRefNonRefable(node.pos, valExpr.res.toString);
-				return;
-			}
-			RAValCTExpr res = new RAValCTExpr(ADataType.ofRef(typeRes.val).AValCT);
-			res.pos = node.pos;
-			resultSet(node.pos, res, st);
+		RExpr expr = res.val;
+		if (!expr.hasType){
+			st.errs ~= errExprValExpected(node.operand.pos);
 			return;
 		}
-		if (expr.type.type != ADataType.Type.Ref){
+		if (expr.type.type != ADataType.Type.Ref &&
+				expr.type.type != ADataType.Type.Fn){
 			st.errs ~= errNotRef(node.pos);
 			return;
 		}
-		// TODO: what should opRefPre do????
-		//expr.xRef = true;
+		if (st.isRefExpt){
+			st.errs ~= errRefNonRefable(node.pos, expr.toString);
+			return;
+		}
 		resultSet(node.pos, expr, st);
 	}
 
