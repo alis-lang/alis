@@ -659,17 +659,9 @@ public:
 	/// member values
 	RExpr[] vals;
 
-	this (string[] names, RExpr[] vals, IdentU[] id){
+	this (string[] names, RExpr[] vals, AStruct* symC){
 		this.names = names;
 		this.vals = vals;
-		AStruct* symC = new AStruct;
-		foreach (size_t i, string name; names){
-			symC.names[name] = i;
-			symC.nameVis[name] = Visibility.Pub;
-		}
-		symC.types = vals.map!(v => v.type).array;
-		symC.vis = Visibility.Pub;
-		symC.ident = id;
 		assert (symC.isUnique == false);
 		this.type = ADataType.of(symC);
 	}

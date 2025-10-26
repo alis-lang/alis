@@ -364,9 +364,21 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 			names ~= kv.key;
 			vals ~= exprRes.val;
 		}
-		RStructLiteralExpr r = new RStructLiteralExpr(names, vals, st.ctx ~
-				format!"struct$_%d_%d_$"(node.pos.line, node.pos.col).IdentU);
-		// TODO: add its type to stab
+		ASymbol* sym = new ASymbol(AStruct());
+		AStruct* symC = &(sym.structS);
+		foreach (size_t i, string name; names){
+			symC.names[name] = i;
+			symC.nameVis[name] = Visibility.Pub;
+		}
+		symC.initD = vals.length.iota.map!(i => OptVal!(void[])()).array;
+		symC.types = vals.map!(v => v.type).array;
+		symC.vis = Visibility.Pub;
+		IdentU id = format!"struct$_%d_%d_$"(node.pos.line, node.pos.col).IdentU;
+		symC.ident = st.ctx ~ id;
+		sym.isComplete = true;
+		assert (symC.isUnique == false);
+		st.stab.add(id, sym, [IdentU.init]);
+		RStructLiteralExpr r = new RStructLiteralExpr(names, vals, symC);
 		r.pos = node.pos;
 		resultSet(node.pos, r, st);
 	}
