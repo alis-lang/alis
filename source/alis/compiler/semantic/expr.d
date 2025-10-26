@@ -43,10 +43,12 @@ private struct St{
 	void[0][ASymbol*] dep;
 	/// resulting expression
 	RExpr res;
-	/// parameter types if resuslting expression is expected to be callable
+	/// parameter types if resulting expression is expected to be callable
 	AValCT[] params;
 	/// expected type
 	OptVal!ADataType expT;
+	/// if resulting expression is expected to be a ref
+	bool isRefExpt = false;
 	/// `RFn` for each `AFn.uid`
 	RFn[string] fns;
 }
@@ -60,7 +62,19 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 /// Returns: true if error-free, false if error added
 pragma(inline, true)
 private bool resultSet(Location pos, RExpr expr, ref St st){
-	assert (!(st.expT.isVal && st.params.length));
+	assert((st.expT.isVal * 1)
+			+ ((st.params.length > 0) * 1)
+			+ (st.isRefExpt * 1) <= 1);
+	if (st.isRefExpt){
+		if (!expr.hasType){
+			st.errs ~= errExprValExpected(pos);
+			return false;
+		}
+		if (expr.type.type != ADataType.Type.Ref){
+			st.errs ~= errNotRef(pos);
+			return false;
+		}
+	}
 	if (!st.expT.isVal){
 		if (st.params.length &&
 				expr.callabilityOf(st.params) == size_t.max){
@@ -70,6 +84,10 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 		}
 		st.res = expr;
 		return true;
+	}
+	if (!expr.hasType){
+		st.errs ~= errExprValExpected(pos);
+		return false;
 	}
 	if (!expr.type.canCastTo(st.expT.val, st.ctx)){
 		st.errs ~= errIncompatType(pos, st.expT.val.toString, expr.type.toString);
@@ -151,11 +169,19 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 				r = new RFnExpr(&res.fnS);
 				break;
 			case ASymbol.Type.Var:
-				r = new RVarExpr(res.varS,
-						st.ctx.length &&
-						res.varS.ident.length &&
-						st.ctx[0] != res.varS.ident[0] &&
-						res.varS.vis == Visibility.IPub);
+				if (st.isRefExpt){
+					r = new RVarRefExpr(res.varS,
+							st.ctx.length &&
+							res.varS.ident.length &&
+							st.ctx[0] != res.varS.ident[0] &&
+							res.varS.vis == Visibility.IPub);
+				} else {
+					r = new RVarExpr(res.varS,
+							st.ctx.length &&
+							res.varS.ident.length &&
+							st.ctx[0] != res.varS.ident[0] &&
+							res.varS.vis == Visibility.IPub);
+				}
 				break;
 			case ASymbol.Type.Alias:
 			case ASymbol.Type.Import:
@@ -587,7 +613,12 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 					if (res.isErr){
 						errs = res.err;
 					} else {
-						resultSet(node.pos, res.val, st);
+						RExpr r = res.val;
+						if (r.hasType && !st.isRefExpt && r.type.type == ADataType.Type.Ref){
+							r = new RDerefExpr(r);
+							r.pos = (cast(RDerefExpr)r).val.pos;
+						}
+						resultSet(node.pos, r, st);
 						return;
 					}
 				}
@@ -1198,6 +1229,31 @@ package SmErrsVal!RExpr resolve(Expression expr, STab stabR, IdentU[] ctx,
 	st.stabR = stabR;
 	st.stab = stabR.findSt(ctx, ctx);
 	st.fns = fns;
+	It.exec(expr, st);
+	if (st.errs.length)
+		return SmErrsVal!RExpr(st.errs);
+	if (st.res is null)
+		return SmErrsVal!RExpr([errUnxp(expr.pos, "resolve expr -> null")]);
+	return SmErrsVal!RExpr(st.res);
+}
+
+/// Resolves Expression to RExpr, to a reference
+/// Params:
+/// - `expr` - The expression to resolve
+/// - `stab` - The root level Symbol Table
+/// - `ctx` - Context where the `expr` occurs
+/// Returns: RExpr or SmErr[]
+pragma(inline, true)
+package SmErrsVal!RExpr resolve4Ref(Expression expr, STab stabR, IdentU[] ctx,
+		void[0][ASymbol*] dep, RFn[string] fns){
+	assert (fns);
+	St st;
+	st.dep = dep;
+	st.ctx = ctx.dup;
+	st.stabR = stabR;
+	st.stab = stabR.findSt(ctx, ctx);
+	st.fns = fns;
+	st.isRefExpt = true;
 	It.exec(expr, st);
 	if (st.errs.length)
 		return SmErrsVal!RExpr(st.errs);
