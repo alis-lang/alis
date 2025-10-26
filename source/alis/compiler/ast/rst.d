@@ -647,7 +647,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$fn(%s)->%s"(fn, type);
+		return format!"$fn(%s)->%s"(*fn, type);
 	}
 }
 
