@@ -161,13 +161,21 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 			case ASymbol.Type.Union:
 			case ASymbol.Type.Enum:
 				r = new RAValCTExpr(res.AValCT);
+				r.pos = node.pos;
 				break;
 			case ASymbol.Type.EnumConst:
 				r = new REnumConstGetExpr(AVal(res.enumCS.type, res.enumCS.data),
 						&res.enumCS);
+				r.pos = node.pos;
 				break;
 			case ASymbol.Type.Fn:
 				r = new RFnExpr(&res.fnS);
+				r.pos = node.pos;
+				if (st.isRefExpt)
+					break;
+				if (res.callabilityOf([]) != size_t.max){
+					r = fnCall(cast(RFnExpr)r, [], st.ctx).val;
+				}
 				break;
 			case ASymbol.Type.Var:
 				if (st.isRefExpt){
@@ -183,6 +191,7 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 							st.ctx[0] != res.varS.ident[0] &&
 							res.varS.vis == Visibility.IPub);
 				}
+				r.pos = node.pos;
 				break;
 			case ASymbol.Type.Alias:
 			case ASymbol.Type.Import:
