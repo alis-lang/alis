@@ -847,63 +847,6 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 		resultSet(node.pos, r, st);
 	}
 
-	void opAssignRefBinIter(OpAssignRefBin node, ref St st){
-		RExpr lhs; {
-			SmErrsVal!RExpr res = resolve(node.lhs, st.stabR, st.ctx,
-					st.dep, st.fns);
-			if (res.isErr){
-				st.errs ~= res.err;
-				return;
-			}
-			lhs = res.val;
-		}
-		if (!lhs.hasType){
-			st.errs ~= errExprValExpected(node.lhs.pos);
-			return;
-		}
-		if (lhs.type.type != ADataType.Type.Ref){
-			st.errs ~= errNotRef(node.lhs.pos);
-			return;
-		}
-		ADataType expectedType = *(lhs.type.refT);
-		if (expectedType.isConst){
-			st.errs ~= errAssignConst(node.pos, expectedType.toString);
-			return;
-		}
-		if (expectedType.type != ADataType.Type.Ref){
-			st.errs ~= errAssignRefNotRef(node.pos);
-			return;
-		}
-		RExpr rhs; {
-			SmErrsVal!RExpr res = resolve(node.rhs, st.stabR, st.ctx,
-					st.dep, st.fns);
-			if (res.isErr){
-				st.errs ~= res.err;
-				return;
-			}
-			rhs = res.val;
-		}
-		if (!rhs.hasType){
-			st.errs ~= errExprValExpected(node.rhs.pos);
-			return;
-		}
-		if (!rhs.type.canCastTo(expectedType, st.ctx)){
-			st.errs ~= errIncompatType(node.pos, expectedType.toString,
-					rhs.type.toString);
-			return;
-		}
-		SmErrsVal!RExpr rhsConverted = rhs.to(expectedType, st.ctx).val;
-		if (rhsConverted.isErr){
-			st.errs ~= rhsConverted.err;
-			return;
-		}
-		RAssignExpr r = new RAssignExpr();
-		r.refExpr = lhs;
-		r.valExpr = rhsConverted.val;
-		r.pos = node.pos;
-		resultSet(node.pos, r, st);
-	}
-
 	void opRefPostIter(OpRefPost node, ref St st){
 		RExpr sub; {
 			SmErrsVal!RExpr res = resolve(node.operand, st.stabR, st.ctx,

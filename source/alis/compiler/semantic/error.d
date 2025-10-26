@@ -49,7 +49,6 @@ public struct SmErr{
 		AssignConst, /// assigning to const
 		AssignRef, /// assigning to ref using =
 		NotRef, /// Expected ref, is not ref
-		AssignRefNotRef, /// `@=` used with non-ref LHS
 		DerefNoRef, /// trying to deref something that is not a ref
 		ConstConst, /// trying to const a const
 		IntrUnk, /// unknown intrinsic
@@ -278,13 +277,6 @@ package SmErr errAssignRef(Location pos){
 /// Expected ref, is not ref
 package SmErr errNotRef(Location pos){
 	return SmErr(pos, "reference expected", SmErr.Type.NotRef);
-}
-
-/// `@=` used with non-ref LHS
-package SmErr errAssignRefNotRef(Location pos){
-	return SmErr(pos,
-			"ref-assign to non-ref: cannot use `@= to assign to non-ref",
-			SmErr.Type.AssignRefNotRef);
 }
 
 /// trying to deref something that is not a ref

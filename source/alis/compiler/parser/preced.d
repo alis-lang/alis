@@ -27,7 +27,7 @@ private static immutable OpsP = [
 	null, // marker for DEF_P
 	["A { B"], // }
 	[`A = B`, `A += B`, `A -= B`, `A *= B`, `A /= B`, `A %= B`, `A &= B`,
-		`A |= B`, `A ^= B`, `A @= B`],
+		`A |= B`, `A ^= B`],
 	["A , B"],
 ];
 

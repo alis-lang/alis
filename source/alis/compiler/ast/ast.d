@@ -1444,20 +1444,6 @@ public:
 	}
 }
 
-/// OpAssignRef binary operator
-public class OpAssignRefBin : OpBinExpr{
-public:
-	this(){
-		this.op = "@=";
-	}
-
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		ret["_name"] = "OpAssignRefBin";
-		return ret;
-	}
-}
-
 // Operators / Post -----------------------------------------------------------
 
 /// OpRefPost postfix operator
