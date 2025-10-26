@@ -431,11 +431,11 @@ private bool isRecDep(ASTNode node, ref St1 st){
 				if (isAuto){
 					symC.type = type;
 				} else
-				if (val.val.canCastTo(symC.type, st.ctx)){
+				if (type.canCastTo(symC.type, st.ctx)){
 					valExpr = valExpr.to(symC.type, st.ctx).val;
 				} else {
 					st.errs ~= errIncompatType(node.value.pos, symC.type.toString,
-							val.val.type.toString);
+							type.toString);
 				}
 				st.initers[sym] = valExpr;
 				return;
