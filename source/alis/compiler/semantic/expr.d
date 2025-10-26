@@ -45,10 +45,8 @@ private struct St{
 	RExpr res;
 	/// parameter types if resuslting expression is expected to be callable
 	AValCT[] params;
-	/// if there is any expected type
-	bool isExpT = false;
-	/// expected type, if `isExpT`
-	ADataType expT;
+	/// expected type
+	OptVal!ADataType expT;
 	/// `RFn` for each `AFn.uid`
 	RFn[string] fns;
 }
@@ -62,8 +60,8 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 /// Returns: true if error-free, false if error added
 pragma(inline, true)
 private bool resultSet(Location pos, RExpr expr, ref St st){
-	assert (!(st.isExpT && st.params.length));
-	if (!st.isExpT){
+	assert (!(st.expT.isVal && st.params.length));
+	if (!st.expT.isVal){
 		if (st.params.length &&
 				expr.callabilityOf(st.params) == size_t.max){
 			st.errs ~= errCallableIncompat(pos, expr.toString,
@@ -73,11 +71,11 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 		st.res = expr;
 		return true;
 	}
-	if (!expr.type.canCastTo(st.expT, st.ctx)){
-		st.errs ~= errIncompatType(pos, st.expT.toString, expr.type.toString);
+	if (!expr.type.canCastTo(st.expT.val, st.ctx)){
+		st.errs ~= errIncompatType(pos, st.expT.val.toString, expr.type.toString);
 		return false;
 	}
-	st.res = expr.to(st.expT, st.ctx).val;
+	st.res = expr.to(st.expT.val, st.ctx).val;
 	return true;
 }
 
@@ -605,7 +603,7 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 				r.pos = intr.pos;
 				r.name = intr.name;
 				r.params = lhs;
-				if (st.isExpT){
+				if (st.expT.isVal){
 					debug stderr.writeln("st.isExpT in partial intrinsic call!");
 					assert (false,
 							"cannot expect data type from partial intrinsic call");
@@ -667,7 +665,7 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 		pCall.callee = r;
 		pCall.params = lhs;
 		st.res = pCall;
-		if (st.isExpT){
+		if (st.expT.isVal){
 			debug stderr.writeln("st.isExpT in partial call!");
 			assert (false,
 					"cannot expect data type from partial call");
@@ -1175,8 +1173,7 @@ package SmErrsVal!RExpr resolve(Expression expr, STab stabR, IdentU[] ctx,
 	st.stabR = stabR;
 	st.stab = stabR.findSt(ctx, ctx);
 	st.fns = fns;
-	st.isExpT = true;
-	st.expT = expT;
+	st.expT = expT.OptVal!ADataType;
 	It.exec(expr, st);
 	if (st.errs.length)
 		return SmErrsVal!RExpr(st.errs);
