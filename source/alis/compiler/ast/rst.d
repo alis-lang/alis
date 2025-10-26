@@ -22,7 +22,7 @@ public alias RSTIter(Fns...) =
 	Instantiate!(alis.compiler.ast.iter.ASTIter!RSTNodes, Fns);
 
 private template GetAll(){
-	alias GetAll = AliasSeq!(RFn, RModule);
+	alias GetAll = AliasSeq!(RFn);
 	static foreach (string name; __traits(allMembers, mixin(__MODULE__))){
 		static if (is (__traits(getMember, mixin(__MODULE__), name) : RStatement)){
 			GetAll = AliasSeq!(GetAll, __traits(getMember, mixin(__MODULE__), name));
@@ -32,29 +32,6 @@ private template GetAll(){
 
 /// Sequence of all Nodes in this module that are children of RStatement
 public alias RSTNodes = GetAll!();
-
-/// Resolved Module
-public class RModule : ASTNode{
-public:
-	/// functions
-	RFn[] fns;
-	/// init blocks
-	RBlock[] initers;
-	/// globals data types
-	ADataType[] globalsT;
-	/// globals names
-	string[] globalsN;
-
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		ret["fns"] = fns.map!(f => f.jsonOf).array;
-		ret["globals"] = globalsN.length.iota
-			.map!(i => ["name": globalsN[i], "type": globalsT[i].toString].JSONValue)
-			.array;
-		ret["init"] = initers.map!(i => i.jsonOf).array;
-		return ret;
-	}
-}
 
 /// Resolved Function
 public class RFn : ASTNode{
