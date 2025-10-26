@@ -2113,15 +2113,13 @@ public struct AVar{
 	ADataType type;
 	/// initialisation data
 	OptVal!(void[]) initD;
-	/// whether is global or local
-	bool isGlobal = false;
 	/// Visibility outside its parent module
 	Visibility vis;
 	/// unique id
 	string uid;
 
 	string toString() const pure {
-		return format!"var %s%s[%s]:%s%s"(isGlobal ? "global" : null,
+		return format!"var %s[%s]:%s%s"(
 				ident.toString, uid, type.toString,
 				initD.isVal ? AVal(type, initD.val).toString.format!"=%s" : "");
 	}

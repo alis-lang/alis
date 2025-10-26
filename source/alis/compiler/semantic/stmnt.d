@@ -123,6 +123,17 @@ private alias It = ItL!(mixin(__MODULE__), 0);
 			assert (k !in st.fns);
 			st.fns[k] = v;
 		}
+		foreach (const(ASymbol*) sym, RExpr val; stab1.initers){
+			assert(sym.type == ASymbol.Type.Var);
+			AVar symC = cast(AVar)(sym.varS);
+			RVarRefExpr varRef = new RVarRefExpr(symC, false);
+			varRef.pos = node.pos;
+			RAssignExpr assign = new RAssignExpr();
+			assign.pos = val.pos;
+			assign.refExpr = varRef;
+			assign.valExpr = val;
+			st.res ~= assign;
+		}
 	}
 
 	void blockIter(Block node, ref St st){
