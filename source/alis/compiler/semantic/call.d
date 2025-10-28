@@ -16,15 +16,80 @@ import std.algorithm,
 			 std.array,
 			 std.conv;
 
+debug import std.stdio;
+
 /// calculates callability score.
 /// `size_t.max` -> not callable
 /// `0` -> highest callability
-package size_t callabilityOf(ASymbol* sym, AValCT[] params){
-	return size_t.max; // TODO: kinda sad tbh, nothing is callable :(
+package size_t callabilityOf(ASymbol* sym, AValCT[] params, IdentU[] ctx){
+	assert (sym !is null);
+	assert(params.isFlat);
+	final switch (sym.type){
+		case ASymbol.Type.Struct:
+			if (params.length != 1)
+				return size_t.max;
+			return params[0].canCastTo(ADataType.of(&sym.structS), ctx)
+				? 0 : size_t.max;
+
+		case ASymbol.Type.Union:
+			if (params.length != 1)
+				return size_t.max;
+			return params[0].canCastTo(ADataType.of(&sym.unionS), ctx)
+				? 0 : size_t.max;
+
+		case ASymbol.Type.Enum:
+			if (params.length != 1)
+				return size_t.max;
+			return params[0].canCastTo(ADataType.of(&sym.enumS), ctx)
+				? 0 : size_t.max;
+
+		case ASymbol.Type.Var:
+		case ASymbol.Type.Import:
+		case ASymbol.Type.EnumConst:
+		case ASymbol.Type.UTest:
+			return size_t.max;
+		case ASymbol.Type.Alias:
+			return size_t.max; // TODO: implement for Alias
+		case ASymbol.Type.Template:
+			return size_t.max; // TODO: implement for Template
+		case ASymbol.Type.Fn:
+			return callabilityOf(&sym.fnS, params, ctx);
+	}
+	assert(false);
 }
 
 /// ditto
-package size_t callabilityOf(RExpr callee, AValCT[] params){
+package size_t callabilityOf(AFn* symC, AValCT[] params, IdentU[] ctx){
+	assert(params.isFlat);
+	if (params.length > symC.paramsT.length)
+		return size_t.max;
+	size_t ret = 0;
+	foreach (size_t i; 0 .. symC.paramsT.length){
+		if (i >= params.length){
+			if (symC.paramsV[i].isVal)
+				continue;
+			return size_t.max;
+		}
+		if (!params[i].isVal){
+			if (symC.paramsN[i] != "_")
+				return size_t.max;
+		}
+		OptVal!ADataType type = params[i].asType;
+		if (!type.isVal)
+			return size_t.max;
+		OptVal!CastLevel cl = type.val.castability(symC.paramsT[i], ctx);
+		if (!cl.isVal)
+			return size_t.max;
+		ret += cl.val;
+	}
+	return ret;
+}
+
+/// ditto
+package size_t callabilityOf(RExpr callee, AValCT[] params, IdentU[] ctx){
+	if (RFnExpr fnExpr = cast(RFnExpr)callee){
+		return callabilityOf(fnExpr.fn, params, ctx);
+	}
 	return size_t.max; // TODO: kinda sad tbh, nothing is callable :(
 }
 
