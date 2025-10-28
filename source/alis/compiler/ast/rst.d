@@ -273,7 +273,7 @@ public:
 
 	/// Returns: true if this can be casted into a target data type
 	bool canCastTo(const ADataType target, IdentU[] ctx = [IdentU.init]){
-		return this.type.canCastTo(target, ctx);
+		return this.hasType && this.type.canCastTo(target, ctx);
 	}
 }
 
