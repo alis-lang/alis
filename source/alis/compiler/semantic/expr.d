@@ -78,7 +78,7 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 	}
 	if (!st.expT.isVal){
 		if (st.params.length &&
-				expr.callabilityOf(st.params) == size_t.max){
+				expr.callabilityOf(st.params, st.ctx) == size_t.max){
 			st.errs ~= errCallableIncompat(pos, expr.toString,
 					st.params.map!(p => p.toString));
 			return false;
@@ -106,7 +106,14 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 				size_t best = size_t.max;
 				size_t count = 0;
 				foreach (ASymbol* sym; range.filter!(s => s.isCallable)){
-					immutable size_t callability = callabilityOf(sym, st.params);
+					if (!sym.isComplete){
+						SmErr[] errs = symDo(sym, st.stabR, st.dep, st.fns);
+						if (errs.length){
+							st.errs ~= errs;
+							continue;
+						}
+					}
+					immutable size_t callability = sym.callabilityOf(st.params, st.ctx);
 					if (callability == size_t.max) continue;
 					if (callability == best){
 						count ++;
@@ -173,7 +180,7 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 				r.pos = node.pos;
 				if (st.isRefExpt)
 					break;
-				if (res.callabilityOf([]) != size_t.max){
+				if (res.callabilityOf([], st.ctx) != size_t.max){
 					r = fnCall(cast(RFnExpr)r, [], st.ctx).val;
 				}
 				break;
