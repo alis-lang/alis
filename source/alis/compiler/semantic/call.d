@@ -128,79 +128,70 @@ package size_t callabilityOf(RExpr callee, AValCT[] params, IdentU[] ctx){
 }
 
 /// generates RST for calling something.
-/// works for RAValCTExpr as callee as well
 /// Returns: SmErr[] or RExpr
 package SmErrsVal!RExpr call(RExpr callee, Location pos, AValCT[] params,
 		IdentU[] ctx = [IdentU.init]){
-	RFnExpr fn = cast(RFnExpr)callee;
-	if (fn is null){
-		if (RAValCTExpr val = cast(RAValCTExpr)callee){
-			final switch (val.res.type){
-				case AValCT.Type.Symbol:
-					ASymbol* sym = val.res.symS;
-					if (sym.type == ASymbol.Type.Fn)
-						return call(&sym.fnS, pos, params, ctx);
-
-					// if symbol is type, do type conversion
-					ADataType type;
-					switch (sym.type){
-						case ASymbol.Type.Struct:
-							type = ADataType.of(&sym.structS);
-							break;
-						case ASymbol.Type.Union:
-							type = ADataType.of(&sym.unionS);
-							break;
-						case ASymbol.Type.Enum:
-							type = ADataType.of(&sym.enumS);
-							break;
-						default:
-							assert(false, "w o t");
-					}
-					if (type == ADataType.ofNoInit)
-						break;
-					if (params.length != 1)
-						return SmErrsVal!RExpr([errParamCount(callee.pos,
-									val.res.typeT.toString, 1, params.length)]);
-					OptVal!RExpr res = params[0].toRExpr.to(type, ctx);
-					if (res.isVal)
-						return SmErrsVal!RExpr(res.val);
-					return SmErrsVal!RExpr([
-							errIncompatType(callee.pos, type.toString, params[0].toString)]);
-					break;
-
-				case AValCT.Type.Literal:
-					break;
-				case AValCT.Type.Type:
-					// type conversion
-					if (params.length != 1)
-						return SmErrsVal!RExpr([errParamCount(callee.pos,
-									val.res.typeT.toString, 1, params.length)]);
-					OptVal!RExpr res = params[0].toRExpr.to(val.res.typeT, ctx);
-					if (res.isVal)
-						return SmErrsVal!RExpr(res.val);
-					return SmErrsVal!RExpr([
-							errIncompatType(callee.pos, val.res.typeT.toString,
-								params[0].toString)]);
-				case AValCT.Type.Expr:
-					return SmErrsVal!RExpr([errUnsup(callee.pos,
-								"AValCT.Type.Expr as callee")]);
-				case AValCT.Type.Seq:
-					return SmErrsVal!RExpr([errUnsup(callee.pos,
-								"AValCT.Type.Seq as callee")]);
-			}
+	if (RFnExpr fn = cast(RFnExpr)callee)
+		return call(fn.fn, pos, params, ctx);
+	if (RAValCTExpr val = cast(RAValCTExpr)callee){
+		final switch (val.res.type){
+			case AValCT.Type.Symbol:
+				return call(val.res.symS, pos, params, ctx);
+			case AValCT.Type.Literal:
+				return SmErrsVal!RExpr([errNotCallable(pos, val.res.val.toString)]);
+			case AValCT.Type.Type:
+				if (params.length != 1)
+					return SmErrsVal!RExpr([errParamCount(pos,
+								val.res.typeT.toString, 1, params.length)]);
+				OptVal!RExpr res = params[0].toRExpr.to(val.res.typeT, ctx);
+				if (res.isVal)
+					return SmErrsVal!RExpr(res.val);
+				return SmErrsVal!RExpr([
+						errIncompatType(pos, val.res.typeT.toString, params[0].toString)]);
+			case AValCT.Type.Expr:
+				return call(callee, pos, params, ctx);
+			case AValCT.Type.Seq:
+				return SmErrsVal!RExpr([errNotCallable(pos, val.res.toString)]);
 		}
 	}
-
-	if (fn)
-		return fnCall(fn, pos, params, ctx);
 
 	return SmErrsVal!RExpr([errUnsup(callee.pos,
 				typeid(callee).to!string.format!"calling %s")]);
 }
 
-/// generates RST for calling a function
-/// works for RAValCTExpr as callee as well
-/// Returns: SmErr[] or RExpr
+package SmErrsVal!RExpr call(ASymbol* sym, Location pos, AValCT[] params,
+		IdentU[] ctx = [IdentU.init]){
+	if (sym.type == ASymbol.Type.Fn)
+		return call(&sym.fnS, pos, params, ctx);
+	if (params.length != 1 || !params[0].isVal)
+		return SmErrsVal!RExpr([errCallableIncompat(pos,
+					sym.toString, params.map!(p => p.toString))]);
+	ADataType type;
+	switch (sym.type){
+		case ASymbol.Type.Struct:
+			type = ADataType.of(&sym.structS);
+			break;
+		case ASymbol.Type.Union:
+			type = ADataType.of(&sym.unionS);
+			break;
+		case ASymbol.Type.Enum:
+			type = ADataType.of(&sym.enumS);
+			break;
+		default:
+	}
+	if (type == ADataType.ofNoInit)
+		return SmErrsVal!RExpr([errNotCallable(pos, ADataType.ofNoInit.toString)]);
+	if (params.length != 1)
+		return SmErrsVal!RExpr([errParamCount(pos,
+					type.toString, 1, params.length)]);
+	OptVal!RExpr res = params[0].toRExpr.to(type, ctx);
+	if (res.isVal)
+		return SmErrsVal!RExpr(res.val);
+	return SmErrsVal!RExpr([
+			errIncompatType(pos, type.toString, params[0].toString)]);
+}
+
+/// ditto
 pragma(inline, true)
 private SmErrsVal!RExpr call(AFn* fnSym, Location pos, AValCT[] params,
 		IdentU[] ctx = [IdentU.init]){
@@ -233,12 +224,6 @@ private SmErrsVal!RExpr call(AFn* fnSym, Location pos, AValCT[] params,
 	call.pos = pos;
 	return SmErrsVal!RExpr(call);
 }
-
-/// ditto
-/*private SmErrsVal!RExpr fnCall(RFnExpr callee, AValCT[] params,
-		IdentU[] ctx = [IdentU.init]){
-	AFn* fnSym = callee.fn;
-}*/
 
 /// ditto
 private SmErrsVal!RExpr fnCall(RExpr expr, Location pos, AValCT[] params,

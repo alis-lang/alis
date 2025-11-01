@@ -176,10 +176,13 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 				r.pos = node.pos;
 				break;
 			case ASymbol.Type.Fn:
-				if (st.isRefExpt)
-					break;
+				if (st.isRefExpt){
+					r = new RFnExpr(&res.fnS);
+				} else
 				if (res.callabilityOf([], st.ctx) != size_t.max){
 					r = (&res.fnS).call(node.pos, [], st.ctx).val;
+				} else {
+					r = new RFnExpr(&res.fnS);
 				}
 				break;
 			case ASymbol.Type.Var:
