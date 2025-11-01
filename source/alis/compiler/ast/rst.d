@@ -446,6 +446,8 @@ public:
 	RExpr callee;
 	/// parameters
 	RExpr[] params;
+	/// if this call was implicit
+	bool isImplicit = false;
 
 	this (RExpr callee, RExpr[] params){
 		this.callee = callee;
