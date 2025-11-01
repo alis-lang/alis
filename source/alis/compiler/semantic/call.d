@@ -199,11 +199,18 @@ private SmErrsVal!RExpr call(AFn* fnSym, Location pos, AValCT[] params,
 	RExpr[] casted = new RExpr[fnSym.paramsT.length];
 	assert (params.length <= fnSym.paramsT.length);
 	foreach (size_t i, AValCT paramVal; params){
-		OptVal!RExpr res = paramVal.toRExpr.to(fnSym.paramsT[i], ctx);
-		if (!res.isVal){
-			errs ~= errIncompatType(pos, fnSym.paramsT[i].toString,
-					params[i].toString);
-			continue;
+		OptVal!RExpr res;
+		if (paramVal.isVal){
+			res = paramVal.toRExpr.to(fnSym.paramsT[i], ctx);
+			if (!res.isVal){
+				errs ~= errIncompatType(pos, fnSym.paramsT[i].toString,
+						params[i].toString);
+				continue;
+			}
+		} else if (fnSym.paramsN[i] == "_"){
+			res = RNoOpExpr.instance.OptVal!RExpr;
+		} else {
+			assert (false);
 		}
 		casted[i] = res.val;
 	}
