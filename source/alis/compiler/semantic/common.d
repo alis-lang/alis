@@ -28,7 +28,7 @@ package:
 	this(){}
 public:
 	override string toString() const pure {
-		return "RTmPartInitExpr";
+		return callee.format!"RPartCallExpr %s (%(%s,%))"(params);
 	}
 }
 
