@@ -176,12 +176,10 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 				r.pos = node.pos;
 				break;
 			case ASymbol.Type.Fn:
-				r = new RFnExpr(&res.fnS);
-				r.pos = node.pos;
 				if (st.isRefExpt)
 					break;
 				if (res.callabilityOf([], st.ctx) != size_t.max){
-					r = fnCall(cast(RFnExpr)r, [], st.ctx).val;
+					r = (&res.fnS).call(node.pos, [], st.ctx).val;
 				}
 				break;
 			case ASymbol.Type.Var:
@@ -582,8 +580,8 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 
 		RExpr r;
 		if (RPartCallExpr pFnCall = cast(RPartCallExpr)callee){
-			SmErrsVal!RExpr res = pFnCall.callee.call(pFnCall.params ~ params,
-					st.ctx);
+			SmErrsVal!RExpr res = pFnCall.callee.call(pFnCall.pos,
+					pFnCall.params ~ params, st.ctx);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
@@ -608,7 +606,7 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 			st.res = res.val;
 			return;
 		} else {
-			SmErrsVal!RExpr res = callee.call(params, st.ctx);
+			SmErrsVal!RExpr res = callee.call(node.pos, params, st.ctx);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
@@ -705,7 +703,7 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 					st.errs ~= res.err;
 					return;
 				}
-				res = call(res.val, lhs, st.ctx);
+				res = res.val.call(node.pos, lhs, st.ctx);
 				if (res.isErr){
 					st.errs ~= res.err;
 					return;
