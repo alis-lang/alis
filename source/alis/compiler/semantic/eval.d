@@ -48,7 +48,8 @@ struct St{
 	}
 
 	void exprIter(RExpr node, ref St st){
-		st.errs ~= errUnsup(node);
+		st.res = AValCT(node);
+		//st.errs ~= errUnsup(node);
 	}
 }
 
