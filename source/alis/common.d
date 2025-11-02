@@ -1031,6 +1031,11 @@ public struct ADataType{
 			IdentU[] ctx = [IdentU.init]) const pure {
 		switch (target.type){
 			case ADataType.Type.Struct:
+				if (target.structS == null){
+					if (this.structS == null)
+						return CastLevel.None.OptVal!CastLevel;
+					break;
+				}
 				if (target.structS.canBuildVal(this, ctx))
 					return CastLevel.Simple.OptVal!CastLevel;
 				break;
@@ -1179,6 +1184,9 @@ main_switch:
 				if (target.type == ADataType.Type.Struct &&
 						this.structS == target.structS)
 					return CastLevel.None.OptVal!CastLevel;
+				if (this.structS is null){
+					return OptVal!CastLevel();
+				}
 				const AStruct* symC = this.structS;
 				if (symC.hasBase(ctx))
 					return symC.types[symC.names[This]].castability(target, ctx);
