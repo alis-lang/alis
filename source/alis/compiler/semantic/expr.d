@@ -78,7 +78,7 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 	}
 	if (!st.expT.isVal){
 		if (st.params.length &&
-				expr.callabilityOf(st.params) == size_t.max){
+				expr.callabilityOf(st.params, st.ctx) == size_t.max){
 			st.errs ~= errCallableIncompat(pos, expr.toString,
 					st.params.map!(p => p.toString));
 			return false;
@@ -106,7 +106,14 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 				size_t best = size_t.max;
 				size_t count = 0;
 				foreach (ASymbol* sym; range.filter!(s => s.isCallable)){
-					immutable size_t callability = callabilityOf(sym, st.params);
+					if (!sym.isComplete){
+						SmErr[] errs = symDo(sym, st.stabR, st.dep, st.fns);
+						if (errs.length){
+							st.errs ~= errs;
+							continue;
+						}
+					}
+					immutable size_t callability = sym.callabilityOf(st.params, st.ctx);
 					if (callability == size_t.max) continue;
 					if (callability == best){
 						count ++;
@@ -169,12 +176,15 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 				r.pos = node.pos;
 				break;
 			case ASymbol.Type.Fn:
-				r = new RFnExpr(&res.fnS);
-				r.pos = node.pos;
-				if (st.isRefExpt)
-					break;
-				if (res.callabilityOf([]) != size_t.max){
-					r = fnCall(cast(RFnExpr)r, [], st.ctx).val;
+				if (st.isRefExpt){
+					r = new RFnExpr(&res.fnS);
+				} else
+				if (res.callabilityOf([], st.ctx) != size_t.max){
+					r = (&res.fnS).call(node.pos, [], st.ctx).val;
+					if (RFnCallExpr fnCall = cast(RFnCallExpr)r)
+						fnCall.isImplicit = true;
+				} else {
+					r = new RFnExpr(&res.fnS);
 				}
 				break;
 			case ASymbol.Type.Var:
@@ -575,8 +585,8 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 
 		RExpr r;
 		if (RPartCallExpr pFnCall = cast(RPartCallExpr)callee){
-			SmErrsVal!RExpr res = pFnCall.callee.call(pFnCall.params ~ params,
-					st.ctx);
+			SmErrsVal!RExpr res = pFnCall.callee.call(pFnCall.pos,
+					pFnCall.params ~ params, st.ctx);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
@@ -601,7 +611,14 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 			st.res = res.val;
 			return;
 		} else {
-			SmErrsVal!RExpr res = callee.call(params, st.ctx);
+			if (RFnCallExpr fnCall = cast(RFnCallExpr)callee){
+				if (fnCall.isImplicit){
+					fnCall.isImplicit = false;
+					resultSet(node.pos, fnCall, st);
+					return;
+				}
+			}
+			SmErrsVal!RExpr res = callee.call(node.pos, params, st.ctx);
 			if (res.isErr){
 				st.errs ~= res.err;
 				return;
@@ -698,7 +715,7 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 					st.errs ~= res.err;
 					return;
 				}
-				res = call(res.val, lhs, st.ctx);
+				res = res.val.call(node.pos, lhs, st.ctx);
 				if (res.isErr){
 					st.errs ~= res.err;
 					return;
@@ -715,6 +732,17 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 		pCall.pos = node.pos;
 		pCall.callee = r;
 		pCall.params = lhs;
+		if (st.params.length == 0){
+			SmErrsVal!RExpr res = pCall.callee.call(node.pos, pCall.params, st.ctx);
+			if (res.isErr){
+				st.errs = res.err;
+				return;
+			}
+			if (RFnCallExpr fnCall = cast(RFnCallExpr)res.val)
+				fnCall.isImplicit = true;
+			resultSet(node.pos, res.val, st);
+			return;
+		}
 		st.res = pCall;
 		if (st.expT.isVal){
 			debug stderr.writeln("st.isExpT in partial call!");

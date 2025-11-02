@@ -1090,7 +1090,8 @@ SmErrsVal!RExpr cmpTranslate(string name, Location, STab,
 	@ExprTranslator
 	SmErrsVal!RExpr toTranslate(string, Location pos, STab,
 			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
-		RToExpr r = new RToExpr(params[0].toRExpr, params[1].asType.val);
+		RExpr param = params[0].toRExpr;
+		RToExpr r = new RToExpr(param, params[1].asType.val);
 		r.pos = pos;
 		return SmErrsVal!RExpr(r);
 	}

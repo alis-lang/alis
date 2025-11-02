@@ -264,7 +264,7 @@ public:
 	/// Returns: new RST which converts this RST into `target` type, or nothing
 	/// if cannot be done
 	OptVal!RExpr to(ADataType target, IdentU[] ctx = [IdentU.init]){
-		if (!this.type.canCastTo(target, ctx))
+		if (!this.hasType || !this.type.canCastTo(target, ctx))
 			return OptVal!RExpr();
 		RToExpr r = new RToExpr(this, target);
 		r.pos = this.pos;
@@ -273,7 +273,7 @@ public:
 
 	/// Returns: true if this can be casted into a target data type
 	bool canCastTo(const ADataType target, IdentU[] ctx = [IdentU.init]){
-		return this.type.canCastTo(target, ctx);
+		return this.hasType && this.type.canCastTo(target, ctx);
 	}
 }
 
@@ -446,6 +446,8 @@ public:
 	RExpr callee;
 	/// parameters
 	RExpr[] params;
+	/// if this call was implicit
+	bool isImplicit = false;
 
 	this (RExpr callee, RExpr[] params){
 		this.callee = callee;
