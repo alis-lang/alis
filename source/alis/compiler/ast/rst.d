@@ -60,7 +60,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"fn %s (%(%r,%))->%s"(ident, paramsT.length.iota.map!(
+		return format!"fn %s (%(%r, %))->%s"(ident, paramsT.length.iota.map!(
 					i => format!"%s %s"(paramsT[i], paramsN[i])), body);
 	}
 }
@@ -446,7 +446,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"(%s(%(%s%)))"(callee, params);
+		return format!"(%s(%(%s, %)))"(callee, params);
 	}
 }
 
@@ -666,7 +666,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"{%(%s,%)}"(names.length.iota.map!(
+		return format!"{%(%s, %)}"(names.length.iota.map!(
 					i => format!"%s=%s"(names[i], vals[i])));
 	}
 }
@@ -697,7 +697,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"[%(%s,%)]"(
+		return format!"[%(%s, %)]"(
 				elements.map!(e => e.toString).join(", "));
 	}
 }
