@@ -60,8 +60,8 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"fn %s (%s)->%s"(ident, paramsT.length.iota.map!(
-					i => format!"%s:%s"(paramsN[i], paramsT[i])), body);
+		return format!"fn %s (%(%r,%))->%s"(ident, paramsT.length.iota.map!(
+					i => format!"%s %s"(paramsT[i], paramsN[i])), body);
 	}
 }
 
