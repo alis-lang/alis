@@ -85,7 +85,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"block{%s}"(statements.map!(s => s.toString).join("; "));
+		return statements.format!"{\n%(%s;\n%)\n}";
 	}
 }
 
@@ -106,26 +106,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"return(%s)"(val);
-	}
-}
-
-/// Resolved ReturnFromFunction Statement
-public class RReturnFn : RStatement{
-public:
-	/// return value, can be null
-	RExpr val;
-
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		if (val)
-			ret["val"] = val.jsonOf;
-		ret["_name"] = "RReturnFn";
-		return ret;
-	}
-
-	override string toString() const pure {
-		return format!"returnFn(%s)"(val);
+		return format!"$return(%s)"(val);
 	}
 }
 
@@ -150,7 +131,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"if(%s){%s} else {%s}"(condition, onTrue, onFalse);
+		return format!"if (%s) %s else %s"(condition, onTrue, onFalse);
 	}
 }
 
@@ -171,7 +152,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"while(%s){%s}"(condition, body);
+		return format!"while %s %s"(condition, body);
 	}
 }
 
@@ -192,7 +173,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"do{%s}while(%s)"(body, condition);
+		return format!"do %s while %s"(body, condition);
 	}
 }
 
@@ -293,7 +274,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$noop()->%s"(type);
+		return "$noop";
 	}
 }
 
@@ -318,7 +299,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return var.format!"$varGet(%s)->%s"(type);
+		return var.ident.toString.format!"(%s)";
 	}
 }
 
@@ -344,7 +325,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return var.format!"$varRef(%s)->%s"(type);
+		return var.ident.format!"(@%s)";
 	}
 }
 
@@ -362,7 +343,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return block.format!"$block(%s)->%s"(type);
+		return format!"(%s %s)"(type, block);
 	}
 }
 
@@ -387,7 +368,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$refAssign(%s, %s)->%s"(refExpr, valExpr, type);
+		return format!"(%s = %s)"(refExpr, valExpr);
 	}
 }
 
@@ -411,7 +392,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$deref(%s)->%s"(val, type);
+		return format!"(%s@)"(val);
 	}
 }
 
@@ -434,8 +415,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$comma(%s)->%s"(
-				exprs.map!(e => e.toString).join(", "), type);
+		return format!"(%(%s, %))"(exprs.map!(e => e.toString));
 	}
 }
 
@@ -466,8 +446,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$call(%s, %s)->%s"(callee,
-				params.map!(p => p.toString).join(", "), type);
+		return format!"(%s(%(%s%)))"(callee, params);
 	}
 }
 
@@ -494,7 +473,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$vtGet(%s, %s)->%s"(val, member, type);
+		return format!"(%s->%s)"(val, member);
 	}
 }
 
@@ -514,7 +493,7 @@ public:
 		ADataType memT = symC.types[memId];
 		if ((isConst || val.type.isConst) && !memT.isConst)
 			memT = memT.constOf;
-		this.type = ADataType.ofRef(memT);
+		this.type = memT;
 	}
 
 	override JSONValue jsonOf() const pure {
@@ -526,7 +505,8 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$structGet(%s, %s)->%s"(val, memId, type);
+		return format!"(%s.%s)"(val, val.type.structS.names.byKey.filter!(
+					n => val.type.structS.names[n] == memId).takeOne[0]);
 	}
 }
 
@@ -560,7 +540,8 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$structRefGet(%s, %s)->%s"(val, memId, type);
+		return format!"(%s@.@%s)"(val, val.type.structS.names.byKey.filter!(
+					n => val.type.structS.names[n] == memId).takeOne[0]);
 	}
 }
 
@@ -580,7 +561,7 @@ public:
 		ADataType memT = symC.types[memId];
 		if ((isConst || val.type.isConst) && !memT.isConst)
 			memT = memT.constOf;
-		this.type = ADataType.ofRef(memT);
+		this.type = memT;
 	}
 
 	override JSONValue jsonOf() const pure {
@@ -592,7 +573,8 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$unionGet(%s, %s)->%s"(val, memId, type);
+		return format!"(%s.%s)"(val, val.type.unionS.names.byKey.filter!(
+					n => val.type.unionS.names[n] == memId).takeOne[0]);
 	}
 }
 
@@ -626,7 +608,8 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$unionRefGet(%s, %s)->%s"(val, memId, type);
+		return format!"(%s@.@%s)"(val, val.type.unionS.names.byKey.filter!(
+					n => val.type.unionS.names[n] == memId).takeOne[0]);
 	}
 }
 
@@ -649,7 +632,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$fn(%s)->%s"(*fn, type);
+		return fn.ident.toString.format!"(%s)";
 	}
 }
 
@@ -683,9 +666,8 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$structLit(%s)->%s"(names.length.iota.map!(
-					i => format!"%s=%s"(names[i], vals[i])),
-				type);
+		return format!"{%(%s,%)}"(names.length.iota.map!(
+					i => format!"%s=%s"(names[i], vals[i])));
 	}
 }
 
@@ -715,8 +697,8 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$arrayLit(%r)->%s"(
-				elements.map!(e => e.toString).join(", "), type);
+		return format!"[%(%s,%)]"(
+				elements.map!(e => e.toString).join(", "));
 	}
 }
 
@@ -738,7 +720,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$lit(%s)->%s"(val, type);
+		return format!"%s"(val);
 	}
 
 	override OptVal!RExpr to(ADataType target, IdentU[] ctx = [IdentU.init]){
@@ -775,7 +757,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$arrLen(%s)->%s"(arr, type);
+		return format!"$arrLen(%s)"(arr);
 	}
 }
 
@@ -800,7 +782,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$arrLen(%s, %s)->%s"(arr, len, type);
+		return format!"$arrLen(%s, %s)"(arr, len);
 	}
 }
 
@@ -830,7 +812,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$arrInd(%s, %s)->%s"(arr, ind, type);
+		return format!"(%s[%s])"(arr, ind);
 	}
 }
 
@@ -855,7 +837,8 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$unionIs(%s, %s)->%s"(val, memId, type);
+		return format!"$unionIs(%s, %s)"(val, val.type.unionS.names.byKey.filter!(
+				n => val.type.structS.names[n] == memId).takeOne[0]);
 	}
 }
 
@@ -873,7 +856,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$stackTrace()->%s"(type);
+		return "$stackTrace()";
 	}
 }
 
@@ -894,7 +877,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$rtWrite(%s)->%s"(val, type);
+		return format!"$rtWrite(%s)"(val);
 	}
 }
 
@@ -916,7 +899,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$negate(%s)->%s"(val, type);
+		return format!"(-%s)"(val);
 	}
 }
 
@@ -938,7 +921,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$bitNot(%s)->%s"(val, type);
+		return format!"(~%s)"(val);
 	}
 }
 
@@ -964,7 +947,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$bitAnd(%s, %s)->%s"(valA, valB, type);
+		return format!"(%s & %s)"(valA, valB);
 	}
 }
 
@@ -990,7 +973,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$bitOr(%s, %s)->%s"(valA, valB, type);
+		return format!"(%s | %s)"(valA, valB);
 	}
 }
 
@@ -1016,7 +999,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$bitXor(%s, %s)->%s"(valA, valB, type);
+		return format!"(%s ^ %s)"(valA, valB);
 	}
 }
 
@@ -1043,7 +1026,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$and(%s, %s)->%s"(lhs, rhs, type);
+		return format!"(%s && %s)"(lhs, rhs);
 	}
 }
 
@@ -1070,7 +1053,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$or(%s, %s)->%s"(lhs, rhs, type);
+		return format!"(%s || %s)"(lhs, rhs);
 	}
 }
 
@@ -1096,7 +1079,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$add(%s, %s)->%s"(lhs, rhs, type);
+		return format!"(%s + %s)"(lhs, rhs);
 	}
 }
 
@@ -1122,7 +1105,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$sub(%s, %s)->%s"(lhs, rhs, type);
+		return format!"(%s - %s)"(lhs, rhs);
 	}
 }
 
@@ -1148,7 +1131,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$mul(%s, %s)->%s"(lhs, rhs, type);
+		return format!"(%s * %s)"(lhs, rhs);
 	}
 }
 
@@ -1174,7 +1157,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$div(%s, %s)->%s"(lhs, rhs, type);
+		return format!"(%s / %s)"(lhs, rhs);
 	}
 }
 
@@ -1200,7 +1183,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$mod(%s, %s)->%s"(lhs, rhs, type);
+		return format!"(%s %% %s)"(lhs, rhs);
 	}
 }
 
@@ -1225,7 +1208,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$shiftL(%s, %s)->%s"(val, by, type);
+		return format!"(%s << %s)"(val, by);
 	}
 }
 
@@ -1250,7 +1233,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$shiftR(%s, %s)->%s"(val, by, type);
+		return format!"(%s >> %s)"(val, by);
 	}
 }
 
@@ -1276,7 +1259,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$is(%s, %s)->%s"(valA, valB, type);
+		return format!"(%s is %s)"(valA, valB);
 	}
 }
 
@@ -1302,7 +1285,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$isNot(%s, %s)->%s"(valA, valB, type);
+		return format!"(%s !is %s)"(valA, valB);
 	}
 }
 
@@ -1328,7 +1311,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$isLess(%s, %s)->%s"(lhs, rhs, type);
+		return format!"(%s < %s)"(lhs, rhs);
 	}
 }
 
@@ -1350,7 +1333,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$not(%s)->%s"(val, type);
+		return format!"(!%s)"(val);
 	}
 }
 
@@ -1375,7 +1358,7 @@ public:
 	}
 
 	override string toString() const pure {
-		return format!"$to(%s, %s)->%s"(val, target, type);
+		return format!"%s.$to(%s)"(val, target);
 	}
 }
 
