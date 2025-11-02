@@ -1710,6 +1710,11 @@ public struct AStruct{
 	/// ditto
 	public OptVal!(void[]) buildVal(AVal src, IdentU[] ctx) const pure {
 		if (src.type.type == ADataType.Type.Struct &&
+				src.type.structS is null &&
+				this.types.length == 0){
+			return OptVal!(void[])([]);
+		}
+		if (src.type.type == ADataType.Type.Struct &&
 				src.type.structS !is null &&
 				!src.type.structS.isUnique){
 			AStruct* type = src.type.structS;
@@ -1801,6 +1806,11 @@ public struct AStruct{
 	/// Returns: true if this can be initialized from some data type
 	public bool canBuildVal(const ADataType srcType, IdentU[] ctx) const pure {
 		if (srcType.type == ADataType.Type.Struct &&
+				srcType.structS is null &&
+				this.types.length == 0){
+			return true;
+		}
+		if (srcType.type == ADataType.Type.Struct &&
 				srcType.structS !is null &&
 				!srcType.structS.isUnique){
 			const(AStruct)* type = srcType.structS;
@@ -1844,7 +1854,14 @@ public struct AStruct{
 				return false;
 			toInit = id;
 		}
-		return toInit != size_t.max;
+		if (toInit == size_t.max)
+			return false;
+		foreach (size_t i; 0 .. this.types.length){
+			if (i == toInit) continue;
+			if (this.initD.length <= i || !this.initD[i].isVal)
+				return false;
+		}
+		return true;
 	}
 
 	string toString() const pure {
