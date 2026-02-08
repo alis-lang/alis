@@ -164,18 +164,6 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 	return SmErrsVal!RExpr(r);
 }
 
-@Intr(IntrN.Vt){
-	@CallabilityChecker
-	bool vtCanCall(AValCT[] params){
-		return params.length == 0;
-	}
-	@ExprTranslator
-	SmErrsVal!RExpr vtTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[]){
-		return SmErrsVal!RExpr([errUnsup(pos, "$vt")]);
-	}
-}
-
 @Intr(IntrN.IsType){
 	@CallabilityChecker
 	bool isTypeCanCall(AValCT[] params){

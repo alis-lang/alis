@@ -105,7 +105,6 @@ enum TokType{
 	@Match(`$char`)													IntrChar,
 	@Match(`$slice`)												IntrSlice,
 	@Match(`$array`)												IntrArray,
-	@Match(`$vt`)														IntrVt,
 	@Match(`$isType`)												IntrIsType,
 	@Match(`$typeOf`)												IntrTypeOf,
 
@@ -264,7 +263,6 @@ enum TokType{
 	@Match(`--`)														OpDec,
 	@Match(`?`)															OpQ,
 	@Match(`...`)														OpDots,
-
 
 	UnexpectedToken, /// Lexer error
 	EOF, /// End of File

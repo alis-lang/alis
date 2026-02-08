@@ -319,8 +319,6 @@ public:
 /// function definition
 public class FnDef : DefNode{
 public:
-	/// vt struct, can be null
-	Expression vt;
 	/// parameters
 	FParamList params;
 	/// template paramters, can be null
@@ -330,8 +328,6 @@ public:
 
 	override JSONValue jsonOf() const pure {
 		JSONValue ret = super.jsonOf;
-		if (vt)
-			ret["vt"] = vt.jsonOf;
 		ret["params"] = params.jsonOf;
 		if (tParams)
 			ret["tParams"] = tParams.jsonOf;

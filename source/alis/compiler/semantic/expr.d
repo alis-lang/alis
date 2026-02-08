@@ -444,7 +444,7 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 	}
 
 	void thisExprIter(ThisExpr node, ref St st){
-		st.errs ~= errUnsup(node.pos, "vtable");
+		st.errs ~= errUnsup(node.pos, "`this` as expression");
 	}
 
 	void intExprIter(IntExpr node, ref St st){
@@ -1092,7 +1092,7 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 	}
 
 	void opArrowBinIter(OpArrowBin node, ref St st){
-		st.errs ~= errUnsup(node.pos, "vtable");
+		st.errs ~= errUnsup(node.pos, "`->` operator in expression");
 	}
 
 	void opCommaBinIter(OpCommaBin node, ref St st){

@@ -450,33 +450,6 @@ public:
 	}
 }
 
-/// Resolved VTable Member Get Expression
-public class RVTGetExpr : RExpr{
-public:
-	/// value
-	RExpr val;
-	/// member name
-	string member;
-
-	this (RExpr val, string member){
-		this.val = val;
-		this.member = member;
-		// TODO: figure out return type for VT member
-	}
-
-	override JSONValue jsonOf() const pure {
-		JSONValue ret = super.jsonOf;
-		ret["_name"] = "RVTGetExpr";
-		ret["val"] = val.jsonOf;
-		ret["member"] = member;
-		return ret;
-	}
-
-	override string toString() const pure {
-		return format!"(%s->%s)"(val, member);
-	}
-}
-
 /// Resolved Struct Member Get Expression (from struct value)
 public class RStructMemberGetExpr : RExpr{
 public:

@@ -41,7 +41,6 @@ public enum IntrN : string{
 	Char = "char",
 	Slice = "slice",
 	Array = "array",
-	Vt = "vt",
 	IsType = "isType",
 	TypeOf = "typeOf",
 

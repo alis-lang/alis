@@ -413,14 +413,6 @@ CmpErrVal!FnDef parseFnDef(ref TokRange toks){
 	assert(toks.front.type.get!(TT.Fn));
 	toks.popFront;
 	FnDef ret = new FnDef;
-	if (P.expectPop!(TT.IndexOpen)(toks)){
-		CmpErrVal!Expression vt = P.parseExpr!(DEF_P, Expression)(toks);
-		if (vt.isErr)
-			return CmpErrVal!FnDef(vt.err);
-		if (!P.expectPop!(TT.IndexClose)(toks))
-			return CmpErrVal!FnDef(errUnxpTok(toks.front, [TT.IndexClose.stringof]));
-		ret.vt = vt.val;
-	}
 
 	// name
 	if (!P.expect!(TT.Identifier)(toks))
