@@ -63,8 +63,6 @@ keyOptVal = identifier, ["=", expr];
 
 fnDef = "fn", identifier, [tmParamList], paramList, "->",
 			(smExpr, block | smExpr, ";");
-methodDef = "fn", "[", smExpr, "]", identifier, [tmParamList], paramList, "->",
-					(smExpr, block | smExpr, ";");
 paramList = param | ("(", [{param, ","}, param], ")");
 param = ([smExpr], keyOptVal) | smExpr;
 fnAnon = "fn", paramList, "->", expr;
