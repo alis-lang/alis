@@ -14,7 +14,7 @@ version (vm){
 
 	import utils.misc;
 
-	import alis.runtime.vm;
+	import navm;
 
 	struct Stack{
 		ubyte[4096] stack;
@@ -527,24 +527,24 @@ version (vm){
 
 	// jumps
 
-	void jmp(ref size_t _ic, ref ByteCode _code, uint label){
+	void jmp(ref size_t _ic, ref Code _code, uint label){
 		_ic = label;
 	}
 
-	void jmpC(ref size_t _ic, ref ByteCode _code, ref Stack _state,
+	void jmpC(ref size_t _ic, ref Code _code, ref Stack _state,
 			uint label){
 		if (_state.pop!int != 0)
 			_ic = label;
 	}
 
-	void call(ref size_t _ic, ref ByteCode _code, ref Stack _state, uint label){
+	void call(ref size_t _ic, ref Code _code, ref Stack _state, uint label){
 		_state.push!int(_state.base);
 		_state.push!int(cast(int)_ic);
 		_state.base = _state.seek;
 		_ic = label;
 	}
 
-	void ret(ref size_t _ic, ref ByteCode _code, ref Stack _state){
+	void ret(ref size_t _ic, ref Code _code, ref Stack _state){
 		_ic = _state.pop!int;
 		_state.base = cast(ushort)_state.pop!int;
 	}
@@ -627,10 +627,10 @@ version (vm){
 		immutable size_t count = args.length > 2 && args[2].isNum
 			? args[2].to!size_t : 1;
 
-		ByteCode code;
+		Code code;
 		switch (cmd){
 			case "exec", "tobin":
-				code = parseByteCode!InstructionSet(stdin.byLineCopy.array);
+				code = parseCode!InstructionSet(stdin.byLineCopy.array);
 				break;
 			case "execbin":
 				ubyte[8] magicpost;
@@ -658,7 +658,7 @@ version (vm){
 		exec(code, "start", count);
 	}
 
-	void exec(ByteCode code, string label, size_t count = 0){
+	void exec(Code code, string label, size_t count = 0){
 		Stack state;
 		immutable ptrdiff_t startIndex = code.labelNames.countUntil(label);
 		if (startIndex == -1){
