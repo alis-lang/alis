@@ -127,3 +127,30 @@ private template UnsignedInts_Impl(){
 
 /// Floats, ordered from lowest to highest size
 alias Floats = AliasSeq!(float, double);
+
+/// Signed Int of N bits
+template Int_B(int N) if (N >= 1){
+	static foreach (I; SignedInts){
+		static if (I.sizeof * 8 == N){
+			alias Int = I;
+		}
+	}
+}
+
+/// Unsigned Int of N bits
+template UInt_B(int N) if (N >= 1){
+	static foreach (I; UnsignedInts){
+		static if (I.sizeof * 8 == N){
+			alias UInt = I;
+		}
+	}
+}
+
+/// Float of N bits
+template Float_B(int N) if (N >= 1){
+	static foreach (F; Floats){
+		static if (F.sizeof * 8 == N){
+			alias Float = F;
+		}
+	}
+}
