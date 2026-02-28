@@ -2,7 +2,7 @@ module alis.runtime.vm;
 
 import meta;
 
-import std.traits : hasUDA;
+import std.traits : hasUDA, isIntegral, isSigned, isUnsigned, isFloatingPoint;
 import std.meta : AliasSeq;
 import std.format : format;
 
@@ -11,10 +11,12 @@ import navm : Inst;
 /// Instruction Set for the Alis VM
 public alias InstructionSet = InstructionSet_Impl!();
 
+/// Number of registers in the VM
+public enum ubyte REG_COUNT = 8;
+
 private template InstructionSet_Impl(){
 	alias InstructionSet_Impl = AliasSeq!();
 	static foreach (string name; __traits(allMembers, mixin(__MODULE__))){
-		pragma(msg, name);
 		static if (hasUDA!(__traits(getMember, mixin(__MODULE__), name), Inst)){
 			InstructionSet_Impl = AliasSeq!(InstructionSet_Impl,
 					__traits(getMember, mixin(__MODULE__), name));
@@ -22,15 +24,17 @@ private template InstructionSet_Impl(){
 	}
 }
 
+/// program stack
 private struct Stack{
 	void[] arr;
 	void* seek;
 	@disable this();
-	this(void[] arr){
+	this(void[] arr, void* seek = null){
 		this.arr = arr;
 		if (!this.arr.length)
 			arr = new void[2048];
-		seek = arr.ptr;
+		if (seek is null)
+			seek = arr.ptr;
 	}
 
 	/// Returns: top element of type `T`
@@ -54,216 +58,235 @@ private struct Stack{
 	}
 }
 
+/// Data type for a register
+private alias reg_t = ubyte[size_t.sizeof];
+
+/// program state
 private struct State{
 	Stack stack;
+	reg_t[REG_COUNT] r;
 }
 
-pragma(inline, true) private void _addX(T)(State _state){
-	T b = _state.stack.pop!T;
-	T a = _state.stack.pop!T;
-	_state.stack.push!T(cast(T)(a + b));
-}
-pragma(inline, true) private void _subX(T)(State _state){
-	T b = _state.stack.pop!T;
-	T a = _state.stack.pop!T;
-	_state.stack.push!T(cast(T)(a - b));
-}
-pragma(inline, true) private void _mulX(T)(State _state){
-	T b = _state.stack.pop!T;
-	T a = _state.stack.pop!T;
-	_state.stack.push!T(cast(T)(a * b));
-}
-pragma(inline, true) private void _divX(T)(State _state){
-	T b = _state.stack.pop!T;
-	T a = _state.stack.pop!T;
-	_state.stack.push!T(cast(T)(a / b));
-}
-pragma(inline, true) private void _modX(T)(State _state){
-	T b = _state.stack.pop!T;
-	T a = _state.stack.pop!T;
-	_state.stack.push!T(cast(T)(a % b));
-}
-pragma(inline, true) private void _bAndX(T)(State _state){
-	T b = _state.stack.pop!T;
-	T a = _state.stack.pop!T;
-	_state.stack.push!T(cast(T)(a & b));
-}
-pragma(inline, true) private void _bOrX(T)(State _state){
-	T b = _state.stack.pop!T;
-	T a = _state.stack.pop!T;
-	_state.stack.push!T(cast(T)(a | b));
-}
-pragma(inline, true) private void _bXorX(T)(State _state){
-	T b = _state.stack.pop!T;
-	T a = _state.stack.pop!T;
-	_state.stack.push!T(cast(T)(a ^ b));
-}
-pragma(inline, true) private void _bNotX(T)(State _state){
-	T a = _state.stack.pop!T;
-	_state.stack.push!T(cast(T)(~a));
+// register manipulation ------------------------------------------------------
+
+pragma(inline, true) private void _ld(T)(State _state, ubyte r){
+	static if (isIntegral!T){
+		static if (isSigned!T){
+			*cast(ptrdiff_t*)(_state.r[r].ptr) = _state.stack.pop!T;
+		} else static if (isUnsigned!T){
+			*cast(size_t*)(_state.r[r].ptr) = _state.stack.pop!T;
+		}
+	} else static if (isFloatingPoint!T){
+		*cast(double*)(_state.r[r].ptr) = _state.stack.pop!T;
+	}
 }
 
-@Inst("addI8")
-private void addI8(State _state) => _addX!byte(_state);
-@Inst("addI16")
-private void addI16(State _state) => _addX!short(_state);
-@Inst("addI32")
-private void addI32(State _state) => _addX!int(_state);
+@Inst("ldi8")
+private void ldI8(State _state, ubyte r) => _ld!byte(_state, r);
+@Inst("ldi16")
+private void ldI16(State _state, ubyte r) => _ld!short(_state, r);
+@Inst("ldi32")
+private void ldI132(State _state, ubyte r) => _ld!int(_state, r);
 static if (ptrdiff_t.sizeof > int.sizeof){
-	@Inst("addI64")
-	private void addI64(State _state) => _addX!ptrdiff_t(_state);
+	@Inst("ldi64")
+	private void ldI164(State _state, ubyte r) => _ld!ptrdiff_t(_state, r);
 }
-@Inst("addU8")
-private void addU8(State _state) => _addX!ubyte(_state);
-@Inst("addU16")
-private void addU16(State _state) => _addX!ushort(_state);
-@Inst("addU32")
-private void addU32(State _state) => _addX!uint(_state);
+@Inst("ldu8")
+private void ldU8(State _state, ubyte r) => _ld!ubyte(_state, r);
+@Inst("ldu16")
+private void ldU16(State _state, ubyte r) => _ld!ushort(_state, r);
+@Inst("ldu32")
+private void ldU32(State _state, ubyte r) => _ld!uint(_state, r);
 static if (size_t.sizeof > uint.sizeof){
-	@Inst("addU64")
-	private void addU64(State _state) => _addX!size_t(_state);
+	@Inst("ldu64")
+	private void ldU164(State _state, ubyte r) => _ld!size_t(_state, r);
 }
-@Inst("addF32")
-private void addF32(State _state) => _addX!float(_state);
-@Inst("addF64")
-private void addF64(State _state) => _addX!double(_state);
 
-@Inst("subI8")
-private void subI8(State _state) => _subX!byte(_state);
-@Inst("subI16")
-private void subI16(State _state) => _subX!short(_state);
-@Inst("subI32")
-private void subI32(State _state) => _subX!int(_state);
+@Inst("ldf32")
+private void ldF32(State _state, ubyte r) => _ld!float(_state, r);
+@Inst("ldf64")
+private void ldF64(State _state, ubyte r) => _ld!double(_state, r);
+
+@Inst("mov")
+private void mov(State _state, ubyte src, ubyte dst){
+	_state.r[dst] = _state.r[src];
+}
+@Inst("swp")
+private void swp(State _state, ubyte a, ubyte b){
+	reg_t tmp = _state.r[a];
+	_state.r[a] = _state.r[b];
+	_state.r[b] = tmp;
+}
+
+pragma(inline, true) private void _rd(T)(State _state, ubyte r){
+	static if (isIntegral!T){
+		static if (isSigned!T){
+			_state.stack.push!T(cast(T)(*cast(ptrdiff_t*)(_state.r[r].ptr)));
+		} else static if (isUnsigned!T){
+			_state.stack.push!T(cast(T)(*cast(size_t*)(_state.r[r].ptr)));
+		}
+	} else static if (isFloatingPoint!T){
+		_state.stack.push!T(cast(T)(*cast(double*)(_state.r[r].ptr)));
+	}
+}
+
+@Inst("rdi8")
+private void rdI8(State _state, ubyte r) => _rd!byte(_state, r);
+@Inst("rdi16")
+private void rdI16(State _state, ubyte r) => _rd!short(_state, r);
+@Inst("rdi32")
+private void rdI32(State _state, ubyte r) => _rd!int(_state, r);
 static if (ptrdiff_t.sizeof > int.sizeof){
-	@Inst("subI64")
-	private void subI64(State _state) => _subX!ptrdiff_t(_state);
+	@Inst("rdi64")
+	private void rdI64(State _state, ubyte r) => _rd!ptrdiff_t(_state, r);
 }
-@Inst("subU8")
-private void subU8(State _state) => _subX!ubyte(_state);
-@Inst("subU16")
-private void subU16(State _state) => _subX!ushort(_state);
-@Inst("subU32")
-private void subU32(State _state) => _subX!uint(_state);
+@Inst("rdu8")
+private void rdU8(State _state, ubyte r) => _rd!ubyte(_state, r);
+@Inst("rdu16")
+private void rdU16(State _state, ubyte r) => _rd!ushort(_state, r);
+@Inst("rdu32")
+private void rdU32(State _state, ubyte r) => _rd!uint(_state, r);
 static if (size_t.sizeof > uint.sizeof){
-	@Inst("subU64")
-	private void subU64(State _state) => _subX!size_t(_state);
-}
-@Inst("subF32")
-private void subF32(State _state) => _subX!float(_state);
-@Inst("subF64")
-private void subF64(State _state) => _subX!double(_state);
-
-@Inst("mulI8")
-private void mulI8(State _state) => _mulX!byte(_state);
-@Inst("mulI16")
-private void mulI16(State _state) => _mulX!short(_state);
-@Inst("mulI32")
-private void mulI32(State _state) => _mulX!int(_state);
-static if (ptrdiff_t.sizeof > int.sizeof){
-	@Inst("mulI64")
-	private void mulI64(State _state) => _mulX!ptrdiff_t(_state);
-}
-@Inst("mulU8")
-private void mulU8(State _state) => _mulX!ubyte(_state);
-@Inst("mulU16")
-private void mulU16(State _state) => _mulX!ushort(_state);
-@Inst("mulU32")
-private void mulU32(State _state) => _mulX!uint(_state);
-static if (size_t.sizeof > uint.sizeof){
-	@Inst("mulU64")
-	private void mulU64(State _state) => _mulX!size_t(_state);
-}
-@Inst("mulF32")
-private void mulF32(State _state) => _mulX!float(_state);
-@Inst("mulF64")
-private void mulF64(State _state) => _mulX!double(_state);
-
-@Inst("divI8")
-private void divI8(State _state) => _divX!byte(_state);
-@Inst("divI16")
-private void divI16(State _state) => _divX!short(_state);
-@Inst("divI32")
-private void divI32(State _state) => _divX!int(_state);
-static if (ptrdiff_t.sizeof > int.sizeof){
-	@Inst("divI64")
-	private void divI64(State _state) => _divX!ptrdiff_t(_state);
-}
-@Inst("divU8")
-private void divU8(State _state) => _divX!ubyte(_state);
-@Inst("divU16")
-private void divU16(State _state) => _divX!ushort(_state);
-@Inst("divU32")
-private void divU32(State _state) => _divX!uint(_state);
-static if (size_t.sizeof > uint.sizeof){
-	@Inst("divU64")
-	private void divU64(State _state) => _divX!size_t(_state);
-}
-@Inst("divF32")
-private void divF32(State _state) => _divX!float(_state);
-@Inst("divF64")
-private void divF64(State _state) => _divX!double(_state);
-
-@Inst("modI8")
-private void modI8(State _state) => _modX!byte(_state);
-@Inst("modI16")
-private void modI16(State _state) => _modX!short(_state);
-@Inst("modI32")
-private void modI32(State _state) => _modX!int(_state);
-static if (ptrdiff_t.sizeof > int.sizeof){
-	@Inst("modI64")
-	private void modI64(State _state) => _modX!ptrdiff_t(_state);
-}
-@Inst("modU8")
-private void modU8(State _state) => _modX!ubyte(_state);
-@Inst("modU16")
-private void modU16(State _state) => _modX!ushort(_state);
-@Inst("modU32")
-private void modU32(State _state) => _modX!uint(_state);
-static if (size_t.sizeof > uint.sizeof){
-	@Inst("modU64")
-	private void modU64(State _state) => _modX!size_t(_state);
+	@Inst("rdu64")
+	private void rdU64(State _state, ubyte r) => _rd!size_t(_state, r);
 }
 
-@Inst("and8")
-private void and8(State _state) => _bAndX!ubyte(_state);
-@Inst("and16")
-private void and16(State _state) => _bAndX!ushort(_state);
-@Inst("and32")
-private void and32(State _state) => _bAndX!uint(_state);
-static if (size_t.sizeof > uint.sizeof){
-	@Inst("and64")
-	private void and64(State _state) => _bAndX!size_t(_state);
+@Inst("rdf32")
+private void rdF32(State _state, ubyte r) => _rd!float(_state, r);
+@Inst("rdf64")
+private void rdF64(State _state, ubyte r) => _rd!double(_state, r);
+
+// aithmetic ------------------------------------------------------------------
+
+pragma(inline, true) private void _add(T)(State _state, ubyte a, ubyte b){
+	*cast(T*)(_state.r[0].ptr) =
+		*cast(T*)(_state.r[a].ptr) + *cast(T*)(_state.r[b].ptr);
+}
+pragma(inline, true) private void _sub(T)(State _state, ubyte a, ubyte b){
+	*cast(T*)(_state.r[0].ptr) =
+		*cast(T*)(_state.r[a].ptr) - *cast(T*)(_state.r[b].ptr);
+}
+pragma(inline, true) private void _mul(T)(State _state, ubyte a, ubyte b){
+	*cast(T*)(_state.r[0].ptr) =
+		*cast(T*)(_state.r[a].ptr) * *cast(T*)(_state.r[b].ptr);
+}
+pragma(inline, true) private void _div(T)(State _state, ubyte a, ubyte b){
+	*cast(T*)(_state.r[0].ptr) =
+		*cast(T*)(_state.r[a].ptr) / *cast(T*)(_state.r[b].ptr);
+}
+pragma(inline, true) private void _mod(T)(State _state, ubyte a, ubyte b){
+	*cast(T*)(_state.r[0].ptr) =
+		*cast(T*)(_state.r[a].ptr) % *cast(T*)(_state.r[b].ptr);
 }
 
-@Inst("or8")
-private void or8(State _state) => _bOrX!ubyte(_state);
-@Inst("or16")
-private void or16(State _state) => _bOrX!ushort(_state);
-@Inst("or32")
-private void or32(State _state) => _bOrX!uint(_state);
-static if (size_t.sizeof > uint.sizeof){
-	@Inst("or64")
-	private void or64(State _state) => _bOrX!size_t(_state);
+@Inst("addi")
+private void addI(State _state, ubyte a, ubyte b)
+	=> _add!ptrdiff_t(_state, a, b);
+@Inst("subi")
+private void subI(State _state, ubyte a, ubyte b)
+	=> _sub!ptrdiff_t(_state, a, b);
+@Inst("muli")
+private void mulI(State _state, ubyte a, ubyte b)
+	=> _mul!ptrdiff_t(_state, a, b);
+@Inst("divi")
+private void divI(State _state, ubyte a, ubyte b)
+	=> _div!ptrdiff_t(_state, a, b);
+@Inst("modi")
+private void modI(State _state, ubyte a, ubyte b)
+	=> _mod!ptrdiff_t(_state, a, b);
+
+@Inst("addu")
+private void addU(State _state, ubyte a, ubyte b)
+	=> _add!size_t(_state, a, b);
+@Inst("subu")
+private void subU(State _state, ubyte a, ubyte b)
+	=> _sub!size_t(_state, a, b);
+@Inst("mulu")
+private void mulU(State _state, ubyte a, ubyte b)
+	=> _mul!size_t(_state, a, b);
+@Inst("divu")
+private void divU(State _state, ubyte a, ubyte b)
+	=> _div!size_t(_state, a, b);
+@Inst("modu")
+private void modU(State _state, ubyte a, ubyte b)
+	=> _mod!size_t(_state, a, b);
+
+@Inst("addf")
+private void addF(State _state, ubyte a, ubyte b)
+	=> _add!double(_state, a, b);
+@Inst("subf")
+private void subF(State _state, ubyte a, ubyte b)
+	=> _sub!double(_state, a, b);
+@Inst("mulf")
+private void mulF(State _state, ubyte a, ubyte b)
+	=> _mul!double(_state, a, b);
+@Inst("divf")
+private void divF(State _state, ubyte a, ubyte b)
+	=> _div!double(_state, a, b);
+
+// conversion -----------------------------------------------------------------
+
+@Inst("itof")
+private void iToF(State _state, ubyte r){
+	*cast(double*)(_state.r[0].ptr) =
+		cast(double)(*cast(ptrdiff_t*)(_state.r[r].ptr));
+}
+@Inst("utof")
+private void uToF(State _state, ubyte r){
+	*cast(double*)(_state.r[0].ptr) =
+		cast(double)(*cast(size_t*)(_state.r[r].ptr));
+}
+@Inst("ftoi")
+private void fToI(State _state, ubyte r){
+	*cast(ptrdiff_t*)(_state.r[0].ptr) =
+		cast(ptrdiff_t)(*cast(double*)(_state.r[r].ptr));
+}
+@Inst("ftou")
+private void fToU(State _state, ubyte r){
+	*cast(size_t*)(_state.r[0].ptr) =
+		cast(size_t)(*cast(double*)(_state.r[r].ptr));
 }
 
-@Inst("xor8")
-private void xor8(State _state) => _bXorX!ubyte(_state);
-@Inst("xor16")
-private void xor16(State _state) => _bXorX!ushort(_state);
-@Inst("xor32")
-private void xor32(State _state) => _bXorX!uint(_state);
-static if (size_t.sizeof > uint.sizeof){
-	@Inst("xor64")
-	private void xor64(State _state) => _bXorX!size_t(_state);
+// bitwise --------------------------------------------------------------------
+
+@Inst("and")
+private void and(State _state, ubyte a, ubyte b){
+	*cast(size_t*)(_state.r[0].ptr) =
+		*cast(size_t*)(_state.r[a].ptr) & *cast(size_t*)(_state.r[b].ptr);
+}
+@Inst("or")
+private void or(State _state, ubyte a, ubyte b){
+	*cast(size_t*)(_state.r[0].ptr) =
+		*cast(size_t*)(_state.r[a].ptr) | *cast(size_t*)(_state.r[b].ptr);
+}
+@Inst("xor")
+private void xor(State _state, ubyte a, ubyte b){
+	*cast(size_t*)(_state.r[0].ptr) =
+		*cast(size_t*)(_state.r[a].ptr) ^ *cast(size_t*)(_state.r[b].ptr);
+}
+@Inst("not")
+private void xor(State _state, ubyte r){
+	*cast(size_t*)(_state.r[0].ptr) = ~(*cast(size_t*)(_state.r[r].ptr));
 }
 
-@Inst("not8")
-private void not8(State _state) => _bNotX!ubyte(_state);
-@Inst("not16")
-private void not16(State _state) => _bNotX!ushort(_state);
-@Inst("not32")
-private void not32(State _state) => _bNotX!uint(_state);
-static if (size_t.sizeof > uint.sizeof){
-	@Inst("not64")
-	private void not64(State _state) => _bNotX!size_t(_state);
+// comparison -----------------------------------------------------------------
+
+pragma(inline, true) private void _ls(T)(State _state, ubyte a, ubyte b){
+	*cast(size_t*)(_state.r[0].ptr) =
+		1 * (*cast(size_t*)(_state.r[a].ptr) < *cast(size_t*)(_state.r[b].ptr));
 }
+
+@Inst("lsi")
+private void lsI(State _state, ubyte a, ubyte b) => _ls!ptrdiff_t(_state, a, b);
+@Inst("lsu")
+private void lsU(State _state, ubyte a, ubyte b) => _ls!size_t(_state, a, b);
+@Inst("lsf")
+private void lsF(State _state, ubyte a, ubyte b) => _ls!double(_state, a, b);
+
+@Inst("cmp")
+private void cmp(State _state, ubyte a, ubyte b){
+	*cast(size_t*)(_state.r[0].ptr) =
+		1 * (*cast(size_t*)(_state.r[a].ptr) == *cast(size_t*)(_state.r[b].ptr));
+}
+
+pragma(msg, InstructionSet.length);
