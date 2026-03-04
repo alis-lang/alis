@@ -343,6 +343,17 @@ private void fToU(ref State _state, ubyte r){
 		cast(size_t)(*cast(double*)(_state.r[r].ptr));
 }
 
+@Inst("itob")
+private void iToB(ref State _state, ubyte r){
+	*cast(size_t*)(_state.r[0].ptr) =
+		(*cast(ptrdiff_t*)(_state.r[r].ptr)) != 0;
+}
+@Inst("ftob")
+private void fToB(ref State _state, ubyte r){
+	*cast(size_t*)(_state.r[0].ptr) =
+		(*cast(double*)(_state.r[r].ptr)) != 0f;
+}
+
 // bitwise --------------------------------------------------------------------
 
 @Inst("and")
