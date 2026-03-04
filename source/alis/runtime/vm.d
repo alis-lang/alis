@@ -6,13 +6,16 @@ import std.traits : hasUDA, isIntegral, isSigned, isUnsigned, isFloatingPoint;
 import std.meta : AliasSeq;
 import std.format : format;
 
-import navm : Inst, Code, parseCode, execute;
+import navm : Inst, Code, parseCode, execute, toBin, fromBin;
 
 /// Instruction Set for the Alis VM
 public alias InstructionSet = InstructionSet_Impl!();
 
 /// Number of registers in the VM
 public enum ubyte REG_COUNT = 8;
+
+/// Minimum stack size
+public enum size_t STACK_SIZE_MIN = 2048;
 
 private template InstructionSet_Impl(){
 	alias InstructionSet_Impl = AliasSeq!();
@@ -24,17 +27,30 @@ private template InstructionSet_Impl(){
 	}
 }
 
-/// program stack
-private struct Stack{
-	void[] arr;
+/// Data type for a register
+private alias reg_t = void[size_t.sizeof];
+
+/// program state
+private struct State{
+	State* prev;
+	reg_t[REG_COUNT] r;
+	void[] stack;
 	void* seek;
 	@disable this();
-	this(void[] arr, void* seek = null){
-		this.arr = arr;
-		if (!this.arr.length)
-			arr = new void[2048];
-		if (seek is null)
-			seek = arr.ptr;
+	this(State* prev, reg_t[REG_COUNT] r, void[] stack, void* seek){
+		this.prev = prev;
+		this.r = r;
+		this.stack = stack.length ? stack : new void[2048];
+		this.seek = seek ? seek : this.stack.ptr;
+	}
+
+	/// Returns: value of type `T` at an offset from `base`
+	pragma(inline, true) T get(T)(size_t offset){
+		return *cast(T*)(stack.ptr + offset);
+	}
+	/// Sets value at an offset from `base`
+	pragma(inline, true) void set(T)(size_t offset, T val){
+		*cast(T*)(stack.ptr + offset) = val;
 	}
 
 	/// Returns: top element of type `T`
@@ -58,54 +74,58 @@ private struct Stack{
 	}
 }
 
-/// Data type for a register
-private alias reg_t = void[size_t.sizeof];
-
-/// program state
-private struct State{
-	Stack stack;
-	reg_t[REG_COUNT] r;
-}
-
 // register manipulation ------------------------------------------------------
 
-pragma(inline, true) private void _ld(T)(ref State _state, ubyte r){
+pragma(inline, true) private void _ld(ubyte N)(ref State _state, ubyte r){
+	*cast(void[N]*)(_state.r[r].ptr) = _state.pop!(void[N]);
+}
+
+@Inst("ld8")
+private void ld8(ref State _state, ubyte r) => _ld!8(_state, r);
+@Inst("ld16")
+private void ld16(ref State _state, ubyte r) => _ld!16(_state, r);
+@Inst("ld32")
+private void ld32(ref State _state, ubyte r) => _ld!32(_state, r);
+@Inst("ld64")
+private void ld64(ref State _state, ubyte r) => _ld!64(_state, r);
+
+pragma(inline, true) private void _in(T)(ref State _state, ubyte r){
 	static if (isIntegral!T){
 		static if (isSigned!T){
-			*cast(ptrdiff_t*)(_state.r[r].ptr) = _state.stack.pop!T;
+			*cast(ptrdiff_t*)(_state.r[r].ptr) = *cast(T*)(_state.r[r].ptr);
 		} else static if (isUnsigned!T){
-			*cast(size_t*)(_state.r[r].ptr) = _state.stack.pop!T;
+			*cast(size_t*)(_state.r[r].ptr) = *cast(T*)(_state.r[r].ptr);
 		}
 	} else static if (isFloatingPoint!T){
-		*cast(double*)(_state.r[r].ptr) = _state.stack.pop!T;
+		*cast(double*)(_state.r[r].ptr) = *cast(T*)(_state.r[r].ptr);
 	}
 }
 
-@Inst("ldi8")
-private void ldI8(ref State _state, ubyte r) => _ld!byte(_state, r);
-@Inst("ldi16")
-private void ldI16(ref State _state, ubyte r) => _ld!short(_state, r);
-@Inst("ldi32")
-private void ldI132(ref State _state, ubyte r) => _ld!int(_state, r);
+@Inst("ii8")
+private void iI8(ref State _state, ubyte r) => _in!byte(_state, r);
+@Inst("ii16")
+private void iI16(ref State _state, ubyte r) => _in!short(_state, r);
+@Inst("ii32")
+private void iI132(ref State _state, ubyte r) => _in!int(_state, r);
 static if (ptrdiff_t.sizeof > int.sizeof){
-	@Inst("ldi64")
-	private void ldI164(ref State _state, ubyte r) => _ld!ptrdiff_t(_state, r);
+	@Inst("ii64")
+	private void iI164(ref State _state, ubyte r) => _in!ptrdiff_t(_state, r);
 }
-@Inst("ldu8")
-private void ldU8(ref State _state, ubyte r) => _ld!ubyte(_state, r);
-@Inst("ldu16")
-private void ldU16(ref State _state, ubyte r) => _ld!ushort(_state, r);
-@Inst("ldu32")
-private void ldU32(ref State _state, ubyte r) => _ld!uint(_state, r);
+@Inst("iu8")
+private void iU8(ref State _state, ubyte r) => _in!ubyte(_state, r);
+@Inst("iu16")
+private void iU16(ref State _state, ubyte r) => _in!ushort(_state, r);
+@Inst("iu32")
+private void iU32(ref State _state, ubyte r) => _in!uint(_state, r);
 static if (size_t.sizeof > uint.sizeof){
-	@Inst("ldu64")
-	private void ldU164(ref State _state, ubyte r) => _ld!size_t(_state, r);
+	@Inst("iu64")
+	private void iU164(ref State _state, ubyte r) => _in!size_t(_state, r);
 }
 
-@Inst("ldf32")
-private void ldF32(ref State _state, ubyte r) => _ld!float(_state, r);
-@Inst("ldf64")
-private void ldF64(ref State _state, ubyte r) => _ld!double(_state, r);
+@Inst("if32")
+private void iF32(ref State _state, ubyte r) => _in!float(_state, r);
+@Inst("if64")
+private void iF64(ref State _state, ubyte r) => _in!double(_state, r);
 
 @Inst("mov")
 private void mov(ref State _state, ubyte src, ubyte dst){
@@ -118,43 +138,107 @@ private void swp(ref State _state, ubyte a, ubyte b){
 	_state.r[b] = tmp;
 }
 
-pragma(inline, true) private void _rd(T)(ref State _state, ubyte r){
+pragma(inline, true) private void _rd(ubyte N)(ref State _state, ubyte r){
+	_state.push!(void[N])(*cast(void[N]*)(_state.r[r].ptr));
+}
+
+@Inst("rd8")
+private void rd8(ref State _state, ubyte r) => _rd!8(_state, r);
+@Inst("rd16")
+private void rd16(ref State _state, ubyte r) => _rd!16(_state, r);
+@Inst("rd32")
+private void rd32(ref State _state, ubyte r) => _rd!32(_state, r);
+@Inst("rd64")
+private void rd64(ref State _state, ubyte r) => _rd!64(_state, r);
+
+pragma(inline, true) private void _out(T)(ref State _state, ubyte r){
 	static if (isIntegral!T){
 		static if (isSigned!T){
-			_state.stack.push!T(cast(T)(*cast(ptrdiff_t*)(_state.r[r].ptr)));
+			*cast(T*)(_state.r[r].ptr) = cast(T)*cast(ptrdiff_t*)(_state.r[r].ptr);
 		} else static if (isUnsigned!T){
-			_state.stack.push!T(cast(T)(*cast(size_t*)(_state.r[r].ptr)));
+			*cast(T*)(_state.r[r].ptr) = cast(T)*cast(size_t*)(_state.r[r].ptr);
 		}
 	} else static if (isFloatingPoint!T){
-		_state.stack.push!T(cast(T)(*cast(double*)(_state.r[r].ptr)));
+		*cast(T*)(_state.r[r].ptr) = cast(T)*cast(double*)(_state.r[r].ptr);
 	}
 }
 
-@Inst("rdi8")
-private void rdI8(ref State _state, ubyte r) => _rd!byte(_state, r);
-@Inst("rdi16")
-private void rdI16(ref State _state, ubyte r) => _rd!short(_state, r);
-@Inst("rdi32")
-private void rdI32(ref State _state, ubyte r) => _rd!int(_state, r);
+@Inst("oi8")
+private void oI8(ref State _state, ubyte r) => _out!byte(_state, r);
+@Inst("oi16")
+private void oI16(ref State _state, ubyte r) => _out!short(_state, r);
+@Inst("oi32")
+private void oI32(ref State _state, ubyte r) => _out!int(_state, r);
 static if (ptrdiff_t.sizeof > int.sizeof){
-	@Inst("rdi64")
-	private void rdI64(ref State _state, ubyte r) => _rd!ptrdiff_t(_state, r);
+	@Inst("oi64")
+	private void oI64(ref State _state, ubyte r) => _out!ptrdiff_t(_state, r);
 }
-@Inst("rdu8")
-private void rdU8(ref State _state, ubyte r) => _rd!ubyte(_state, r);
-@Inst("rdu16")
-private void rdU16(ref State _state, ubyte r) => _rd!ushort(_state, r);
-@Inst("rdu32")
-private void rdU32(ref State _state, ubyte r) => _rd!uint(_state, r);
+@Inst("ou8")
+private void oU8(ref State _state, ubyte r) => _out!ubyte(_state, r);
+@Inst("ou16")
+private void oU16(ref State _state, ubyte r) => _out!ushort(_state, r);
+@Inst("ou32")
+private void oU32(ref State _state, ubyte r) => _out!uint(_state, r);
 static if (size_t.sizeof > uint.sizeof){
-	@Inst("rdu64")
-	private void rdU64(ref State _state, ubyte r) => _rd!size_t(_state, r);
+	@Inst("ou64")
+	private void oU64(ref State _state, ubyte r) => _out!size_t(_state, r);
 }
 
-@Inst("rdf32")
-private void rdF32(ref State _state, ubyte r) => _rd!float(_state, r);
-@Inst("rdf64")
-private void rdF64(ref State _state, ubyte r) => _rd!double(_state, r);
+@Inst("of32")
+private void oF32(ref State _state, ubyte r) => _out!float(_state, r);
+@Inst("of64")
+private void oF64(ref State _state, ubyte r) => _out!double(_state, r);
+
+// stack manipulation ---------------------------------------------------------
+
+pragma(inline, true) private void _dup(ubyte N)(ref State _state){
+	_state.push(_state.top!(void[N]));
+}
+
+@Inst("dup8")
+private void dup8(ref State _state) => _dup!8(_state);
+@Inst("dup16")
+private void dup16(ref State _state) => _dup!16(_state);
+@Inst("dup32")
+private void dup32(ref State _state) => _dup!32(_state);
+@Inst("dup64")
+private void dup64(ref State _state) => _dup!64(_state);
+
+pragma(inline, true) private void _get(ubyte N)(
+		ref State _state, ubyte r, size_t off){
+	*cast(void[N]*)(_state.r[r].ptr) = _state.get!(void[N])(off);
+}
+
+@Inst("get8")
+private void get8(ref State _state, ubyte r, size_t off)
+	=> _get!8(_state, r, off);
+@Inst("get16")
+private void get16(ref State _state, ubyte r, size_t off)
+	=> _get!16(_state, r, off);
+@Inst("get32")
+private void get32(ref State _state, ubyte r, size_t off)
+	=> _get!32(_state, r, off);
+@Inst("get64")
+private void get64(ref State _state, ubyte r, size_t off)
+	=> _get!64(_state, r, off);
+
+pragma(inline, true) private void _set(ubyte N)(
+		ref State _state, ubyte r, size_t off){
+	_state.set(off, *cast(void[N]*)(_state.r[r].ptr));
+}
+
+@Inst("set8")
+private void set8(ref State _state, ubyte r, size_t off)
+	=> _set!8(_state, r, off);
+@Inst("set16")
+private void set16(ref State _state, ubyte r, size_t off)
+	=> _set!16(_state, r, off);
+@Inst("set32")
+private void set32(ref State _state, ubyte r, size_t off)
+	=> _set!32(_state, r, off);
+@Inst("set64")
+private void set64(ref State _state, ubyte r, size_t off)
+	=> _set!64(_state, r, off);
 
 // control flow ---------------------------------------------------------------
 
@@ -304,4 +388,4 @@ private void cmp(ref State _state, ubyte a, ubyte b){
 		1 * (*cast(size_t*)(_state.r[a].ptr) == *cast(size_t*)(_state.r[b].ptr));
 }
 
-pragma(msg, InstructionSet.length.format!"instructions count: %d");
+debug pragma(msg, InstructionSet.length.format!"instructions count: %d");
