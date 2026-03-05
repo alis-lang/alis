@@ -372,7 +372,7 @@ private void xor(ref State _state, ubyte a, ubyte b){
 		*cast(size_t*)(_state.r[a].ptr) ^ *cast(size_t*)(_state.r[b].ptr);
 }
 @Inst("not")
-private void xor(ref State _state, ubyte r){
+private void not(ref State _state, ubyte r){
 	*cast(size_t*)(_state.r[0].ptr) = ~(*cast(size_t*)(_state.r[r].ptr));
 }
 
