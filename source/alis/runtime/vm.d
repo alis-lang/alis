@@ -32,13 +32,11 @@ private alias reg_t = void[size_t.sizeof];
 
 /// program state
 private struct State{
-	State* prev;
 	reg_t[REG_COUNT] r;
 	void[] stack;
 	void* seek;
 	@disable this();
-	this(State* prev, reg_t[REG_COUNT] r, void[] stack, void* seek){
-		this.prev = prev;
+	this(reg_t[REG_COUNT] r, void[] stack, void* seek){
 		this.r = r;
 		this.stack = stack.length ? stack : new void[2048];
 		this.seek = seek ? seek : this.stack.ptr;
@@ -77,7 +75,8 @@ private struct State{
 // register manipulation ------------------------------------------------------
 
 pragma(inline, true) private void _ld(ubyte N)(ref State _state, ubyte r){
-	*cast(void[N]*)(_state.r[r].ptr) = _state.pop!(void[N]);
+	static assert (N / 8 <= size_t.sizeof);
+	*cast(void[N / 8]*)(_state.r[r].ptr) = _state.pop!(void[N / 8]);
 }
 
 @Inst("ld8")
