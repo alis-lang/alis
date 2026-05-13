@@ -1774,6 +1774,9 @@ directly dependent on the underlying data structures in the compiler/runtime.
 - `type` - template paramater type, can accept data type
 - `noinit` - a data type, of zero size, and no default value
 - `noinitVal` - a value of type `$noinit`
+- `init(T...)` - Gets initialization value for type `T`. The sequence `T` must
+	contain either 0 or 1 elements. If 0 elements provided, the intrinsic looks
+	at the expected return type, and builds initialization value for that.
 - `int(X)` - data type, signed integer of X bits
 - `uint(X)` - data type, unsigned integer of X bits
 - `float(X)` - data type, floating point number of X bits
