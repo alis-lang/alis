@@ -64,6 +64,48 @@ alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
 	}
 }
 
+@Intr(IntrN.Init){
+	@CallabilityChecker
+	bool initCanCall(AValCT[] params){
+		if (params.length != 1)
+			return false;
+		AValCT p = params[0];
+		final switch (p.type){
+			case AValCT.Type.Symbol:
+				return p.symS.isDType;
+			case AValCT.Type.Type:
+				return true;
+			case AValCT.Type.Literal:
+			case AValCT.Type.Expr:
+			case AValCT.Type.Seq:
+				return false;
+		}
+	}
+	@ExprTranslator
+	SmErrsVal!RExpr initTranslate(string, Location pos, STab,
+			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+		AValCT p = params[0];
+		ADataType type;
+		final switch (p.type){
+			case AValCT.Type.Symbol:
+				type = p.symS.asType.val;
+				break;
+			case AValCT.Type.Type:
+				type = p.typeT;
+				break;
+			case AValCT.Type.Literal:
+			case AValCT.Type.Expr:
+			case AValCT.Type.Seq:
+				assert(false);
+		}
+		OptVal!(void[]) valRes = type.buildVal();
+		if (!valRes.isVal){
+			return [errInitFail(pos, type.toString)].SmErrsVal!RExpr;
+		}
+		return SmErrsVal!RExpr(new RAValCTExpr(AVal(type, valRes.val).AValCT));
+	}
+}
+
 @CallabilityChecker
 @Intr(IntrN.Int)
 @Intr(IntrN.UInt)
