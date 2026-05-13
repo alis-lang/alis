@@ -532,7 +532,10 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 	}
 
 	void intrinsicExprIter(IntrinsicExpr node, ref St st){
-		assert (node.name.isIntrN);
+		if (!node.name.isIntrN){
+			st.errs ~= errIntrUnk(node.pos, node.name);
+			return;
+		}
 		if (callabilityOf(node.name, st.params) == size_t.max){
 			st.errs ~= errCallableIncompat(node.pos, node.name.format!"$%s",
 					st.params.map!(p => p.toString));

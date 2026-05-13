@@ -32,7 +32,7 @@ private CmpErr unxpTokErr(R...)(Tok tok){
 /// UDA: tag as Grammar Function when no other UDA is appropriate
 enum GFn;
 
-/// UDA: Set Hook token that trigger a persing function
+/// UDA: Set Hook token that trigger a parsing function
 struct Hook{
 	/// triggering token type
 	TokType hook;
