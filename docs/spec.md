@@ -39,7 +39,7 @@ fn NAME PARAM_LIST -> EXPR;
 - `NAME` (optional) is the name of the function
 - `PARAM_LIST` is list of parameters. See below for syntax
 - `EXPR` is the expression to be evaluated. Usually, this will be:
-	`RETURN_TYPE{ function_body; return X; }` where `RETURN_TYPE` can be `void`
+    `RETURN_TYPE{ function_body; return X; }` where `RETURN_TYPE` can be `void`
 
 ## `PARAM_LIST`
 
@@ -127,7 +127,7 @@ operator:
 
 ```
 fn sum(int a, int b) -> int{
-	return a + b;
+    return a + b;
 }
 
 // all of the following are equivalent
@@ -153,7 +153,7 @@ Tests can be written as:
 
 ```
 utest [NAME_STR]{
-	// test body
+    // test body
 }
 ```
 
@@ -199,11 +199,11 @@ In the code below:
 ```
 var int someGlobalVar;
 pub fn main() -> void{
-	var int i = someGlobalVar;
-	{
-		var int j = i;
-	}
-	i = j; // error, j not accessible here
+    var int i = someGlobalVar;
+    {
+        var int j = i;
+    }
+    i = j; // error, j not accessible here
 }
 ```
 
@@ -233,11 +233,11 @@ var int _; // create an int, that cannot be accessed
 var int _; // create another such int
 
 fn main(string[] _) -> void{
-	// receive string[] parameter, do not use it
+    // receive string[] parameter, do not use it
 }
 
 for (i; auto _; range){
-	// iterate range, ignoring the values, just keep the counter
+    // iterate range, ignoring the values, just keep the counter
 }
 ```
 
@@ -301,9 +301,9 @@ Can be written as:
 - Hexadecimal - `0xFF` - for `15`
 - Series of `[0-9]+` digits
 - scientific notation - `XeY`, where `X` must be a decimal number, it cannot be
-	written in Binary or Hexadecimal, and `Y` must be an integer. Since this is
-	an Integer, the resulting number must not have any non-zero digits right of
-	the decial point.
+    written in Binary or Hexadecimal, and `Y` must be an integer. Since this is
+    an Integer, the resulting number must not have any non-zero digits right of
+    the decial point.
 
 `int` is initialised as `0`.
 
@@ -369,12 +369,12 @@ var auto x = something;
 An array type provides the following operations:
 
 - Resize (change length): `$arrLen(A, l)`. This intrinsic results in a 
-	runtime function call, that resizes array `A` to length `l`
+    runtime function call, that resizes array `A` to length `l`
 - implicit cast to `$slice(X)`
 - Get Length: `$arrLen(A)`. This intrinsics tells length of array or slice,
-	in number of elements it can hold.
+    in number of elements it can hold.
 - Get Element: `$arrInd(A, i)`. Gets element at `i`th index in `A` array or
-	slice.
+    slice.
 
 ## `$slice(X)`
 
@@ -399,7 +399,7 @@ slices:
 - `S[i]` - Get reference to `i-th` element of slice `S`
 - `S.length` - Get length of slice `S`
 - `S[i, j]` - Get a sub-slice of this slice, starting from index `i`, up till,
-	but excluding, index `j`
+    but excluding, index `j`
 
 ## `string`
 
@@ -463,10 +463,10 @@ They are defined like:
 
 ```
 struct STRUCT_NAME{
-	[ipub|pub] TYPE NAME [ = INIT_VALUE];
-	[ipub|pub] TYPE NAME [ = INIT_VALUE] , NAME_2 [ = INIT_VALUE];
-	[ipub|pub] TYPE; // for when TYPE is a struct or union
-	[ipub|pub] alias [X] = [Y];
+    [ipub|pub] TYPE NAME [ = INIT_VALUE];
+    [ipub|pub] TYPE NAME [ = INIT_VALUE] , NAME_2 [ = INIT_VALUE];
+    [ipub|pub] TYPE; // for when TYPE is a struct or union
+    [ipub|pub] alias [X] = [Y];
 }
 ```
 
@@ -523,9 +523,9 @@ directly a member:
 
 ```
 struct Length{
-	int len = 0;
-	string unit = "cm";
-	alias this = len;
+    int len = 0;
+    string unit = "cm";
+    alias this = len;
 }
 var Length len = 0; // Length = int is error, so assigns to the int member
 len = 1;
@@ -542,8 +542,8 @@ Structs can be constructed as:
 
 ```
 struct User{
-	string username;
-	string passhash;
+    string username;
+    string passhash;
 }
 
 var User u = {username = "whoami"}; // passhash defaults to zero length
@@ -554,8 +554,8 @@ constructor:
 
 ```
 struct User{
-	pub string username;
-	string passhash;
+    pub string username;
+    string passhash;
 }
 
 // other file:
@@ -583,9 +583,9 @@ member is currently stored:
 
 ```
 union Name{
-	[pub] TYPE NAME;
-	[pub] TYPE; // for when type is struct or union
-	[pub] alias X = Y;
+    [pub] TYPE NAME;
+    [pub] TYPE; // for when type is struct or union
+    [pub] alias X = Y;
 }
 ```
 
@@ -593,9 +593,9 @@ Example:
 
 ```
 union Val{
-	int i = 0;
-	float f;
-	string s;
+    int i = 0;
+    float f;
+    string s;
 }
 ```
 
@@ -603,16 +603,16 @@ Example:
 
 ```
 struct User{
-	string username;
-	union {
-		void admin;
-		void moderator;
-		void user;
-		struct {
-			int loginAttempts = int.max;
-			string ipAddr = "127.0.0.1";
-		} loggedOut;
-	};
+    string username;
+    union {
+        void admin;
+        void moderator;
+        void user;
+        struct {
+            int loginAttempts = int.max;
+            string ipAddr = "127.0.0.1";
+        } loggedOut;
+    };
 }
 ```
 
@@ -636,13 +636,13 @@ initialization can be denoted by assigning a default value to it. For example:
 
 ```
 union Foo{
-	void bar = $init; // bar is default
-	int baz;
+    void bar = $init; // bar is default
+    int baz;
 }
 
 union Num{
-	int i;
-	float f = float.$init; // f is default
+    int i;
+    float f = float.$init; // f is default
 }
 ```
 
@@ -653,7 +653,7 @@ _Not to be confused with anonymous unions_
 A union is an unnamed union if:
 
 - For every member, the type cannot be implicitly casted to another member's
-	type
+    type
 - Every member is unnamed
 - Every member is public (unnamed members imply this automatically)
 
@@ -681,7 +681,7 @@ This can be used as:
 
 ```
 fn foo(...) -> union { string; int; } {
-	// ...
+    // ...
 }
 ```
 
@@ -708,9 +708,9 @@ In case of `this` member, following is also possible:
 
 ```
 union Foo{
-	void bar = $init;
-	int bar;
-	alias this = bar;
+    void bar = $init;
+    int bar;
+    alias this = bar;
 }
 var Foo f;
 $unionIs(f) == $unionIs(f.bar); // true
@@ -723,15 +723,15 @@ member is stored:
 ```
 union Foo{ int i = 0; string s; f32 f; }
 fn bar() -> void{
-	var Foo f = // get Foo from somewhere
-	f.s.writeln; // error
-	if (is f.s)
-		f.s.writeln; // no error
+    var Foo f = // get Foo from somewhere
+    f.s.writeln; // error
+    if (is f.s)
+        f.s.writeln; // no error
 
-	f.i.writeln; // error
-	if (is f.s || is f.f)
-		return;
-	f.i.writeln; // no error
+    f.i.writeln; // error
+    if (is f.s || is f.f)
+        return;
+    f.i.writeln; // no error
 }
 ```
 
@@ -745,12 +745,12 @@ Example:
 ```
 // file module.alis
 union Foo{
-	pub int i = 0; // default
-	pub string s;
-	pub struct {
-		f64 x, y;
-	} pos;
-	int k;
+    pub int i = 0; // default
+    pub string s;
+    pub struct {
+        f64 x, y;
+    } pos;
+    int k;
 }
 
 Foo(); // fine, default i = 0
@@ -782,9 +782,9 @@ Enums are defined like:
 
 ```
 enum TYPE EnumName{
-	member0 [= val0],
-	member1 [= val1],
-	member2 [= val1], // same value multiple times is allowed
+    member0 [= val0],
+    member1 [= val1],
+    member2 [= val1], // same value multiple times is allowed
 }
 ```
 
@@ -796,9 +796,9 @@ Example:
 
 ```
 enum int ErrorType{
-	FileNotFound = 1, // default value is first one
-	InvalidPath = 1 << 1, // constant expression is allowed
-	PermissionDenied = 4
+    FileNotFound = 1, // default value is first one
+    InvalidPath = 1 << 1, // constant expression is allowed
+    PermissionDenied = 4
 }
 ```
 
@@ -840,7 +840,7 @@ and themselves do not occupy any memory.
 
 ```
 struct Position{ // struct is private
-	pub int x, y;
+    pub int x, y;
 }
 
 pub alias Coordinate = Position; // Coordinate is publically accessible
@@ -865,9 +865,9 @@ that evaluate to a single value, of type `DATA_TYPE`:
 
 ```
 5 + int{
-		// some code
-		return someInt
-	} + 10;
+        // some code
+        return someInt
+    } + 10;
 ```
 
 These cannot be used everywhere, this type of expression will usually need to
@@ -901,9 +901,9 @@ The compiler provides following intrinsics for working with attributes:
 
 - `$attrsOf(X)` - Gets sequence of all attributes of all types for symbol `X`
 - `$byAttrs(X, A)` - Gets all symbols that are children of `X`, which can be
-	a module, or any symbol that itself can contain symbols with Attributes. Only
-	gets the symbols with attributes that: match `A`, or are of type `A`,
-	depending on whether `A` is a value, or a type.
+    a module, or any symbol that itself can contain symbols with Attributes. Only
+    gets the symbols with attributes that: match `A`, or are of type `A`,
+    depending on whether `A` is a value, or a type.
 
 ---
 
@@ -915,7 +915,7 @@ The `import` keyword can be used to instantiate a module.
 A module is similar to a struct, except:
 
 1. only 1 instance of a module can exist, created the first time `import` is
-	called
+    called
 2. private members inside a module are not accessible outside
 
 Import Expression:
@@ -941,8 +941,8 @@ The `pub` keyword can be prefixed to make a member public:
 
 ```
 pub struct SomeStruct{
-	int someInt, someOtherInt; // these data members are private
-	pub int x; // this is public
+    int someInt, someOtherInt; // these data members are private
+    pub int x; // this is public
 }
 ```
 
@@ -951,9 +951,9 @@ module:
 
 ```
 pub struct SomeStruct{
-	int i; // private
-	pub int j; // public read/write
-	ipub int k; // public read only
+    int i; // private
+    pub int j; // public read/write
+    ipub int k; // public read only
 }
 ```
 
@@ -967,16 +967,16 @@ the module.
 
 ```
 if CONDITION_EXPR
-	STATEMENT_ON_TRUE
+    STATEMENT_ON_TRUE
 ```
 
 or:
 
 ```
 if CONDITION_EXPR
-	STATEMENT_ON_TRUE
+    STATEMENT_ON_TRUE
 else
-	STATEMENT_ON_FALSE
+    STATEMENT_ON_FALSE
 ```
 
 ---
@@ -987,7 +987,7 @@ else
 
 ```
 while CONDITION_EXPR
-	STATEMENT
+    STATEMENT
 ```
 
 `CONDITION_EXPR` is evaluated, if `true`, STATEMENT is executed, repeat.
@@ -996,7 +996,7 @@ while CONDITION_EXPR
 
 ```
 do 
-	STATEMENT
+    STATEMENT
 while CONDITION_EXPR;
 ```
 
@@ -1010,10 +1010,10 @@ A for loop can be written as:
 
 ```
 for (counter; type value; range)
-	writeln(counter + 1, "th value is ", value);
+    writeln(counter + 1, "th value is ", value);
 // or
 for (type value; range)
-	writeln(value);
+    writeln(value);
 ```
 
 Example:
@@ -1021,14 +1021,14 @@ Example:
 ```
 var auto data = getStuff();
 for (auto val; data)
-	writeln(val);
+    writeln(val);
 
 // is equivalent to:
 auto range = data.opRange;
 while !range.isEmpty {
-	var auto val = range.front;
-	writeln(val);
-	range.popFront;
+    var auto val = range.front;
+    writeln(val);
+    range.popFront;
 }
 ```
 
@@ -1048,7 +1048,7 @@ example:
 
 ```
 fn opRange(X) -> RangeObjectOfX{
-	return RangeObjectOfX(X);
+    return RangeObjectOfX(X);
 }
 ```
 
@@ -1056,11 +1056,11 @@ fn opRange(X) -> RangeObjectOfX{
 
 ```
 struct ArrayRange $($type T) {
-	$slice(T) arr; // ref to array
-	uint index;
+    $slice(T) arr; // ref to array
+    uint index;
 }
 fn opRange $($type T) (@const T[] arr) -> ArrayRange(T){
-	return {arr = arr, index = 0}.(ArrayRange(T));
+    return {arr = arr, index = 0}.(ArrayRange(T));
 }
 alias isEmpty $(alias R : ArrayRange(T), $type T) = (R.index >= R.arr.length);
 alias front $(alias R : ArrayRange(T), $type T) = R.arr[R.index];
@@ -1141,17 +1141,17 @@ Operators are read in this order (higher precedence to lower), comma separated:
 - `A << B`, `A >> B`
 - `A & B`, `A | B`, `A ^ B`
 - `A : B`, `A == B`, `A != B`, `A >= B`, `A <= B`, `A > B`, `A < B`, `A is B`,
-	`A !is B`
+    `A !is B`
 - `A && B`, `A || B`
 - `A = B`, `A += B`, `A -= B`, `A *= B`, `A /= B`, `A %= B`, `A &= B`,
-	`A |= B`, `A ^= B`
+    `A |= B`, `A ^= B`
 - `A , B` (A comma B)
 
 Some of these operators cannot be used in usual expressions:
 
 - `# A` can only be used to tag definitions with attributes
 - `A ...` can only be used on `$type` and  `alias` in defining template
-	parameters
+    parameters
 
 ## Syntactic Sugar Operators
 
@@ -1232,17 +1232,17 @@ possible. Implementing `opBin("==", a, b)`, or `opBin("!=", a, b)` will make
 
 ```
 struct Length{
-	pub uint len;
-	pub alias this = len;
-	pub string unit = "cm";
+    pub uint len;
+    pub alias this = len;
+    pub string unit = "cm";
 }
 
 template opBin $(string op : "+", alias a : Length, alias b : Length){
-	alias this = Optional(Length){
-		if (a.unit != b.unit)
-			Err!; // assuming Err is a template from stdlib to create error
-		return {a.len + b.len, unit = a.unit}.Length;
-	};
+    alias this = Optional(Length){
+        if (a.unit != b.unit)
+            Err!; // assuming Err is a template from stdlib to create error
+        return {a.len + b.len, unit = a.unit}.Length;
+    };
 }
 ```
 
@@ -1277,8 +1277,8 @@ fn val(OptionalInt o) -> o.int;
 alias val $(alias V : OptionalInt) -> V.int;
 // or simply name it in the union
 union OptionalInt{
-	int val;
-	struct{} _;
+    int val;
+    struct{} _;
 }
 ```
 
@@ -1309,11 +1309,11 @@ The return data type of the expression `foo? + bar?` will be:
 
 ```
 union {
-	union {
-		foo.$type; bar.$type;
-	} err;
-	$type(foo.val + bar.val) val;
-	alias this = val;
+    union {
+        foo.$type; bar.$type;
+    } err;
+    $type(foo.val + bar.val) val;
+    alias this = val;
 }
 ```
 
@@ -1321,7 +1321,7 @@ The union is built with 2 members:
 
 - `val` - the value in case of no error(s)
 - `err` - error value(s). In case different types of errors are possible, this
-	will be a union of them.
+    will be a union of them.
 
 ## binary `??` operator
 
@@ -1355,8 +1355,8 @@ erroneous value:
 
 ```
 fn logAndReturn $($type T)(T val) -> T {
-	val.to(string).writeln;
-	return val;
+    val.to(string).writeln;
+    return val;
 }
 fn toInt(string s) -> s.int ?? { isVal = false, err = _ };
 ```
@@ -1387,7 +1387,7 @@ Implicit casting is provided by default for:
 - `$uint(X)` to `bool` for any `X`
 - `T` to `const T` for any type `T`
 - Anonymous struct `A` to struct `B` where `A` is a subset of `B`, and
-	remaining elements of `B` can be auto initialized.
+    remaining elements of `B` can be auto initialized.
 - Unnamed union `A` to Unnamed union `B` where `A` is a subset of `B`
 
 Explicit casting is done as:
@@ -1418,10 +1418,10 @@ Alternatively, since `a.b` is equivalent to `b(a)`:
 
 ```
 $if (platformIsLinux){
-	enum string PlatformName = "Linux";
+    enum string PlatformName = "Linux";
 }
 else{
-	enum string PlatformName = "Other";
+    enum string PlatformName = "Other";
 }
 ```
 
@@ -1433,7 +1433,7 @@ and copies its body for each element:
 ```
 // this loop will not exist at runtime
 $for (int num; [0, 5, 4, 2]){
-	writeln(num.to(string));
+    writeln(num.to(string));
 }
 ```
 
@@ -1442,8 +1442,8 @@ errors if any definitions are made inside. To avoid, do:
 
 ```
 $for (int num; [0, 5, 4, 2]){{
-	enum square = num * num;
-	writeln(square.to(string));
+    enum square = num * num;
+    writeln(square.to(string));
 }}
 ```
 
@@ -1451,7 +1451,7 @@ Since `$for` is evaluated at compile time, it can iterate over sequnces:
 
 ```
 $for (int num; (0, 5, 4, 2)){
-	num.to(string).writeln;
+    num.to(string).writeln;
 }
 ```
 
@@ -1469,16 +1469,16 @@ sequence of template parameters:
 ```
 // an overly complicated way to create global variables of a type
 template globVar $($type T){
-	var T this;
+    var T this;
 }
 
 template square $(int x){
-	enum int this = getSquare(x); // function call will be made at compile time
-	fn getSquare(int x) -> x * x;
+    enum int this = getSquare(x); // function call will be made at compile time
+    fn getSquare(int x) -> x * x;
 }
 
 template sum $(T x, T y, $type T){
-	enum T this = x + y;
+    enum T this = x + y;
 }
 ```
 
@@ -1502,7 +1502,7 @@ it evaluates to true. The `$(..)` template parameters can be followed by an
 
 ```
 template foo $($type T) if (someCondition(T)){
-	enum string this = "bar";
+    enum string this = "bar";
 }
 ```
 
@@ -1511,13 +1511,13 @@ paramters list:
 
 ```
 template typeStr $($type T : int){
-	enum string this = "int";
+    enum string this = "int";
 }
 template typeStr $($type T : double){
-	enum string this = "double"
+    enum string this = "double"
 }
 template number $($type T : (int, double)){
-	alias this = T;
+    alias this = T;
 }
 ```
 
@@ -1549,12 +1549,12 @@ can be done by prefixing any template definition by the `mixin` keyword:
 
 ```
 template mixin xTimes $(alias F : @fn ()->void, uint times){
-	$for (auto i; range(0, times)){
-		F();
-	}
+    $for (auto i; range(0, times)){
+        F();
+    }
 }
 fn main() -> void{
-	mixin xTimes (foo, 5); // equivalent to calling foo 5 times
+    mixin xTimes (foo, 5); // equivalent to calling foo 5 times
 }
 ```
 
@@ -1568,17 +1568,17 @@ template parameters:
 
 ```
 fn sum $($type T) if (someCondition) (T a, T b) -> T {
-	return a + b;
+    return a + b;
 }
 // or
 fn sum $($type T) (T a, T b) -> T {
-	return a + b;
+    return a + b;
 }
 // or
 template sum $($type T) {
-	fn this(T a, T b) -> T {
-		return a + b;
-	}
+    fn this(T a, T b) -> T {
+        return a + b;
+    }
 }
 ```
 
@@ -1597,7 +1597,7 @@ To receive additional template parameters, which are not used in parameters:
 
 ```
 template foo $(alias... S){
-	fn this $($type T) (T val) -> val;
+    fn this $($type T) (T val) -> val;
 }
 
 // Seq passed for `S`. Cannot pass T directly, inferred from 5
@@ -1610,20 +1610,20 @@ Templates can be used to create compile time constants:
 
 ```
 template TypeName $($type T){
-	$if (T is int)
-		enum string this = "int";
-	else $if (T is double)
-		enum string this = "double";
-	else $if (T is string)
-		enum string this = "string";
-	else
-		enum string this = "weird type";
+    $if (T is int)
+        enum string this = "int";
+    else $if (T is double)
+        enum string this = "double";
+    else $if (T is string)
+        enum string this = "string";
+    else
+        enum string this = "weird type";
 }
 // or
 enum string TypeName $($type T) = doSomethingAtCompileTime();
 
 fn typeIsSupported $($type T) () -> bool{
-	return TypeName(T) != "weird type";
+    return TypeName(T) != "weird type";
 }
 ```
 
@@ -1631,13 +1631,13 @@ fn typeIsSupported $($type T) () -> bool{
 
 ```
 struct Position $($type T) if someCondition(T) {
-	T x, y;
+    T x, y;
 }
 // or
 template Position $($type T){
-	struct this{
-		T x, y;
-	}
+    struct this{
+        T x, y;
+    }
 }
 alias PositionDiscrete = Position(int);
 alias PositionContinuous = Position(float);
@@ -1647,8 +1647,8 @@ alias PositionContinuous = Position(float);
 
 ```
 union Optional $($type T) if ($isType(T)){
-	pub T val;
-	pub void none;
+    pub T val;
+    pub void none;
 }
 ```
 
@@ -1659,7 +1659,7 @@ following instead:
 
 ```
 template foo $($type T) {
-	var T this;
+    var T this;
 }
 ```
 
@@ -1686,10 +1686,10 @@ variables:
 
 ```
 fn sum $(alias... T) (T params) -> T[0]{
-	var T[0] ret;
-	$for (auto val; params)
-		ret = ret + val;
-	return ret;
+    var T[0] ret;
+    $for (auto val; params)
+        ret = ret + val;
+    return ret;
 }
 ```
 
@@ -1697,7 +1697,7 @@ Length of a sequence can be found through the `$seqLen` intrinsic:
 
 ```
 fn printLength $(alias... T) () -> void{
-	$seqLen(T).writeln;
+    $seqLen(T).writeln;
 }
 ```
 
@@ -1705,8 +1705,8 @@ Indexed access on sequences is possible through the `$seqInd` intrinsic:
 
 ```
 fn sum $(alias... T) () -> void{
-	for (auto i; range(0, T.$seqLen))
-		T.$seqInd(i).writeln;
+    for (auto i; range(0, T.$seqLen))
+        T.$seqInd(i).writeln;
 }
 ```
 
@@ -1714,8 +1714,8 @@ Sequences, when used, are expanded:
 
 ```
 fn printSeq $(alias... T, int Max) () -> void{
-	$for (auto i; range(0, min(Max, T.$seqLen)))
-		T.$seqInd(i).to(string).writeln;
+    $for (auto i; range(0, min(Max, T.$seqLen)))
+        T.$seqInd(i).to(string).writeln;
 }
 
 alias Seq = ("a", "b", 5, 10);
@@ -1727,8 +1727,8 @@ parameters. Something similar can be achieved through a template of a template:
 
 ```
 template Foo $(alias... A){
-	template Bar $(alias... B){
-	}
+    template Bar $(alias... B){
+    }
 }
 // Use like:
 Foo(SeqA)(SeqB);
@@ -1775,8 +1775,8 @@ directly dependent on the underlying data structures in the compiler/runtime.
 - `noinit` - a data type, of zero size, and no default value
 - `noinitVal` - a value of type `$noinit`
 - `init(T...)` - Gets initialization value for type `T`. The sequence `T` must
-	contain either 0 or 1 elements. If 0 elements provided, the intrinsic looks
-	at the expected return type, and builds initialization value for that.
+    contain either 0 or 1 elements. If 0 elements provided, the intrinsic looks
+    at the expected return type, and builds initialization value for that.
 - `int(X)` - data type, signed integer of X bits
 - `uint(X)` - data type, unsigned integer of X bits
 - `float(X)` - data type, floating point number of X bits
@@ -1797,22 +1797,22 @@ directly dependent on the underlying data structures in the compiler/runtime.
 ## Unions & Aggregates
 
 - `unionIs(T.M)` - whether a union's tag indicates `M` member being stored, or
-	member of type `M`.
+    member of type `M`.
 - `members(T)` - gets accessible member names as string sequence for a
-	union/struct/enum type `T`. This will include aliases as well. 
+    union/struct/enum type `T`. This will include aliases as well. 
 - `memberField(T, N)` - gets actual field name for a member `N` on union/struct
-	type `T`. Use to "de-alias" members to actual underlying member.
+    type `T`. Use to "de-alias" members to actual underlying member.
 - `member(T, N)` - get member with name `N`, on enum type `T`, or
-	union/struct/enum type `T`.
+    union/struct/enum type `T`.
 
 ## Attributes
 
 - `attrsOf(X)` - gets sequence of all attributes of `X`.
 - `byAttrs(X, A)` - gets sequence of all symbols, that are members of `X`,
-	which are of type `A`. `X` can be a module, struct, enum, or function
-	(parameters are considered members). `A` can be a type: attributes of type
-	`A` will be matched. `A` can be a value: attributes of type and value of `A`
-	will be matched.
+    which are of type `A`. `X` can be a module, struct, enum, or function
+    (parameters are considered members). `A` can be a type: attributes of type
+    `A` will be matched. `A` can be a value: attributes of type and value of `A`
+    will be matched.
 
 # Misc.
 
@@ -1825,7 +1825,7 @@ directly dependent on the underlying data structures in the compiler/runtime.
 These should only be used for debugging. 
 
 - `rtWrite(T...)` - prints parameters, at runtime. **Only for debugging Alis
-	itself. May not be available in final version**
+    itself. May not be available in final version**
 - `ctWrite(T...)` - prints parameters, at compile time.
 
 ## Arithmetic Operations
