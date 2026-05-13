@@ -35,6 +35,7 @@ public enum IntrN : string{
 	Type = "type",
 	NoInit = "noinit",
 	NoInitVal = "noinitval",
+	Init = "init",
 	Int = "int",
 	UInt = "uint",
 	Float = "float",
