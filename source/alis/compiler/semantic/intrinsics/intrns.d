@@ -29,9 +29,8 @@ alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
 		return false;
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr typeTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[]){
-		return SmErrsVal!RExpr([errIntrUnk(pos, IntrN.Type)]);
+	SmErrsVal!RExpr typeTranslate(IntrSt st){
+		return SmErrsVal!RExpr([errIntrUnk(st.pos, IntrN.Type)]);
 	}
 }
 
@@ -41,10 +40,9 @@ alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
 		return params.length == 0;
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr noinitTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[]){
+	SmErrsVal!RExpr noinitTranslate(IntrSt st){
 		RAValCTExpr r = new RAValCTExpr(ADataType.ofNoInit.AValCT);
-		r.pos = pos;
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 }
@@ -55,11 +53,10 @@ alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
 		return params.length == 0;
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr noinitvalTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[]){
+	SmErrsVal!RExpr noinitvalTranslate(IntrSt st){
 		RAValCTExpr r = new RAValCTExpr(
 				AVal(ADataType.ofNoInit, cast(void[])null).AValCT);
-		r.pos = pos;
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 }
@@ -82,9 +79,8 @@ alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
 		}
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr initTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
-		AValCT p = params[0];
+	SmErrsVal!RExpr initTranslate(IntrSt st){
+		AValCT p = st.params[0];
 		ADataType type;
 		final switch (p.type){
 			case AValCT.Type.Symbol:
@@ -100,7 +96,7 @@ alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
 		}
 		OptVal!(void[]) valRes = type.buildVal();
 		if (!valRes.isVal){
-			return [errInitFail(pos, type.toString)].SmErrsVal!RExpr;
+			return [errInitFail(st.pos, type.toString)].SmErrsVal!RExpr;
 		}
 		return SmErrsVal!RExpr(new RAValCTExpr(AVal(type, valRes.val).AValCT));
 	}
@@ -133,43 +129,39 @@ bool bitXCanCall(AValCT[] params){
 
 @ExprTranslator{
 	@Intr(IntrN.Int)
-	SmErrsVal!RExpr intTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+	SmErrsVal!RExpr intTranslate(IntrSt st){
 		ubyte x = size_t.sizeof * 8;
-		if (params.length != 0)
-			x = cast(ubyte)params[0].val.as!size_t.val;
+		if (st.params.length != 0)
+			x = cast(ubyte)st.params[0].val.as!size_t.val;
 		RAValCTExpr r = new RAValCTExpr(ADataType.ofInt(x).AValCT);
-		r.pos = pos;
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 
 	@Intr(IntrN.UInt)
-	SmErrsVal!RExpr uintTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+	SmErrsVal!RExpr uintTranslate(IntrSt st){
 		ubyte x = size_t.sizeof * 8;
-		if (params.length != 0)
-			x = cast(ubyte)params[0].val.as!size_t.val;
+		if (st.params.length != 0)
+			x = cast(ubyte)st.params[0].val.as!size_t.val;
 		RAValCTExpr r = new RAValCTExpr(ADataType.ofUInt(x).AValCT);
-		r.pos = pos;
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 
 	@Intr(IntrN.Float)
-	SmErrsVal!RExpr floatTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+	SmErrsVal!RExpr floatTranslate(IntrSt st){
 		ubyte x = size_t.sizeof * 8;
-		if (params.length != 0)
-			x = cast(ubyte)params[0].val.as!size_t.val;
+		if (st.params.length != 0)
+			x = cast(ubyte)st.params[0].val.as!size_t.val;
 		RAValCTExpr r = new RAValCTExpr(ADataType.ofFloat(x).AValCT);
-		r.pos = pos;
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 
 	@Intr(IntrN.Char)
-	SmErrsVal!RExpr charTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[]){
+	SmErrsVal!RExpr charTranslate(IntrSt st){
 		RAValCTExpr r = new RAValCTExpr(ADataType.ofChar.AValCT);
-		r.pos = pos;
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 }
@@ -189,20 +181,18 @@ bool firstAndOnlyParamShallBeADataType(AValCT[] params){
 }
 
 @Intr(IntrN.Slice) @ExprTranslator
-SmErrsVal!RExpr sliceTranslate(string, Location pos, STab,
-		IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+SmErrsVal!RExpr sliceTranslate(IntrSt st){
 	RAValCTExpr r = new RAValCTExpr(
-			ADataType.ofSlice(params[0].asType.val).AValCT);
-	r.pos = pos;
+			ADataType.ofSlice(st.params[0].asType.val).AValCT);
+	r.pos = st.pos;
 	return SmErrsVal!RExpr(r);
 }
 
 @Intr(IntrN.Array) @ExprTranslator
-SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
-		IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+SmErrsVal!RExpr arrayTranslate(IntrSt st){
 	RAValCTExpr r = new RAValCTExpr(
-			ADataType.ofArray(params[0].asType.val).AValCT);
-	r.pos = pos;
+			ADataType.ofArray(st.params[0].asType.val).AValCT);
+	r.pos = st.pos;
 	return SmErrsVal!RExpr(r);
 }
 
@@ -212,9 +202,8 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		return params.length == 1;
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr isTypeTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
-		AValCT p = params[0];
+	SmErrsVal!RExpr isTypeTranslate(IntrSt st){
+		AValCT p = st.params[0];
 		RLiteralExpr r;
 		final switch (p.type){
 			case AValCT.Type.Symbol:
@@ -228,9 +217,10 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 				r = new RLiteralExpr(false.AVal);
 				break;
 			case AValCT.Type.Seq:
-				return SmErrsVal!RExpr([errUnsup(pos, "AValCT.Type.Seq in $isType")]);
+				return SmErrsVal!RExpr([
+						errUnsup(st.pos, "AValCT.Type.Seq in $isType")]);
 		}
-		r.pos = pos;
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 }
@@ -238,19 +228,20 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 @Intr(IntrN.TypeOf){
 	@CallabilityChecker
 	bool typeOfCanCall(AValCT[] params){
-		return !(typeOfTranslate(string.init, Location.init,
-					null, null, null, null, params).isErr);
+		return !(typeOfTranslate(IntrSt(string.init, Location.init,
+					null, null, null, null, params)).isErr);
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr typeOfTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
-		if (params.length != 1)
+	SmErrsVal!RExpr typeOfTranslate(IntrSt st){
+		if (st.params.length != 1){
 			return SmErrsVal!RExpr([
-					errParamCount(pos, IntrN.TypeOf.format!"$%s", 1, params.length)]);
+					errParamCount(st.pos, IntrN.TypeOf.format!"$%s", 1,
+						st.params.length)]);
+		}
 		ADataType type;
-		final switch (params[0].type){
+		final switch (st.params[0].type){
 			case AValCT.Type.Symbol:
-				ASymbol* sym = params[0].symS;
+				ASymbol* sym = st.params[0].symS;
 				final switch (sym.type){
 					case ASymbol.Type.Struct:
 					case ASymbol.Type.Union:
@@ -258,8 +249,8 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 					case ASymbol.Type.Import:
 					case ASymbol.Type.UTest:
 					case ASymbol.Type.Template:
-						return SmErrsVal!RExpr([errCallableIncompat(pos,
-									IntrN.TypeOf.format!"$%s", params.map!(p => p.toString))]);
+						return SmErrsVal!RExpr([errCallableIncompat(st.pos,
+									IntrN.TypeOf.format!"$%s", st.params.map!(p => p.toString))]);
 					case ASymbol.Type.EnumConst:
 						type = sym.enumCS.type;
 						break;
@@ -271,24 +262,24 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 						break;
 					case ASymbol.Type.Alias:
 						// TODO: decide on $typeOf(alias)
-						return SmErrsVal!RExpr([errUnsup(pos, "$isType(alias)")]);
+						return SmErrsVal!RExpr([errUnsup(st.pos, "$isType(alias)")]);
 				}
 				break;
 			case AValCT.Type.Type:
-				return SmErrsVal!RExpr([errCallableIncompat(pos,
-							IntrN.TypeOf.format!"$%s", params.map!(p => p.toString))]);
+				return SmErrsVal!RExpr([errCallableIncompat(st.pos,
+							IntrN.TypeOf.format!"$%s", st.params.map!(p => p.toString))]);
 				break;
 			case AValCT.Type.Literal:
-				type = params[0].val.type;
+				type = st.params[0].val.type;
 				break;
 			case AValCT.Type.Expr:
-				type = params[0].expr.type;
+				type = st.params[0].expr.type;
 				break;
 			case AValCT.Type.Seq:
-				return SmErrsVal!RExpr([errUnsup(pos, "$isType(sequence)")]);
+				return SmErrsVal!RExpr([errUnsup(st.pos, "$isType(sequence)")]);
 		}
 		RAValCTExpr r = new RAValCTExpr(type.AValCT);
-		r.pos = pos;
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 }
@@ -320,17 +311,16 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 	}
 
 	@ExprTranslator
-	SmErrsVal!RExpr arrLenTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
-		if (params.length == 1){
-			RArrayLenExpr r = new RArrayLenExpr(params[0].toRExpr);
-			r.pos = pos;
+	SmErrsVal!RExpr arrLenTranslate(IntrSt st){
+		if (st.params.length == 1){
+			RArrayLenExpr r = new RArrayLenExpr(st.params[0].toRExpr);
+			r.pos = st.pos;
 			return SmErrsVal!RExpr(r);
 		}
 		RArrayLenSetExpr r = new RArrayLenSetExpr(
-				params[0].toRExpr,
-				params[1].toRExpr);
-		r.pos = pos;
+				st.params[0].toRExpr,
+				st.params[1].toRExpr);
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 }
@@ -352,12 +342,11 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 	}
 
 	@ExprTranslator
-	SmErrsVal!RExpr arrIndTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+	SmErrsVal!RExpr arrIndTranslate(IntrSt st){
 		RArrayIndexExpr r = new RArrayIndexExpr(
-				params[0].toRExpr,
-				params[1].toRExpr);
-		r.pos = pos;
+				st.params[0].toRExpr,
+				st.params[1].toRExpr);
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 }
@@ -368,9 +357,8 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		return true;
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr seqLenTranslate(string, Location, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
-		return SmErrsVal!RExpr(new RLiteralExpr(params.length.AVal));
+	SmErrsVal!RExpr seqLenTranslate(IntrSt st){
+		return SmErrsVal!RExpr(new RLiteralExpr(st.params.length.AVal));
 	}
 }
 
@@ -383,17 +371,16 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 	}
 
 	@ExprTranslator
-	SmErrsVal!RExpr seqIndTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
-		OptVal!size_t index = params[$ - 1].val.as!size_t;
+	SmErrsVal!RExpr seqIndTranslate(IntrSt st){
+		OptVal!size_t index = st.params[$ - 1].val.as!size_t;
 		if (!index.isVal)
 			return SmErrsVal!RExpr([
-					errIncompatType(pos, ADataType.ofUInt.toString,
-						params[$ - 1].valType.val.toString)]);
-		if (index.val + 1 > params.length)
+					errIncompatType(st.pos, ADataType.ofUInt.toString,
+						st.params[$ - 1].valType.val.toString)]);
+		if (index.val + 1 > st.params.length)
 			return SmErrsVal!RExpr([
-					errBounds(pos, cast(ptrdiff_t)params.length - 1, index.val)]);
-		return SmErrsVal!RExpr(params[index.val].toRExpr);
+					errBounds(st.pos, cast(ptrdiff_t)st.params.length - 1, index.val)]);
+		return SmErrsVal!RExpr(st.params[index.val].toRExpr);
 	}
 }
 
@@ -408,9 +395,8 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		return true;
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr unionIsTranslate(string, Location, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
-		RUnionMemberGetExpr p = cast(RUnionMemberGetExpr)(params[0].toRExpr);
+	SmErrsVal!RExpr unionIsTranslate(IntrSt st){
+		RUnionMemberGetExpr p = cast(RUnionMemberGetExpr)(st.params[0].toRExpr);
 		assert (p !is null);
 		RUnionIsExpr r = new RUnionIsExpr(p.val, p.memId);
 		r.pos = p.pos;
@@ -468,9 +454,8 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 	}
 
 	@ExprTranslator
-	SmErrsVal!RExpr membersTranslate(string, Location pos, STab,
-			IdentU[] ctx, void[0][ASymbol*], RFn[string], AValCT[] params){
-		AValCT p = params[0];
+	SmErrsVal!RExpr membersTranslate(IntrSt st){
+		AValCT p = st.params[0];
 		AValCT[] names;
 		final switch (p.type){
 			case AValCT.Type.Type:
@@ -492,14 +477,14 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 						if (symC is null)
 							break;
 						names = symC.names.byKey
-							.filter!(s => symC.exists(s, ctx))
+							.filter!(s => symC.exists(s, st.ctx))
 							.map!(s => s.AVal.AValCT)
 							.array;
 						break;
 					case ADataType.Type.Union:
 						AUnion* symC = p.typeT.unionS;
 						names = symC.names.byKey
-							.filter!(s => symC.exists(s, ctx))
+							.filter!(s => symC.exists(s, st.ctx))
 							.map!(s => s.AVal.AValCT)
 							.array;
 						break;
@@ -519,14 +504,14 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 					case ASymbol.Type.Struct:
 						AStruct* symC = &p.symS.structS;
 						names = symC.names.byKey
-							.filter!(s => symC.exists(s, ctx))
+							.filter!(s => symC.exists(s, st.ctx))
 							.map!(s => s.AVal.AValCT)
 							.array;
 						break;
 					case ASymbol.Type.Union:
 						AUnion* symC = &p.symS.unionS;
 						names = symC.names.byKey
-							.filter!(s => symC.exists(s, ctx))
+							.filter!(s => symC.exists(s, st.ctx))
 							.map!(s => s.AVal.AValCT)
 							.array;
 						break;
@@ -537,7 +522,7 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 							.array;
 						break;
 					case ASymbol.Type.Import:
-						return SmErrsVal!RExpr([errUnsup(pos, "$members(import)")]);
+						return SmErrsVal!RExpr([errUnsup(st.pos, "$members(import)")]);
 					case ASymbol.Type.Fn:
 					case ASymbol.Type.Var:
 					case ASymbol.Type.EnumConst:
@@ -551,7 +536,7 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 				assert (false); // CallabilityChecker should've stopped this
 		}
 		RAValCTExpr r = new RAValCTExpr(names.AValCT);
-		r.pos = pos;
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 }
@@ -570,12 +555,11 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 	}
 
 	@ExprTranslator
-	SmErrsVal!RExpr memberFieldTranslate(string, Location pos, STab,
-			IdentU[] ctx, void[0][ASymbol*], RFn[string], AValCT[] params){
-		AValCT p = params[0];
-		assert (params[1].type == AValCT.Type.Literal);
-		assert (params[1].val.type == ADataType.ofString);
-		string name = params[1].val.as!string.val;
+	SmErrsVal!RExpr memberFieldTranslate(IntrSt st){
+		AValCT p = st.params[0];
+		assert (st.params[1].type == AValCT.Type.Literal);
+		assert (st.params[1].val.type == ADataType.ofString);
+		string name = st.params[1].val.as!string.val;
 		string res;
 		final switch (p.type){
 			case AValCT.Type.Type:
@@ -594,8 +578,9 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 						assert (false);
 					case ADataType.Type.Struct:
 						AStruct* symC = p.typeT.structS;
-						if (symC is null || !symC.exists(name, ctx))
-							return SmErrsVal!RExpr([errMemberNoExist(pos, p.toString, name)]);
+						if (symC is null || !symC.exists(name, st.ctx))
+							return SmErrsVal!RExpr([
+									errMemberNoExist(st.pos, p.toString, name)]);
 						immutable size_t target = symC.names[name];
 						foreach (string n, size_t id; symC.names){
 							if (id == target){
@@ -606,8 +591,9 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 						break;
 					case ADataType.Type.Union:
 						AUnion* symC = p.typeT.unionS;
-						if (!symC.exists(name, ctx))
-							return SmErrsVal!RExpr([errMemberNoExist(pos, p.toString, name)]);
+						if (!symC.exists(name, st.ctx))
+							return SmErrsVal!RExpr([
+									errMemberNoExist(st.pos, p.toString, name)]);
 						immutable size_t target = symC.names[name];
 						foreach (string n, size_t id; symC.names){
 							if (id == target){
@@ -628,8 +614,9 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 				final switch (p.symS.type){
 					case ASymbol.Type.Struct:
 						AStruct* symC = &p.symS.structS;
-						if (!symC.exists(name, ctx))
-							return SmErrsVal!RExpr([errMemberNoExist(pos, p.toString, name)]);
+						if (!symC.exists(name, st.ctx))
+							return SmErrsVal!RExpr([
+									errMemberNoExist(st.pos, p.toString, name)]);
 						immutable size_t target = symC.names[name];
 						foreach (string n, size_t id; symC.names){
 							if (id == target){
@@ -640,8 +627,9 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 						break;
 					case ASymbol.Type.Union:
 						AUnion* symC = &p.symS.unionS;
-						if (!symC.exists(name, ctx))
-							return SmErrsVal!RExpr([errMemberNoExist(pos, p.toString, name)]);
+						if (!symC.exists(name, st.ctx))
+							return SmErrsVal!RExpr([
+									errMemberNoExist(st.pos, p.toString, name)]);
 						immutable size_t target = symC.names[name];
 						foreach (string n, size_t id; symC.names){
 							if (id == target){
@@ -654,7 +642,7 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 						res = name;
 						break;
 					case ASymbol.Type.Import:
-						return SmErrsVal!RExpr([errUnsup(pos, "$members(import)")]);
+						return SmErrsVal!RExpr([errUnsup(st.pos, "$members(import)")]);
 					case ASymbol.Type.Fn:
 					case ASymbol.Type.Var:
 					case ASymbol.Type.EnumConst:
@@ -668,7 +656,7 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 				assert (false); // CallabilityChecker should've stopped this
 		}
 		RAValCTExpr r = new RAValCTExpr(res.AVal.AValCT);
-		r.pos = pos;
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 }
@@ -694,27 +682,26 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 	}
 
 	@ExprTranslator
-	SmErrsVal!RExpr memberTranslate(string, Location pos, STab,
-			IdentU[] ctx, void[0][ASymbol*], RFn[string], AValCT[] params){
-		assert (params.length == 2);
-		assert (params[1].type == AValCT.Type.Literal);
-		assert (params[1].val.type == ADataType.ofString);
-		string name = params[1].val.as!string.val;
-		if (params[0].type == AValCT.Type.Symbol){
-			assert (params[0].symS.type == ASymbol.Type.Enum);
-			AEnum* enumS = &params[0].symS.enumS;
+	SmErrsVal!RExpr memberTranslate(IntrSt st){
+		assert (st.params.length == 2);
+		assert (st.params[1].type == AValCT.Type.Literal);
+		assert (st.params[1].val.type == ADataType.ofString);
+		string name = st.params[1].val.as!string.val;
+		if (st.params[0].type == AValCT.Type.Symbol){
+			assert (st.params[0].symS.type == ASymbol.Type.Enum);
+			AEnum* enumS = &st.params[0].symS.enumS;
 			immutable ptrdiff_t index = enumS.memId.countUntil(name);
 			if (index < 0){
 				return SmErrsVal!RExpr([
-						errMemberNoExist(pos, enumS.ident.toString, name)]);
+						errMemberNoExist(st.pos, enumS.ident.toString, name)]);
 			}
 			REnumMemberGetExpr r = new REnumMemberGetExpr(
 					AVal(enumS.type, enumS.memVal[index]), enumS, name);
-			r.pos = pos;
+			r.pos = st.pos;
 			return SmErrsVal!RExpr(r);
 		}
 
-		RExpr lhsExpr = params[0].toRExpr;
+		RExpr lhsExpr = st.params[0].toRExpr;
 		ADataType type = lhsExpr.type;
 		RExpr r;
 		assert (type.type == ADataType.Type.Struct ||
@@ -730,8 +717,8 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 					r = new RStructRefMemberGetExpr(lhsExpr,
 							structS.names[name],
 							type.isConst || (
-								structS.ident.length && ctx.length &&
-								ctx[0] != structS.ident[0] &&
+								structS.ident.length && st.ctx.length &&
+								st.ctx[0] != structS.ident[0] &&
 								structS.nameVis[name] == Visibility.IPub)
 							);
 			} else
@@ -740,39 +727,39 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 				r = new RUnionRefMemberGetExpr(lhsExpr,
 						unionS.names[name],
 						type.isConst || (
-							unionS.ident.length && ctx.length &&
-							ctx[0] != unionS.ident[0] &&
+							unionS.ident.length && st.ctx.length &&
+							st.ctx[0] != unionS.ident[0] &&
 							unionS.nameVis[name] == Visibility.IPub)
 						);
 			}
 		} else
 		if (type.type == ADataType.Type.Struct){
 			AStruct* structS = type.structS;
-			if (structS !is null && structS.exists(name, ctx))
+			if (structS !is null && structS.exists(name, st.ctx))
 				r = new RStructMemberGetExpr(lhsExpr,
 						structS.names[name],
 						type.isConst || (
-							structS.ident.length && ctx.length &&
-							ctx[0] != structS.ident[0] &&
+							structS.ident.length && st.ctx.length &&
+							st.ctx[0] != structS.ident[0] &&
 							structS.nameVis[name] == Visibility.IPub)
 						);
 		} else
 		if (type.type == ADataType.Type.Union){
 			AUnion* unionS = type.unionS;
-			if (unionS.exists(name, ctx))
+			if (unionS.exists(name, st.ctx))
 				r = new RUnionMemberGetExpr(lhsExpr,
 						unionS.names[name],
 						type.isConst || (
-							unionS.ident.length && ctx.length &&
-							ctx[0] != unionS.ident[0] &&
+							unionS.ident.length && st.ctx.length &&
+							st.ctx[0] != unionS.ident[0] &&
 							unionS.nameVis[name] == Visibility.IPub)
 						);
 		}
 		if (r is null){
 			return SmErrsVal!RExpr([
-					errMemberNoExist(pos, type.toString, name)]);
+					errMemberNoExist(st.pos, type.toString, name)]);
 		}
-		r.pos = pos;
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 }
@@ -787,15 +774,14 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		return true;
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr attrsOfTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[]){
+	SmErrsVal!RExpr attrsOfTranslate(IntrSt st){
 		return SmErrsVal!RExpr([
-				errUnsup(pos, "$attrsOf")]);
+				errUnsup(st.pos, "$attrsOf")]);
 	}
 }
 
 @Intr(IntrN.ByAttrs){
-	@CallabilityChecker byAttrsCanCall(AValCT[] params){
+	@CallabilityChecker bool byAttrsCanCall(AValCT[] params){
 		if (params.length != 2)
 			return false;
 		if (params[0].type != AValCT.Type.Symbol)
@@ -804,10 +790,9 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		return true;
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr byAttrsTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[]){
+	SmErrsVal!RExpr byAttrsTranslate(IntrSt st){
 		return SmErrsVal!RExpr([
-				errUnsup(pos, "$byAttrs")]);
+				errUnsup(st.pos, "$byAttrs")]);
 	}
 }
 
@@ -817,11 +802,10 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		return params.length == 0;
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr debugTranslate(string, Location pos, STab stabR,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[]){
+	SmErrsVal!RExpr debugTranslate(IntrSt st){
 		RLiteralExpr r = new RLiteralExpr(
-				stabR.canFind("$debug".IdentU, [IdentU.init]).AVal);
-		r.pos = pos;
+				st.stabR.canFind("$debug".IdentU, [IdentU.init]).AVal);
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 }
@@ -832,10 +816,9 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		return params.length == 0;
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr stackTraceTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[]){
+	SmErrsVal!RExpr stackTraceTranslate(IntrSt st){
 		RStackTraceExpr r = new RStackTraceExpr();
-		r.pos = pos;
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 }
@@ -848,10 +831,9 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 			params[0].val.type == ADataType.ofString;
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr errTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+	SmErrsVal!RExpr errTranslate(IntrSt st){
 		return SmErrsVal!RExpr([
-				errErr(pos, params[0].val.as!string.val)]);
+				errErr(st.pos, st.params[0].val.as!string.val)]);
 	}
 }
 
@@ -861,10 +843,9 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		return params.length != 0;
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr ctWriteTranslate(string, Location, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+	SmErrsVal!RExpr ctWriteTranslate(IntrSt st){
 		import std.stdio : writefln;
-		writefln!"CTWRITE: %(%s%)"(params);
+		writefln!"CTWRITE: %(%s%)"(st.params);
 		return SmErrsVal!RExpr(RNoOpExpr.instance);
 	}
 }
@@ -875,11 +856,10 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 		return params.length == 1;
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr rtWriteTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+	SmErrsVal!RExpr rtWriteTranslate(IntrSt st){
 		RTWriteExpr r = new RTWriteExpr;
-		r.val = params[0].toRExpr;
-		r.pos = pos;
+		r.val = st.params[0].toRExpr;
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 }
@@ -894,10 +874,9 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 			type.type == ADataType.Type.IntX;
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr negateTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
-		RNegExpr r = new RNegExpr(params[0].toRExpr);
-		r.pos = pos;
+	SmErrsVal!RExpr negateTranslate(IntrSt st){
+		RNegExpr r = new RNegExpr(st.params[0].toRExpr);
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 }
@@ -913,10 +892,9 @@ SmErrsVal!RExpr arrayTranslate(string, Location pos, STab,
 			type.type == ADataType.Type.UIntX;
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr bitNotTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
-		RBitNotExpr r = new RBitNotExpr(params[0].toRExpr);
-		r.pos = pos;
+	SmErrsVal!RExpr bitNotTranslate(IntrSt st){
+		RBitNotExpr r = new RBitNotExpr(st.params[0].toRExpr);
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 }
@@ -936,23 +914,22 @@ bool bitBinCanCall(AValCT[] params){
 @Intr(IntrN.BitAnd)
 @Intr(IntrN.BitOr)
 @Intr(IntrN.BitXor)
-SmErrsVal!RExpr bitBinTranslate(string name, Location pos, STab,
-		IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+SmErrsVal!RExpr bitBinTranslate(IntrSt st){
 	RExpr r;
-	switch (name){
+	switch (st.name){
 		case IntrN.BitAnd:
-			r = new RBitAndExpr(params[0].toRExpr, params[1].toRExpr);
+			r = new RBitAndExpr(st.params[0].toRExpr, st.params[1].toRExpr);
 			break;
 		case IntrN.BitOr:
-			r = new RBitOrExpr(params[0].toRExpr, params[1].toRExpr);
+			r = new RBitOrExpr(st.params[0].toRExpr, st.params[1].toRExpr);
 			break;
 		case IntrN.BitXor:
-			r = new RBitXorExpr(params[0].toRExpr, params[1].toRExpr);
+			r = new RBitXorExpr(st.params[0].toRExpr, st.params[1].toRExpr);
 			break;
 		default:
 			assert (false);
 	}
-	r.pos = pos;
+	r.pos = st.pos;
 	return SmErrsVal!RExpr(r);
 }
 
@@ -977,26 +954,25 @@ bool arithBinCanCall(AValCT[] params){
 @Intr(IntrN.Sub)
 @Intr(IntrN.Mul)
 @Intr(IntrN.Div)
-SmErrsVal!RExpr arithBinTranslate(string name, Location pos, STab,
-		IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+SmErrsVal!RExpr arithBinTranslate(IntrSt st){
 	RExpr r;
-	switch (name){
+	switch (st.name){
 		case IntrN.Add:
-			r = new RAddExpr(params[0].toRExpr, params[1].toRExpr);
+			r = new RAddExpr(st.params[0].toRExpr, st.params[1].toRExpr);
 			break;
 		case IntrN.Sub:
-			r = new RSubExpr(params[0].toRExpr, params[1].toRExpr);
+			r = new RSubExpr(st.params[0].toRExpr, st.params[1].toRExpr);
 			break;
 		case IntrN.Mul:
-			r = new RMulExpr(params[0].toRExpr, params[1].toRExpr);
+			r = new RMulExpr(st.params[0].toRExpr, st.params[1].toRExpr);
 			break;
 		case IntrN.Div:
-			r = new RDivExpr(params[0].toRExpr, params[1].toRExpr);
+			r = new RDivExpr(st.params[0].toRExpr, st.params[1].toRExpr);
 			break;
 		default:
 			assert (false);
 	}
-	r.pos = pos;
+	r.pos = st.pos;
 	return SmErrsVal!RExpr(r);
 }
 
@@ -1012,10 +988,9 @@ SmErrsVal!RExpr arithBinTranslate(string name, Location pos, STab,
 		return type == params[1].valType.val;
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr modTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
-		RModExpr r = new RModExpr(params[0].toRExpr, params[1].toRExpr);
-		r.pos = pos;
+	SmErrsVal!RExpr modTranslate(IntrSt st){
+		RModExpr r = new RModExpr(st.params[0].toRExpr, st.params[1].toRExpr);
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 }
@@ -1038,20 +1013,19 @@ bool shiftCanCall(AValCT[] params){
 @ExprTranslator
 @Intr(IntrN.ShiftL)
 @Intr(IntrN.ShiftR)
-SmErrsVal!RExpr shiftTranslate(string name, Location pos, STab,
-		IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+SmErrsVal!RExpr shiftTranslate(IntrSt st){
 	RExpr r;
-	switch (name){
+	switch (st.name){
 		case IntrN.ShiftL:
-			r = new RShiftLExpr(params[0].toRExpr, params[1].toRExpr);
+			r = new RShiftLExpr(st.params[0].toRExpr, st.params[1].toRExpr);
 			break;
 		case IntrN.ShiftR:
-			r = new RShiftRExpr(params[0].toRExpr, params[1].toRExpr);
+			r = new RShiftRExpr(st.params[0].toRExpr, st.params[1].toRExpr);
 			break;
 		default:
 			assert (false);
 	}
-	r.pos = pos;
+	r.pos = st.pos;
 	return SmErrsVal!RExpr(r);
 }
 
@@ -1071,18 +1045,17 @@ bool cmpCanCall(AValCT[] params){
 @Intr(IntrN.Is)
 @Intr(IntrN.IsNot)
 @Intr(IntrN.IsLess)
-SmErrsVal!RExpr cmpTranslate(string name, Location, STab,
-		IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
+SmErrsVal!RExpr cmpTranslate(IntrSt st){
 	RExpr r;
-	switch (name){
+	switch (st.name){
 		case IntrN.Is:
-			r = new RCmpIsExpr(params[0].toRExpr, params[1].toRExpr);
+			r = new RCmpIsExpr(st.params[0].toRExpr, st.params[1].toRExpr);
 			break;
 		case IntrN.IsNot:
-			r = new RCmpNotIsExpr(params[0].toRExpr, params[1].toRExpr);
+			r = new RCmpNotIsExpr(st.params[0].toRExpr, st.params[1].toRExpr);
 			break;
 		case IntrN.IsLess:
-			r = new RCmpLessExpr(params[0].toRExpr, params[1].toRExpr);
+			r = new RCmpLessExpr(st.params[0].toRExpr, st.params[1].toRExpr);
 			break;
 		default:
 			assert (false);
@@ -1098,10 +1071,9 @@ SmErrsVal!RExpr cmpTranslate(string name, Location, STab,
 			params[0].valType.val.type == ADataType.Type.Bool;
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr notTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
-		RNotExpr r = new RNotExpr(params[0].toRExpr);
-		r.pos = pos;
+	SmErrsVal!RExpr notTranslate(IntrSt st){
+		RNotExpr r = new RNotExpr(st.params[0].toRExpr);
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 }
@@ -1118,11 +1090,10 @@ SmErrsVal!RExpr cmpTranslate(string name, Location, STab,
 		return from.canCastTo(target); // TODO: get ctx here
 	}
 	@ExprTranslator
-	SmErrsVal!RExpr toTranslate(string, Location pos, STab,
-			IdentU[], void[0][ASymbol*], RFn[string], AValCT[] params){
-		RExpr param = params[0].toRExpr;
-		RToExpr r = new RToExpr(param, params[1].asType.val);
-		r.pos = pos;
+	SmErrsVal!RExpr toTranslate(IntrSt st){
+		RExpr param = st.params[0].toRExpr;
+		RToExpr r = new RToExpr(param, st.params[1].asType.val);
+		r.pos = st.pos;
 		return SmErrsVal!RExpr(r);
 	}
 }

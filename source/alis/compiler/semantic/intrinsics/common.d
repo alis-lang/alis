@@ -44,6 +44,24 @@ public:
 	}
 }
 
+/// state passed to `ExprTranslator` function
+package struct IntrSt{
+	/// intrinsic name
+	string name;
+	/// location
+	Location pos;
+	/// root level symbol table
+	STab stabR;
+	/// context
+	IdentU[] ctx;
+	/// dependent symbols
+	void[0][ASymbol*] dep;
+	/// functions
+	RFn[string] fns;
+	/// params passed to intrinsic
+	AValCT[] params;
+}
+
 /// Whether a function is a callabality checker
 private template IsCallabilityChecker(alias Fn){
 	enum IsCallabilityChecker =
@@ -62,16 +80,8 @@ private template IsExprTranslator(alias Fn){
 	enum IsExprTranslator =
 		isCallable!Fn &&
 		hasUDA!(Fn, ExprTranslator) &&
-		hasUDA!(Fn, Intr) && Parameters!Fn.length == 7 &&
-		(
-		 is (string : Parameters!Fn[0]) &&
-		 is (Location : Parameters!Fn[1]) &&
-		 is (STab : Parameters!Fn[2]) &&
-		 is (IdentU[] : Parameters!Fn[3]) &&
-		 is (void[0][ASymbol*] : Parameters!Fn[4]) &&
-		 is (RFn[string] : Parameters!Fn[5]) &&
-		 is (AValCT[] : Parameters!Fn[6])
-		) &&
+		hasUDA!(Fn, Intr) && Parameters!Fn.length == 1 &&
+		is (IntrSt : Parameters!Fn[0]) &&
 		is (ReturnType!Fn : SmErrsVal!RExpr);
 }
 
@@ -126,7 +136,7 @@ public SmErrsVal!RExpr resolveIntrN(F...)(string name, Location pos,
 			static foreach (Intr i; getUDAs!(Fn, Intr)){
 				case i.name:
 			}
-			return Fn(name, pos, stabR, ctx, dep, fns, params);
+			return Fn(IntrSt(name, pos, stabR, ctx, dep, fns, params));
 		}
 	default:
 		return SmErrsVal!RExpr([errIntrUnk(pos, name)]);
