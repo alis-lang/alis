@@ -36,7 +36,7 @@ alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
 
 @Intr(IntrN.NoInit){
 	@CallabilityChecker
-	bool noinitCanCall(AValCT[] params) pure {
+	bool noinitCanCall(AValCT[] params, IdentU[] ctx) pure {
 		return params.length == 0;
 	}
 	@ExprTranslator
@@ -49,7 +49,7 @@ alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
 
 @Intr(IntrN.NoInitVal){
 	@CallabilityChecker
-	bool noinitvalCanCall(AValCT[] params){
+	bool noinitvalCanCall(AValCT[] params, IdentU[] ctx){
 		return params.length == 0;
 	}
 	@ExprTranslator
@@ -63,7 +63,7 @@ alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
 
 @Intr(IntrN.Init){
 	@CallabilityChecker
-	bool initCanCall(AValCT[] params){
+	bool initCanCall(AValCT[] params, IdentU[] ctx){
 		if (params.length != 1)
 			return false;
 		AValCT p = params[0];
@@ -106,7 +106,7 @@ alias ExprTranslators = ExprTranslatorsOf!(mixin(__MODULE__));
 @Intr(IntrN.Int)
 @Intr(IntrN.UInt)
 @Intr(IntrN.Float)
-bool bitXCanCall(AValCT[] params){
+bool bitXCanCall(AValCT[] params, IdentU[] ctx){
 	if (params.length > 1)
 		return false;
 	AValCT p = params[0];
@@ -169,7 +169,7 @@ bool bitXCanCall(AValCT[] params){
 @CallabilityChecker
 @Intr(IntrN.Slice)
 @Intr(IntrN.Array)
-bool firstAndOnlyParamShallBeADataType(AValCT[] params){
+bool firstAndOnlyParamShallBeADataType(AValCT[] params, IdentU[] ctx){
 	if (params.length != 1)
 		return false;
 	if (params[0].type == AValCT.Type.Type)
@@ -198,7 +198,7 @@ SmErrsVal!RExpr arrayTranslate(IntrSt st){
 
 @Intr(IntrN.IsType){
 	@CallabilityChecker
-	bool isTypeCanCall(AValCT[] params){
+	bool isTypeCanCall(AValCT[] params, IdentU[] ctx){
 		return params.length == 1;
 	}
 	@ExprTranslator
@@ -227,7 +227,7 @@ SmErrsVal!RExpr arrayTranslate(IntrSt st){
 
 @Intr(IntrN.TypeOf){
 	@CallabilityChecker
-	bool typeOfCanCall(AValCT[] params){
+	bool typeOfCanCall(AValCT[] params, IdentU[] ctx){
 		return !(typeOfTranslate(IntrSt(string.init, Location.init,
 					null, null, null, null, params)).isErr);
 	}
@@ -286,7 +286,7 @@ SmErrsVal!RExpr arrayTranslate(IntrSt st){
 
 @Intr(IntrN.ArrayLen){
 	@CallabilityChecker
-	bool arrLenCanCall(AValCT[] params){
+	bool arrLenCanCall(AValCT[] params, IdentU[] ctx){
 		if (params.length == 0 || !params[0].isVal)
 			return false;
 		ADataType type = params[0].valType.val;
@@ -327,7 +327,7 @@ SmErrsVal!RExpr arrayTranslate(IntrSt st){
 
 @Intr(IntrN.ArrayInd){
 	@CallabilityChecker
-	bool arrIndCanCall(AValCT[] params){
+	bool arrIndCanCall(AValCT[] params, IdentU[] ctx){
 		if (params.length != 2)
 			return false;
 		if (!params[0].isVal || !params[1].isVal)
@@ -364,7 +364,7 @@ SmErrsVal!RExpr arrayTranslate(IntrSt st){
 
 @Intr(IntrN.SeqInd){
 	@CallabilityChecker
-	bool seqIndCanCall(AValCT[] params){
+	bool seqIndCanCall(AValCT[] params, IdentU[] ctx){
 		return params.length >= 2 &&
 			params[$ - 1].isVal &&
 			params[$ - 1].canCastTo(ADataType.ofUInt);
@@ -386,7 +386,7 @@ SmErrsVal!RExpr arrayTranslate(IntrSt st){
 
 @Intr(IntrN.UnionIs){
 	@CallabilityChecker
-	bool unionIsCanCall(AValCT[] params){
+	bool unionIsCanCall(AValCT[] params, IdentU[] ctx){
 		if (params.length != 1)
 			return false;
 		RUnionMemberGetExpr p = cast(RUnionMemberGetExpr)(params[0].toRExpr);
@@ -406,7 +406,7 @@ SmErrsVal!RExpr arrayTranslate(IntrSt st){
 
 @Intr(IntrN.Members){
 	@CallabilityChecker
-	bool membersCanCall(AValCT[] params){
+	bool membersCanCall(AValCT[] params, IdentU[] ctx){
 		if (params.length != 1)
 			return false;
 		AValCT p = params[0];
@@ -543,10 +543,10 @@ SmErrsVal!RExpr arrayTranslate(IntrSt st){
 
 @Intr(IntrN.MemberField){
 	@CallabilityChecker
-	bool memberFieldCanCall(AValCT[] params){
+	bool memberFieldCanCall(AValCT[] params, IdentU[] ctx){
 		if (params.length != 2)
 			return false;
-		if (!params[0 .. 1].membersCanCall)
+		if (!params[0 .. 1].membersCanCall(ctx))
 			return false;
 		if (params[1].type != AValCT.Type.Literal ||
 				params[1].val.type != ADataType.ofString)
@@ -663,7 +663,7 @@ SmErrsVal!RExpr arrayTranslate(IntrSt st){
 
 @Intr(IntrN.Member){
 	@CallabilityChecker
-	bool memberCanCall(AValCT[] params){
+	bool memberCanCall(AValCT[] params, IdentU[] ctx){
 		if (params.length != 2)
 			return false;
 		if (params[1].type != AValCT.Type.Literal ||
@@ -766,7 +766,7 @@ SmErrsVal!RExpr arrayTranslate(IntrSt st){
 
 @Intr(IntrN.AttrsOf){
 	@CallabilityChecker
-	bool attrsOfCanCall(AValCT[] params){
+	bool attrsOfCanCall(AValCT[] params, IdentU[] ctx){
 		if (params.length != 1)
 			return false;
 		if (params[0].type != AValCT.Type.Symbol)
@@ -781,7 +781,7 @@ SmErrsVal!RExpr arrayTranslate(IntrSt st){
 }
 
 @Intr(IntrN.ByAttrs){
-	@CallabilityChecker bool byAttrsCanCall(AValCT[] params){
+	@CallabilityChecker bool byAttrsCanCall(AValCT[] params, IdentU[] ctx){
 		if (params.length != 2)
 			return false;
 		if (params[0].type != AValCT.Type.Symbol)
@@ -798,7 +798,7 @@ SmErrsVal!RExpr arrayTranslate(IntrSt st){
 
 @Intr(IntrN.Debug){
 	@CallabilityChecker
-	bool debugCanCall(AValCT[] params){
+	bool debugCanCall(AValCT[] params, IdentU[] ctx){
 		return params.length == 0;
 	}
 	@ExprTranslator
@@ -812,7 +812,7 @@ SmErrsVal!RExpr arrayTranslate(IntrSt st){
 
 @Intr(IntrN.StackTrace){
 	@CallabilityChecker
-	bool stackTraceCanCall(AValCT[] params){
+	bool stackTraceCanCall(AValCT[] params, IdentU[] ctx){
 		return params.length == 0;
 	}
 	@ExprTranslator
@@ -825,7 +825,7 @@ SmErrsVal!RExpr arrayTranslate(IntrSt st){
 
 @Intr(IntrN.Err){
 	@CallabilityChecker
-	bool errCanCall(AValCT[] params){
+	bool errCanCall(AValCT[] params, IdentU[] ctx){
 		return params.length == 1 &&
 			params[0].type == AValCT.Type.Literal &&
 			params[0].val.type == ADataType.ofString;
@@ -839,7 +839,7 @@ SmErrsVal!RExpr arrayTranslate(IntrSt st){
 
 @Intr(IntrN.CTWrite){
 	@CallabilityChecker
-	bool ctWriteCanCall(AValCT[] params) pure {
+	bool ctWriteCanCall(AValCT[] params, IdentU[] ctx) pure {
 		return params.length != 0;
 	}
 	@ExprTranslator
@@ -852,7 +852,7 @@ SmErrsVal!RExpr arrayTranslate(IntrSt st){
 
 @Intr(IntrN.RTWrite){
 	@CallabilityChecker
-	bool rtWriteCanCall(AValCT[] params) pure {
+	bool rtWriteCanCall(AValCT[] params, IdentU[] ctx) pure {
 		return params.length == 1;
 	}
 	@ExprTranslator
@@ -866,7 +866,7 @@ SmErrsVal!RExpr arrayTranslate(IntrSt st){
 
 @Intr(IntrN.Negate){
 	@CallabilityChecker
-	bool negateCanCall(AValCT[] params){
+	bool negateCanCall(AValCT[] params, IdentU[] ctx){
 		if (params.length != 1 || !params[0].isVal)
 			return false;
 		ADataType type = params[0].valType.val;
@@ -883,7 +883,7 @@ SmErrsVal!RExpr arrayTranslate(IntrSt st){
 
 @Intr(IntrN.BitNot){
 	@CallabilityChecker
-	bool bitNotCanCall(AValCT[] params){
+	bool bitNotCanCall(AValCT[] params, IdentU[] ctx){
 		if (params.length != 1 || !params[0].isVal)
 			return false;
 		ADataType type = params[0].valType.val;
@@ -903,7 +903,7 @@ SmErrsVal!RExpr arrayTranslate(IntrSt st){
 @Intr(IntrN.BitAnd)
 @Intr(IntrN.BitOr)
 @Intr(IntrN.BitXor)
-bool bitBinCanCall(AValCT[] params){
+bool bitBinCanCall(AValCT[] params, IdentU[] ctx){
 	return params.length == 2 &&
 		params[0].isVal &&
 		params[1].isVal &&
@@ -938,7 +938,7 @@ SmErrsVal!RExpr bitBinTranslate(IntrSt st){
 @Intr(IntrN.Sub)
 @Intr(IntrN.Mul)
 @Intr(IntrN.Div)
-bool arithBinCanCall(AValCT[] params){
+bool arithBinCanCall(AValCT[] params, IdentU[] ctx){
 	if (params.length != 2 || !params[0].isVal || !params[1].isVal)
 		return false;
 	ADataType type = params[0].valType.val;
@@ -978,7 +978,7 @@ SmErrsVal!RExpr arithBinTranslate(IntrSt st){
 
 @Intr(IntrN.Mod){
 	@CallabilityChecker
-	bool modCanCall(AValCT[] params){
+	bool modCanCall(AValCT[] params, IdentU[] ctx){
 		if (params.length != 2 || !params[0].isVal || !params[1].isVal)
 			return false;
 		ADataType type = params[0].valType.val;
@@ -998,7 +998,7 @@ SmErrsVal!RExpr arithBinTranslate(IntrSt st){
 @CallabilityChecker
 @Intr(IntrN.ShiftL)
 @Intr(IntrN.ShiftR)
-bool shiftCanCall(AValCT[] params){
+bool shiftCanCall(AValCT[] params, IdentU[] ctx){
 	if (params.length != 2 || !params[0].isVal || !params[1].isVal)
 		return false;
 	ADataType type = params[0].valType.val;
@@ -1033,7 +1033,7 @@ SmErrsVal!RExpr shiftTranslate(IntrSt st){
 @Intr(IntrN.Is)
 @Intr(IntrN.IsNot)
 @Intr(IntrN.IsLess)
-bool cmpCanCall(AValCT[] params){
+bool cmpCanCall(AValCT[] params, IdentU[] ctx){
 	if (params.length != 2 ||
 			!params[0].isVal ||
 			!params[1].isVal)
@@ -1065,7 +1065,7 @@ SmErrsVal!RExpr cmpTranslate(IntrSt st){
 
 @Intr(IntrN.Not){
 	@CallabilityChecker
-	bool notCanCall(AValCT[] params){
+	bool notCanCall(AValCT[] params, IdentU[] ctx){
 		return params.length == 1 &&
 			params[0].isVal &&
 			params[0].valType.val.type == ADataType.Type.Bool;
@@ -1080,14 +1080,14 @@ SmErrsVal!RExpr cmpTranslate(IntrSt st){
 
 @Intr(IntrN.To){
 	@CallabilityChecker
-	bool toCanCall(AValCT[] params){
+	bool toCanCall(AValCT[] params, IdentU[] ctx){
 		if (params.length != 2 ||
 				!params[0].isVal ||
 				!(!params[1].isVal && params[1].asType.isVal))
 			return false;
 		ADataType from = params[0].valType.val;
 		ADataType target = params[1].asType.val;
-		return from.canCastTo(target); // TODO: get ctx here
+		return from.canCastTo(target, ctx);
 	}
 	@ExprTranslator
 	SmErrsVal!RExpr toTranslate(IntrSt st){

@@ -67,11 +67,9 @@ private template IsCallabilityChecker(alias Fn){
 	enum IsCallabilityChecker =
 		isCallable!Fn &&
 		hasUDA!(Fn, CallabilityChecker) &&
-		hasUDA!(Fn, Intr) && Parameters!Fn.length == 1 &&
-		(
-		 is (AValCT[] : Parameters!Fn[0]) ||
-		 is (RExpr[] : Parameters!Fn[0])
-		) &&
+		hasUDA!(Fn, Intr) && Parameters!Fn.length == 2 &&
+		is (AValCT[] : Parameters!Fn[0]) &&
+		is (IdentU[] : Parameters!Fn[1]) &&
 		is (ReturnType!Fn : size_t);
 }
 
@@ -113,14 +111,14 @@ package template ExprTranslatorsOf(alias M){
 /// `size_t.max` -> not callable
 /// `0` -> highest callability
 /// Returns: callability score
-public size_t callabilityOf(F...)(string intrN, AValCT[] params) if (
-		allSatisfy!(IsCallabilityChecker, F)){
+public size_t callabilityOf(F...)(string intrN, AValCT[] params, IdentU[] ctx)
+		if (allSatisfy!(IsCallabilityChecker, F)){
 	switch (intrN){
 		static foreach (Fn; F){
 			static foreach (Intr i; getUDAs!(Fn, Intr)){
 				case i.name:
 			}
-			return Fn(params) == true ? 0 : size_t.max;
+			return Fn(params, ctx) == true ? 0 : size_t.max;
 		}
 	default:
 		return size_t.max;

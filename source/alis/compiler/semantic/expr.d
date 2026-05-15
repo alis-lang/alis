@@ -536,7 +536,7 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 			st.errs ~= errIntrUnk(node.pos, node.name);
 			return;
 		}
-		if (callabilityOf(node.name, st.params) == size_t.max){
+		if (callabilityOf(node.name, st.params, st.ctx) == size_t.max){
 			st.errs ~= errCallableIncompat(node.pos, node.name.format!"$%s",
 					st.params.map!(p => p.toString));
 			return;
@@ -647,7 +647,7 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 		if (!lhsIsSeq){
 			if (IdentExpr rhsId = cast(IdentExpr)node.rhs){
 				AValCT[] params = [lhs[0], rhsId.ident.AVal.AValCT];
-				if (IntrN.Member.callabilityOf(params) != size_t.max){
+				if (IntrN.Member.callabilityOf(params, st.ctx) != size_t.max){
 					SmErrsVal!RExpr res = IntrN.Member.resolveIntrN(node.pos, params,
 							st.stabR, st.ctx, st.dep, st.fns);
 					if (res.isErr){
@@ -669,7 +669,7 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 
 		// rhs is intrinsic
 		if (IntrinsicExpr intr = cast(IntrinsicExpr)node.rhs){
-			if (st.params && intr.name.callabilityOf(pTypes) != size_t.max){
+			if (st.params && intr.name.callabilityOf(pTypes, st.ctx) != size_t.max){
 				RIntrinsicPartCallExpr r = new RIntrinsicPartCallExpr;
 				r.pos = intr.pos;
 				r.name = intr.name;
@@ -687,7 +687,7 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 				st.res = r;
 				return;
 			} else
-			if (intr.name.callabilityOf(lhs) != size_t.max){
+			if (intr.name.callabilityOf(lhs, st.ctx) != size_t.max){
 				RExpr r; {
 					SmErrsVal!RExpr res = resolveIntrN(intr.name, intr.pos, lhs,
 							st.stabR, st.ctx, st.dep, st.fns);
@@ -844,7 +844,8 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 				st.errs ~= paramVal.err;
 				return;
 			}
-			if (callabilityOf(IntrN.ArrayInd, [subVal, paramVal.val]) == size_t.max){
+			if (callabilityOf(IntrN.ArrayInd, [subVal, paramVal.val],
+						st.ctx) == size_t.max){
 				st.errs ~= errCallableIncompat(node.pos, IntrN.ArrayInd.format!"$%s",
 						[subVal, paramVal.val].map!(p => p.toString));
 				return;
