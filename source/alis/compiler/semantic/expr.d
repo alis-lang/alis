@@ -679,11 +679,6 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 					assert (false,
 							"cannot expect data type from partial intrinsic call");
 				}
-				if (st.params.length){
-					debug stderr.writeln("st.params in partial intrinsic call!");
-					assert (false,
-							"cannot expect callability from partial intrinsic call");
-				}
 				st.res = r;
 				return;
 			} else
