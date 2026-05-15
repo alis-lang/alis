@@ -675,7 +675,6 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 				r.name = intr.name;
 				r.params = lhs;
 				if (st.expT.isVal){
-					debug stderr.writeln("st.isExpT in partial intrinsic call!");
 					assert (false,
 							"cannot expect data type from partial intrinsic call");
 				}
