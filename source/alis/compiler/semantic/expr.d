@@ -371,6 +371,7 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 		}
 		r.body = exprRes.val;
 		symC.retT = r.body.type;
+		sym.isComplete = true;
 		resultSet(node.pos, res, st);
 	}
 
