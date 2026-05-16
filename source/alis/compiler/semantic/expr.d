@@ -352,6 +352,25 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 		st.fns[symC.uid] = r;
 		st.stab.add(name.IdentU, sym, st.ctx);
 		RExpr res = new RFnExpr(symC);
+
+		STab subSt = new STab;
+		foreach (size_t i; 0 .. symC.paramsN.length){
+			ASymbol* param = new ASymbol(
+					AVar(st.ctx ~ symC.uid.IdentU ~ symC.paramsN[i].IdentU,
+						symC.paramsT[i], symC.paramsV[i]));
+			param.varS.uid = param.ident.toString;
+			param.isComplete = true;
+			subSt.add(symC.paramsN[i].IdentU, param, param.ident[0 .. 1]);
+		}
+		st.stab.add(symC.uid.IdentU, subSt, symC.vis, st.ctx);
+		SmErrsVal!RExpr exprRes = resolve(node.body, st.stabR,
+				st.ctx ~ symC.uid.IdentU, st.dep, st.fns);
+		if (exprRes.isErr){
+			st.errs ~= exprRes.err;
+			return;
+		}
+		r.body = exprRes.val;
+		symC.retT = r.body.type;
 		resultSet(node.pos, res, st);
 	}
 
