@@ -131,22 +131,23 @@ private bool isRecDep(ASTNode node, ref St1 st){
 		r.ident = symC.ident.toString;
 		r.paramsT = symC.paramsT;
 		r.paramsN = symC.paramsN;
+		string encodedName = symC.ident[$ - 1].toString.fnNameEncode(symC.paramsT);
 		symC.uid = fnNameEncode(symC.ident.toString, symC.paramsT);
 		st.fns[symC.uid] = r;
 
 		STab subSt = new STab;
 		foreach (size_t i; 0 .. symC.paramsN.length){
 			ASymbol* param = new ASymbol(
-					AVar(st.ctx ~ symC.uid.IdentU ~ symC.paramsN[i].IdentU,
+					AVar(st.ctx ~ encodedName.IdentU ~ symC.paramsN[i].IdentU,
 						symC.paramsT[i], symC.paramsV[i]));
 			param.varS.uid = param.ident.toString;
 			param.isComplete = true;
 			subSt.add(symC.paramsN[i].IdentU, param, param.ident[0 .. 1]);
 		}
 
-		st.stab.add(symC.uid.IdentU, subSt, symC.vis, st.ctx);
+		st.stab.add(encodedName.IdentU, subSt, symC.vis, st.ctx);
 		SmErrsVal!RExpr exprRes = resolve(node.body, st.stabR,
-				st.ctx ~ symC.uid.IdentU, st.dep, st.fns);
+				st.ctx ~ encodedName.IdentU, st.dep, st.fns);
 		if (exprRes.isErr){
 			st.errs ~= exprRes.err;
 			return;

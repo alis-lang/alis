@@ -310,7 +310,7 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 		ASymbol* sym = new ASymbol(AFn(st.ctx ~ name.IdentU));
 		AFn* symC = &sym.fnS;
 		symC.vis = Visibility.Default;
-		symC.uid = st.ctx.toString ~ name;
+		symC.uid = format!"%s.%s"(st.ctx.toString, name);
 		symC.isAlisFn = true;
 
 		void[0][string] nameSet;
@@ -348,23 +348,23 @@ private bool resultSet(Location pos, RExpr expr, ref St st){
 		r.ident = symC.ident.toString;
 		r.paramsT = symC.paramsT;
 		r.paramsN = symC.paramsN;
-		symC.uid = fnNameEncode(symC.ident.toString, symC.paramsT);
 		st.fns[symC.uid] = r;
 		st.stab.add(name.IdentU, sym, st.ctx);
 		RExpr res = new RFnExpr(symC);
 
+		string encodedName = symC.ident[$ - 1].toString.fnNameEncode(symC.paramsT);
 		STab subSt = new STab;
 		foreach (size_t i; 0 .. symC.paramsN.length){
 			ASymbol* param = new ASymbol(
-					AVar(st.ctx ~ symC.uid.IdentU ~ symC.paramsN[i].IdentU,
+					AVar(st.ctx ~ encodedName.IdentU ~ symC.paramsN[i].IdentU,
 						symC.paramsT[i], symC.paramsV[i]));
 			param.varS.uid = param.ident.toString;
 			param.isComplete = true;
 			subSt.add(symC.paramsN[i].IdentU, param, param.ident[0 .. 1]);
 		}
-		st.stab.add(symC.uid.IdentU, subSt, symC.vis, st.ctx);
+		st.stab.add(encodedName.IdentU, subSt, symC.vis, st.ctx);
 		SmErrsVal!RExpr exprRes = resolve(node.body, st.stabR,
-				st.ctx ~ symC.uid.IdentU, st.dep, st.fns);
+				st.ctx ~ encodedName.IdentU, st.dep, st.fns);
 		if (exprRes.isErr){
 			st.errs ~= exprRes.err;
 			return;
